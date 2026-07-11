@@ -24,7 +24,7 @@ def main():
 
         print("\n🎉 Context Clipboard Initialized!")
         time.sleep(1.5)
-        webbrowser.open("http://localhost:8000/settings")
+        webbrowser.open("http://localhost:8000/welcome")
 
         input("\nPress ENTER to stop the background server.")
 

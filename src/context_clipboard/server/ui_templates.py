@@ -132,3 +132,297 @@ SETTINGS_HTML = """
 </body>
 </html>
 """
+
+WELCOME_HTML="""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Context Clipboard</title>
+    <style>
+        :root {
+            --bg-base: #0c0d10;
+            --bg-card: #16181d;
+            --border-color: #2d313a;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --success-color: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
+                linear-gradient(to bottom, transparent, var(--bg-base));
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 60px 24px;
+            margin: 0 auto;
+        }
+
+        /* Hero Section */
+        .hero { text-align: center; margin-bottom: 48px; }
+        
+        .hero-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 12px var(--accent-glow));
+        }
+
+        .hero h1 {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+            color: #f8fafc;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Setup Flow */
+        .setup-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -16px;
+            left: 32px;
+            background: var(--accent-blue);
+            color: white;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 0 0 4px var(--bg-base);
+        }
+
+        .step-content { flex: 1; }
+        
+        .step-content h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #f8fafc;
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        /* GIF / Media Placeholder */
+        .media-placeholder {
+            flex: 1;
+            background: #0f1115;
+            border: 1px dashed #475569;
+            border-radius: 8px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 13px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .media-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0; left: 0;
+            opacity: 0; /* Change to 1 when you add your real image/gif */
+        }
+
+        /* Test Prompt Box */
+        .prompt-box {
+            background: #0f1115;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .prompt-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            color: #a5b4fc;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover { background: #334155; color: white; }
+
+        /* Final Action */
+        .footer-action {
+            margin-top: 48px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent-blue);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
+        }
+
+        @media (max-width: 768px) {
+            .step-card { flex-direction: column; gap: 24px; padding: 24px; }
+            .media-placeholder { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="hero">
+            <div class="hero-icon">✅</div>
+            <h1>Server Connected</h1>
+            <p>Your local database is running and IDE configurations have been injected. Complete these final manual steps to bypass your IDE's security sandbox.</p>
+        </header>
+
+        <!-- Setup Flow -->
+        <main class="setup-flow">
+            
+            <!-- Step 1 -->
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h2>Restart your IDE</h2>
+                    <p>To load the newly injected configurations, you must completely restart Visual Studio Code, Cursor, or JetBrains.</p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h2>Authorize the Tools</h2>
+                    <p>For security reasons, your IDE requires you to manually enable third-party tools.</p>
+                    <ul style="color: var(--text-muted); font-size: 14px; margin-left: 20px; line-height: 1.8;">
+                        <li>Open the GitHub Copilot or Cursor Chat panel.</li>
+                        <li>Click the <strong>Tools (📎)</strong> icon.</li>
+                        <li>Find <strong>ContextClipboard</strong> and check the boxes to enable your memory tools.</li>
+                    </ul>
+                </div>
+                <div class="media-placeholder">
+                    <svg width="24" height="24" fill="currentColor" style="margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    Replace with tool_enable.gif
+                    <!-- <img src="/images/tool_enable.gif" alt="How to enable tools" /> -->
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h2>Test Your Memory</h2>
+                    <p>Save a snippet from the browser extension, then ask your AI assistant to read your clipboard.</p>
+                    
+                    <div class="prompt-box">
+                        <span class="prompt-text">Review the latest context I saved in my clipboard.</span>
+                        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <div class="footer-action">
+            <a href="/settings" class="btn-primary">
+                I've done this, take me to Settings
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function copyPrompt(btn) {
+            const text = "Review the latest context I saved in my clipboard.";
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.style.color = "var(--success-color)";
+                btn.style.borderColor = "var(--success-color)";
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.color = "var(--text-muted)";
+                    btn.style.borderColor = "#475569";
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
+"""

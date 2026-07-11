@@ -8,7 +8,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from context_clipboard.server import config
-from context_clipboard.server.ui_templates import SETTINGS_HTML
+from context_clipboard.server.ui_templates import SETTINGS_HTML, WELCOME_HTML
 from context_clipboard.server.models import IngestResponse, IngestPayload, SearchResponse
 
 logger = logging.getLogger(__name__)
@@ -97,6 +97,11 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     async def settings_page():
         """Serves the intuitive and reliable Settings UI."""
         return HTMLResponse(content=SETTINGS_HTML)
+
+    @router.get("/welcome", response_class=HTMLResponse)
+    async def settings_page():
+        """Serves the intuitive and reliable Settings UI."""
+        return HTMLResponse(content=WELCOME_HTML)
 
     @router.get("/api/config")
     async def get_config():
