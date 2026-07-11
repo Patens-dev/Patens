@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Context Clipboard",
+  "version": "1.1",
+  "description": "Sends web context to your local AI database.",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "tabs",
+    "storage"
+  ],
+  "commands": {
+    "toggle_search_palette": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Space",
+        "mac": "Command+Shift+Space"
+      },
+      "description": "Search and paste from Context Clipboard"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["content.css"],
+      "js": ["content.js"]
+    }
+  ]
+}

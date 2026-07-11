@@ -1,0 +1,29 @@
+api:
+  host: "127.0.0.1"
+  port: 8000
+
+ai:
+  model_name: "all-MiniLM-L6-v2"
+
+database:
+  filename: "context_memory.db"
+
+storage:
+  image_dir: "images"
+
+logging:
+  filename: "server.log"
+  level: "INFO"
+
+hotkeys:
+  capture:
+    ctrl: true
+    shift: true
+    alt: false
+    meta: false
+  palette:
+    ctrl: true
+    shift: true
+    alt: false
+    meta: false
+    key: " "
