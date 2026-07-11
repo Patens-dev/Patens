@@ -631,3 +631,17 @@ SELECTION TOOLTIP (Like Medium/Notion)
     font-size: 11px;
     margin: 0 4px;
 }
+/* --- METADATA & TIMESTAMPS --- */
+.cc-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cc-item-time {
+    color: #5f6368;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}

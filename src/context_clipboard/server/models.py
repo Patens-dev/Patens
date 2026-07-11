@@ -1,21 +1,31 @@
-from typing import Optional, List, Dict, Any
-
+# src/context_clipboard/server/models.py
+from typing import List, Optional
 from pydantic import BaseModel
 
-
 class IngestPayload(BaseModel):
+    type: str
     url: str
     title: str
     content: str
-    type: str = "text"
     media: Optional[str] = None
-
-
-class SearchResponse(BaseModel):
-    status: str
-    results: List[Dict[str, Any]]
-
 
 class IngestResponse(BaseModel):
     status: str
     id: int
+
+# --- NEW: Strict Schema for Search Results ---
+class SearchResultItem(BaseModel):
+    id: Optional[int] = None
+    url: str
+    title: str
+    content: str
+    # Database columns
+    created_at: Optional[str] = None
+    timestamp: Optional[str] = None
+    # Vector and Re-ranking metrics
+    distance: Optional[float] = None
+    hybrid_score: Optional[float] = None
+
+class SearchResponse(BaseModel):
+    status: str
+    results: List[SearchResultItem]

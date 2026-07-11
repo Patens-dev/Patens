@@ -4,6 +4,9 @@ const validTags = ['P', 'PRE', 'BLOCKQUOTE', 'LI', 'CODE', 'DIV', 'SPAN', 'H1', 
 let cartOpen = false; // Removed the broken isCtrlHeld variable!
 const containerTags = ['DIV', 'SECTION', 'ARTICLE', 'MAIN', 'ASIDE', 'BODY', 'UL', 'OL'];
 const readableTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'PRE', 'BLOCKQUOTE', 'TD'];
+// NEW: Variables to remember cursor position
+let savedRange = null;
+let savedInputState = null;
 
 // Extremely fast hashing function (DJB2)
 function fastHash(str) {
@@ -502,6 +505,7 @@ function togglePalette() {
     let palette = document.getElementById('cc-palette');
 
     if (paletteOpen && palette) {
+        // CLOSING THE PALETTE
         palette.remove();
         paletteOpen = false;
         stagedItems = [];
@@ -509,7 +513,24 @@ function togglePalette() {
         return;
     }
 
+    // OPENING THE PALETTE: Take snapshot of current focus and cursor position
     activeInputElement = document.activeElement;
+    savedRange = null;
+    savedInputState = null;
+
+    if (activeInputElement) {
+        if (activeInputElement.tagName === 'TEXTAREA' || activeInputElement.tagName === 'INPUT') {
+            savedInputState = {
+                start: activeInputElement.selectionStart,
+                end: activeInputElement.selectionEnd
+            };
+        } else if (activeInputElement.isContentEditable) {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                savedRange = sel.getRangeAt(0).cloneRange();
+            }
+        }
+    }
 
     palette = document.createElement('div');
     palette.id = 'cc-palette';
@@ -734,7 +755,9 @@ function appendResultsToDOM(newResults, startIndex) {
             ? `<span class="cc-badge cc-badge-image">🖼️ Image</span>`
             : `<span class="cc-badge cc-badge-text">📝 Text</span>`;
 
-        // Map the button to the global cache index
+        // NEW: Parse the timestamp from your DB (adjust 'created_at' if your DB uses a different column name)
+        const timeText = formatDateTime(r.created_at || r.timestamp);
+
         const globalIndex = startIndex + i;
 
         return `
@@ -743,7 +766,13 @@ function appendResultsToDOM(newResults, startIndex) {
                 <div class="cc-item-clickable">
                     <div class="cc-palette-title-row">
                         <div class="cc-palette-title">${r.title}</div>
-                        ${badgeHTML}
+                        
+                        <!-- NEW: Metadata Wrapper -->
+                        <div class="cc-item-meta">
+                            ${timeText ? `<span class="cc-item-time">${timeText}</span>` : ''}
+                            ${badgeHTML}
+                        </div>
+                        
                     </div>
                     <div class="cc-palette-preview">${cleanPreview.substring(0, 100)}...</div>
                 </div>
@@ -861,32 +890,50 @@ function renderStagingArea() {
 // --- MULTI-INJECTION ENGINE ---
 // --- MULTI-INJECTION ENGINE (Anti-Freeze Edition) ---
 
+// --- MULTI-INJECTION ENGINE (Cursor-Restoration Edition) ---
+
 async function injectContextsToAI(dataArray) {
     if (dataArray.length === 0) return;
 
-    // 1. Show processing state so the user doesn't think it froze
     const originalPlaceholder = activeInputElement ? activeInputElement.placeholder : "";
     if (activeInputElement) activeInputElement.placeholder = `Injecting ${dataArray.length} items. Please wait...`;
 
     togglePalette(); // Close UI immediately to make it feel snappy
 
     if (!activeInputElement) return;
-    activeInputElement.focus();
+
+    // 1. RESTORE EXACT CURSOR POSITION BEFORE PASTING
+    try {
+        if (activeInputElement.tagName === 'TEXTAREA' || activeInputElement.tagName === 'INPUT') {
+            if (savedInputState) {
+                activeInputElement.setSelectionRange(savedInputState.start, savedInputState.end);
+            }
+        } else if (activeInputElement.isContentEditable) {
+            if (savedRange) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedRange);
+            }
+        }
+    } catch (e) {
+        console.warn("[Context Clipboard] Could not restore cursor position:", e);
+    }
 
     const imgRegex = /\[Local Image Path:\s*(.*?)\]/;
     let combinedText = "";
     const dt = new DataTransfer();
     let hasImages = false;
 
-    // 2. Loop through and compile text/images
+    // 2. Compile text/images
     for (let i = 0; i < dataArray.length; i++) {
         const data = dataArray[i];
         const match = data.content.match(imgRegex);
         const cleanText = data.content.replace(imgRegex, '').trim();
 
+        // Add a line break before the context block to ensure it drops cleanly
+        // without mashing into your existing sentence
         combinedText += `\n--- Context ${i + 1}: ${data.title} ---\n${cleanText}\n`;
 
-        // If it's an image, fetch it and append to our Payload
         if (match && match[1]) {
             try {
                 const res = await fetch(`http://localhost:8000/image?path=${encodeURIComponent(match[1])}`);
@@ -902,13 +949,10 @@ async function injectContextsToAI(dataArray) {
         }
     }
 
-    combinedText = combinedText.trim();
-
-    // 3. THE FIX: Attach the massive text payload directly to the clipboard event
+    // 3. Attach payload to the clipboard event
     dt.setData('text/plain', combinedText);
 
-    // 4. Fire ONE unified native paste event
-    // This pushes the heavy lifting to Gemini's optimized React/Angular paste handler
+    // 4. Fire ONE unified native paste event exactly at the restored cursor
     const pasteEvent = new ClipboardEvent('paste', {
         clipboardData: dt,
         bubbles: true,
@@ -917,15 +961,13 @@ async function injectContextsToAI(dataArray) {
 
     activeInputElement.dispatchEvent(pasteEvent);
 
-    // 5. Fallback for stubborn websites that ignore programmatic paste events
-    // We wrap this in a tiny setTimeout to yield the main thread so it doesn't freeze!
+    // 5. Fallback mechanism
     setTimeout(() => {
-        if (!activeInputElement.value && !activeInputElement.innerText.includes(combinedText.substring(0, 20))) {
+        if (!activeInputElement.value && !activeInputElement.innerText.includes("--- Context")) {
             console.warn("[Context Clipboard] Native paste rejected, falling back to execCommand.");
             document.execCommand('insertText', false, combinedText);
         }
 
-        // Restore placeholder
         if (activeInputElement) activeInputElement.placeholder = originalPlaceholder;
     }, 50);
 }
@@ -972,6 +1014,38 @@ document.addEventListener('keydown', (e) => {
         togglePalette();
     }
 });
+
+// Converts UTC database strings into the user's local timezone with relative time
+function formatDateTime(dateString) {
+    if (!dateString) return '';
+
+    // JS automatically applies local timezone offsets when parsing an ISO string
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    // Format local absolute time (e.g., "Jul 12, 12:26 AM")
+    const localFormat = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' +
+                        date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+    // Handle relative suffixes
+    if (seconds < 60) return `${localFormat} (Just now)`;
+
+    let interval = Math.floor(seconds / 31536000);
+    if (interval >= 1) return `${localFormat} (${interval}y ago)`;
+
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) return `${localFormat} (${interval}mo ago)`;
+
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) return `${localFormat} (${interval}d ago)`;
+
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) return `${localFormat} (${interval}h ago)`;
+
+    interval = Math.floor(seconds / 60);
+    return `${localFormat} (${interval}m ago)`;
+}
 
 // Initialize on page load
 renderUI();

@@ -3,6 +3,8 @@ import base64
 import os
 import time
 import logging
+import math
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
@@ -37,19 +39,111 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
 
     @router.get("/search", response_model=SearchResponse)
     async def search_context(q: str, limit: int = 10, offset: int = 0):
+        logger.info(f"[SEARCH INPUT] Query: '{q}' | Limit: {limit} | Offset: {offset}")
         try:
             query_vector = list(embedder_model.embed([q]))[0].tolist()
-            results = db_manager.search_similar(q, query_vector, limit=limit, offset=offset)
-            return {"status": "success", "results": results}
+
+            # 1. Fetch a larger pool of candidates to properly re-rank (ignoring offset temporarily)
+            fetch_limit = max(50, offset + limit * 2)
+            raw_results = db_manager.search_similar(q, query_vector, limit=fetch_limit, offset=0)
+
+            now = datetime.now(timezone.utc)
+
+            # 2. Apply Time-Decay Hybrid Scoring
+            for r in raw_results:
+                # Similarity inversion: lower vector distance = higher base similarity
+                distance = r.get("distance", 0.5)
+                base_similarity = 1.0 / (1.0 + distance)
+
+                # Parse timestamp safely
+                try:
+                    created_str = r.get("timestamp") or r.get("created_at") or now.isoformat()
+
+                    # 1. Ensure JS strings have proper timezone offsets
+                    created_str = str(created_str).replace("Z", "+00:00")
+
+                    # 2. Convert SQLite's space into a valid ISO 'T'
+                    if " " in created_str and "T" not in created_str:
+                        created_str = created_str.replace(" ", "T")
+
+                    created_dt = datetime.fromisoformat(created_str)
+
+                    # Ensure datetime is timezone-aware
+                    if created_dt.tzinfo is None:
+                        created_dt = created_dt.replace(tzinfo=timezone.utc)
+
+                    # 3. Calculate age_days for the hybrid scoring
+                    age_days = (now - created_dt).total_seconds() / 86400.0
+
+                    r["timestamp"] = created_dt.isoformat()
+                except (ValueError, TypeError):
+                    age_days = 0
+                    r["timestamp"] = now.isoformat()
+
+                # Exponential time decay: Time bonus halves roughly every 7 days
+                time_bonus = math.exp(-0.1 * max(0, age_days))
+
+                # 3. Hybrid Score: 70% semantic match, 30% recency
+                r["hybrid_score"] = (base_similarity * 0.7) + (time_bonus * 0.3)
+
+            # 4. Sort by our new hybrid score (Highest first)
+            raw_results.sort(key=lambda x: x.get("hybrid_score", 0), reverse=True)
+
+            # 5. Apply the requested pagination slicing
+            paginated_results = raw_results[offset: offset + limit]
+
+            # --- LOG OUTPUT ---
+            output_summary = [
+                f"[ID:{res.get('id')} | Score:{res.get('hybrid_score', 0):.3f} | Title:'{res.get('title', '')[:20]}']"
+                for res in paginated_results
+            ]
+            logger.info(f"[SEARCH OUTPUT] Returned {len(paginated_results)} results: {', '.join(output_summary)}")
+
+            return {"status": "success", "results": paginated_results}
+
         except Exception as e:
             logger.error(f"Search error: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error during search")
 
     @router.get("/latest", response_model=SearchResponse)
     async def latest_context(limit: int = 1):
+        logger.info(f"[LATEST INPUT] Fetching {limit} most recent items")
         try:
             results = db_manager.get_latest(limit)
+            now = datetime.now(timezone.utc)
+
+            # Ensure the timestamp is explicitly formatted for the strict Pydantic model
+            for r in results:
+                # Parse timestamp safely
+                try:
+                    created_str = r.get("timestamp") or r.get("created_at") or now.isoformat()
+
+                    # 1. Ensure JS strings have proper timezone offsets
+                    created_str = str(created_str).replace("Z", "+00:00")
+
+                    # 2. Convert SQLite's space into a valid ISO 'T'
+                    if " " in created_str and "T" not in created_str:
+                        created_str = created_str.replace(" ", "T")
+
+                    created_dt = datetime.fromisoformat(created_str)
+
+                    # Ensure datetime is timezone-aware
+                    if created_dt.tzinfo is None:
+                        created_dt = created_dt.replace(tzinfo=timezone.utc)
+
+                    # 3. Calculate age_days for the hybrid scoring
+                    age_days = (now - created_dt).total_seconds() / 86400.0
+
+                    r["timestamp"] = created_dt.isoformat()
+                except (ValueError, TypeError):
+                    age_days = 0
+                    r["timestamp"] = now.isoformat()
+            # --- LOG OUTPUT ---
+            output_summary = [f"[ID:{res.get('id')} | Title:'{res.get('title', '')[:20]}']" for res in results]
+            logger.info(f"[LATEST OUTPUT] Returned {len(results)} results: {', '.join(output_summary)}")
+
             return {"status": "success", "results": results}
+
         except Exception as e:
             logger.error(f"Latest fetch error: {str(e)}")
             raise HTTPException(status_code=500, detail="Failed to fetch latest context")
@@ -66,7 +160,7 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     @router.post("/ingest", response_model=IngestResponse)
     async def ingest_context(payload: IngestPayload):
         try:
-            logger.info(f"Receiving {payload.type} from: {payload.url}")
+            logger.info(f"[INGEST INPUT] Receiving {payload.type} from: {payload.url}")
 
             # Generate AI embeddings from the payload content
             embedding = list(embedder_model.embed([payload.content]))[0].tolist()
@@ -86,7 +180,7 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
                 embedding=embedding
             )
 
-            logger.info(f"Successfully saved context ID: {content_id}")
+            logger.info(f"[INGEST OUTPUT] Successfully saved context ID: {content_id}")
             return {"status": "success", "id": content_id}
 
         except Exception as e:
@@ -99,8 +193,8 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
         return HTMLResponse(content=SETTINGS_HTML)
 
     @router.get("/welcome", response_class=HTMLResponse)
-    async def settings_page():
-        """Serves the intuitive and reliable Settings UI."""
+    async def welcome_page():
+        """Serves the intuitive onboarding flow for first-time users."""
         return HTMLResponse(content=WELCOME_HTML)
 
     @router.get("/api/config")

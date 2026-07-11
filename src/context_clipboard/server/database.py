@@ -88,7 +88,7 @@ class DatabaseManager:
 
                 where_sql = " AND ".join(where_clauses)
                 kw_sql = f"""
-                    SELECT id, title, url, content
+                    SELECT id, title, url, content, created_at
                     FROM snippets
                     WHERE {where_sql}
                     ORDER BY id DESC
@@ -98,7 +98,7 @@ class DatabaseManager:
 
             # Execute Vector Semantic Match
             vec_sql = """
-                      SELECT s.id, s.title, s.url, s.content, v.distance
+                      SELECT s.id, s.title, s.url, s.content, s.created_at, v.distance
                       FROM snippets s
                                INNER JOIN vec_snippets v ON s.id = v.content_id
                       WHERE v.embedding MATCH ? AND v.k = 50 \
@@ -117,6 +117,7 @@ class DatabaseManager:
                     "title": r["title"],
                     "url": r["url"],
                     "content": r["content"],
+                    "created_at": r["created_at"],
                     "distance": 0.0,  # Perfect score
                 })
                 seen_ids.add(r["id"])
@@ -130,6 +131,7 @@ class DatabaseManager:
                     "title": r["title"],
                     "url": r["url"],
                     "content": r["content"],
+                    "created_at": r["created_at"],
                     "distance": r["distance"],
                 })
                 seen_ids.add(r["id"])
