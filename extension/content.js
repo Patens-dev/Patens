@@ -2,6 +2,8 @@ console.log("[Context Clipboard] Shopping Cart initialized.");
 
 const validTags = ['P', 'PRE', 'BLOCKQUOTE', 'LI', 'CODE', 'DIV', 'SPAN', 'H1', 'H2', 'H3', 'H4', 'IMG'];
 let cartOpen = false; // Removed the broken isCtrlHeld variable!
+const containerTags = ['DIV', 'SECTION', 'ARTICLE', 'MAIN', 'ASIDE', 'BODY', 'UL', 'OL'];
+const readableTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'PRE', 'BLOCKQUOTE', 'TD'];
 
 // Extremely fast hashing function (DJB2)
 function fastHash(str) {
@@ -10,6 +12,108 @@ function fastHash(str) {
         hash = ((hash << 5) + hash) + str.charCodeAt(i); /* hash * 33 + c */
     }
     return hash >>> 0; // Force positive integer representation
+}
+
+// Universal helper to push items to the cart
+function saveToCartDirectly(text, title, isImage, base64Data, eventX, eventY, flashElement = null) {
+    const contentToHash = isImage ? base64Data : text;
+    const itemHash = fastHash(contentToHash).toString();
+
+    chrome.storage.local.get(['contextCart'], (result) => {
+        const cart = result.contextCart || [];
+
+        // Duplicate check
+        if (cart.some(item => item.hash === itemHash)) {
+            if (eventX && eventY) showDuplicateWarning(eventX, eventY);
+            return;
+        }
+
+        // Apply visual flash if an element was provided
+        if (flashElement) {
+            flashElement.classList.add('cc-added-flash');
+            setTimeout(() => flashElement.classList.remove('cc-added-flash'), 600);
+        }
+
+        const newItem = {
+            id: Date.now().toString(),
+            hash: itemHash,
+            type: isImage ? 'image' : 'text',
+            url: window.location.href,
+            title: title,
+            content: text,
+            media: base64Data
+        };
+
+        cart.push(newItem);
+        chrome.storage.local.set({contextCart: cart});
+    });
+}
+
+// A UI notification for bulk saves
+function showBulkSummary(x, y, added, dupes) {
+    const popup = document.createElement('div');
+    popup.className = 'cc-duplicate-warning'; // Reusing your existing tooltip class
+
+    if (added > 0 && dupes === 0) {
+        popup.innerText = `✨ Saved ${added} items`;
+        popup.style.background = '#10b981'; // Success Green
+    } else if (added > 0 && dupes > 0) {
+        popup.innerText = `✨ Saved ${added} items (${dupes} duplicates)`;
+        popup.style.background = '#f59e0b'; // Warning Orange
+    } else {
+        popup.innerText = `All items already in cart`;
+        popup.style.background = '#ff5252'; // Error Red
+    }
+
+    popup.style.left = `${x + 15}px`;
+    popup.style.top = `${y + 15}px`;
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.classList.add('cc-duplicate-fade');
+        setTimeout(() => popup.remove(), 300);
+    }, 1500);
+}
+
+// Safely saves arrays of elements to Chrome Storage at once
+function saveBulkToCartDirectly(itemsToSave, eventX, eventY) {
+    chrome.storage.local.get(['contextCart'], (result) => {
+        let cart = result.contextCart || [];
+        let addedCount = 0;
+        let duplicateCount = 0;
+
+        itemsToSave.forEach(item => {
+            const contentToHash = item.isImage ? item.base64Data : item.text;
+            const itemHash = fastHash(contentToHash).toString();
+
+            if (!cart.some(cartItem => cartItem.hash === itemHash)) {
+                cart.push({
+                    id: Date.now().toString() + Math.random().toString().slice(2, 6),
+                    hash: itemHash,
+                    type: item.isImage ? 'image' : 'text',
+                    url: window.location.href,
+                    title: item.title,
+                    content: item.text,
+                    media: item.base64Data
+                });
+                addedCount++;
+
+                // Visual feedback on the specific DOM element
+                if (item.element) {
+                    item.element.classList.add('cc-added-flash');
+                    setTimeout(() => item.element.classList.remove('cc-added-flash'), 600);
+                }
+            } else {
+                duplicateCount++;
+            }
+        });
+
+        if (addedCount > 0) {
+            chrome.storage.local.set({contextCart: cart});
+        }
+
+        showBulkSummary(eventX, eventY, addedCount, duplicateCount);
+    });
 }
 
 // Spawns a tiny floating div near the cursor
@@ -27,27 +131,21 @@ function showDuplicateWarning(x, y) {
     }, 1200);
 }
 
-// Add this helper function at the top of your script
+// Helper: Strict Image Finder (Prevents hijacking large container clicks)
 function findUnderlyingImage(targetElement) {
     if (!targetElement || targetElement.nodeType !== Node.ELEMENT_NODE) return null;
 
+    // 1. Direct click on image
     if (targetElement.tagName === 'IMG') return targetElement;
 
-    const nestedImg = targetElement.querySelector('img');
-    if (nestedImg) return nestedImg;
-
-    const parent = targetElement.parentElement;
-    if (parent) {
-        const siblingImages = parent.querySelectorAll('img');
-        if (siblingImages.length === 1) return siblingImages[0];
+    // 2. Clicked a tight wrapper (picture, figure, or a link)
+    const tightWrappers = ['PICTURE', 'FIGURE', 'A'];
+    if (tightWrappers.includes(targetElement.tagName)) {
+        const nestedImg = targetElement.querySelector('img');
+        if (nestedImg) return nestedImg;
     }
 
-    const wrapper = targetElement.closest('a, picture, figure');
-    if (wrapper) {
-        const wrappedImg = wrapper.querySelector('img');
-        if (wrappedImg) return wrappedImg;
-    }
-
+    // Return null if they clicked a massive div/article
     return null;
 }
 
@@ -97,71 +195,84 @@ document.body.addEventListener('click', (e) => {
 // HOVER EFFECTS (Now requires Ctrl + Shift)
 // --------------------------------------------------------
 document.body.addEventListener('mousedown', async (e) => {
+    // Ignore UI clicks
     if (e.target.closest('.cc-cart-btn') || e.target.closest('.cc-cart-modal') || e.target.id === 'cc-search-overlay') return;
 
     const isShortcutPressed = e.ctrlKey && e.shiftKey;
 
-    if (isShortcutPressed && e.target && validTags.includes(e.target.tagName)) {
+    if (isShortcutPressed && e.target) {
         e.preventDefault();
         e.stopPropagation();
 
-        let selectedText = "";
-        let isImage = false;
-        let base64Data = null;
-
         const textSelection = window.getSelection().toString().trim();
         const targetImg = findUnderlyingImage(e.target);
+        let itemsToSave = [];
 
-        if (targetImg && textSelection === "") {
-            isImage = true;
-            selectedText = targetImg.alt || targetImg.title || "Image snippet from " + document.title;
-            base64Data = await getBase64Image(targetImg);
+        if (textSelection) {
+            // 1. Text Selection Priority (Always wins)
+            itemsToSave.push({text: textSelection, title: document.title, isImage: false, element: e.target});
+        } else if (targetImg) {
+            // 2. Explicit Image Click
+            const base64Data = await getBase64Image(targetImg);
+            itemsToSave.push({
+                text: targetImg.alt || targetImg.title || "Image snippet from " + document.title,
+                title: document.title,
+                isImage: true,
+                base64Data: base64Data,
+                element: targetImg
+            });
         } else {
-            selectedText = textSelection || e.target.innerText;
+            // 3. Smart Container Parsing
+            const tagName = e.target.tagName;
+
+            if (containerTags.includes(tagName)) {
+                // Find EVERY readable element inside the clicked container
+                const allReadable = Array.from(e.target.querySelectorAll(readableTags.join(',')));
+
+                // CRITICAL FIX: Filter out nested elements to prevent duplicate text
+                // (e.g. if we have a TD containing a P, keep the TD, ignore the P)
+                const topLevelReadable = allReadable.filter(el => {
+                    return !allReadable.some(parent => parent.contains(el) && parent !== el);
+                });
+
+                if (topLevelReadable.length > 0) {
+                    topLevelReadable.forEach(child => {
+                        const childText = child.innerText.trim();
+                        // Ignore tiny fragments like an empty table cell or single character
+                        if (childText.length > 15) {
+                            itemsToSave.push({text: childText, title: document.title, isImage: false, element: child});
+                        }
+                    });
+                } else {
+                    // Fallback: It's a div with just raw text inside, no structural tags
+                    const text = e.target.innerText.trim();
+                    if (text.length > 15) itemsToSave.push({
+                        text,
+                        title: document.title,
+                        isImage: false,
+                        element: e.target
+                    });
+                }
+            } else if (readableTags.includes(tagName) || tagName === 'SPAN') {
+                // 4. They clicked exactly on a paragraph or header
+                const text = e.target.innerText.trim();
+                if (text.length > 15) itemsToSave.push({
+                    text,
+                    title: document.title,
+                    isImage: false,
+                    element: e.target
+                });
+            }
         }
 
-        if (!selectedText && !isImage) return;
-
-        // 1. Generate a unique hash for the content
-        const contentToHash = isImage ? base64Data : selectedText;
-        const itemHash = fastHash(contentToHash).toString();
-
-        // 2. Fetch cart and check for duplicates BEFORE showing visual feedback
-        chrome.storage.local.get(['contextCart'], (result) => {
-            const cart = result.contextCart || [];
-
-            // Check if hash already exists in cart
-            if (cart.some(item => item.hash === itemHash)) {
-                showDuplicateWarning(e.clientX, e.clientY);
-                return; // Stop execution
-            }
-
-            // 3. Not a duplicate -> Apply visual flash
-            if (isImage) {
-                targetImg.classList.add('cc-added-flash');
-                setTimeout(() => targetImg.classList.remove('cc-added-flash'), 600);
-            } else {
-                e.target.classList.remove('cc-highlight-hover');
-                e.target.classList.add('cc-added-flash');
-                setTimeout(() => e.target.classList.remove('cc-added-flash'), 600);
-            }
-
-            // 4. Save to cart
-            const newItem = {
-                id: Date.now().toString(),
-                hash: itemHash,  // Save hash for future duplicate checks
-                type: isImage ? 'image' : 'text',
-                url: window.location.href,
-                title: document.title,
-                content: selectedText,
-                media: base64Data
-            };
-
-            cart.push(newItem);
-            chrome.storage.local.set({contextCart: cart});
-        });
+        // Fire the bulk save engine
+        if (itemsToSave.length > 0) {
+            saveBulkToCartDirectly(itemsToSave, e.clientX, e.clientY);
+        }
     }
 }, true);
+
+
 document.body.addEventListener('mouseover', (e) => {
     // Only highlight if both keys are held while moving the mouse
     if (e.ctrlKey && e.shiftKey && e.target && validTags.includes(e.target.tagName)) {
@@ -173,7 +284,51 @@ document.body.addEventListener('mouseout', (e) => {
         e.target.classList.remove('cc-highlight-hover');
     }
 });
+// --------------------------------------------------------
+// MANUAL TEXT SELECTION TOOLTIP
+// --------------------------------------------------------
+document.addEventListener('mouseup', (e) => {
+    // Ignore clicks inside our own UI to prevent immediate disappearance
+    if (e.target.closest('.cc-selection-tooltip') || e.target.closest('.cc-palette-overlay') || e.target.closest('.cc-cart-modal')) return;
 
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+
+    // Clean up old tooltips
+    const existing = document.getElementById('cc-selection-tooltip');
+    if (existing) existing.remove();
+
+    if (text.length > 0 && !e.ctrlKey && !e.shiftKey) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        const tooltip = document.createElement('div');
+        tooltip.id = 'cc-selection-tooltip';
+        tooltip.className = 'cc-selection-tooltip';
+        tooltip.innerHTML = '✨ Save Context';
+
+        // Position it centered directly above the highlighted text
+        tooltip.style.top = `${window.scrollY + rect.top - 45}px`;
+        tooltip.style.left = `${window.scrollX + rect.left + (rect.width / 2) - 60}px`;
+
+        tooltip.onmousedown = (ev) => {
+            ev.preventDefault(); // Prevents the selection from clearing
+            ev.stopPropagation();
+
+            saveToCartDirectly(text, "Manual Selection: " + document.title, false, null, ev.clientX, ev.clientY);
+
+            tooltip.innerHTML = '✓ Saved';
+            tooltip.style.background = '#10b981'; // Success green
+
+            setTimeout(() => {
+                tooltip.remove();
+                selection.removeAllRanges();
+            }, 800);
+        };
+
+        document.body.appendChild(tooltip);
+    }
+});
 // --------------------------------------------------------
 // UI RENDERING ENGINE (Cross-Tab Synced)
 // --------------------------------------------------------
@@ -182,9 +337,10 @@ function renderUI() {
     chrome.storage.local.get(['contextCart'], (result) => {
         const cart = result.contextCart || [];
 
-        // 1. Render/Update Floating Button
         let btn = document.getElementById('cc-cart-btn');
+
         if (cart.length > 0) {
+            // Main Cart Button
             if (!btn) {
                 btn = document.createElement('div');
                 btn.id = 'cc-cart-btn';
@@ -194,12 +350,12 @@ function renderUI() {
                 document.body.appendChild(btn);
             }
             document.getElementById('cc-badge').innerText = cart.length;
-        } else if (btn) {
-            btn.remove();
-            if (cartOpen) toggleModal(); // Close modal if empty
+
+        } else {
+            if (btn) btn.remove();
+            if (cartOpen) toggleModal();
         }
 
-        // 2. Update Modal if Open
         if (cartOpen) renderModalContents(cart);
     });
 }
@@ -361,12 +517,17 @@ function togglePalette() {
 
     palette.innerHTML = `
         <div class="cc-palette-container">
-            <input type="text" id="cc-palette-input" placeholder="Search memory... (Enter to paste, Tab to stage)" autocomplete="off" />
+            <input type="text" id="cc-palette-input" placeholder="Search memory..." autocomplete="off" />
             <div id="cc-palette-results" class="cc-palette-results"></div>
             <div id="cc-staging-container" class="cc-staging-container" style="display: none;">
                 <div class="cc-staging-header">Staged for Injection</div>
                 <div id="cc-staging-list" class="cc-staging-list"></div>
                 <button id="cc-inject-all-btn" class="cc-inject-all-btn">Paste Items</button>
+            </div>
+            <div class="cc-palette-hint">
+                <span class="cc-hotkey-pill">Enter</span> Paste Top Result 
+                <span class="cc-hotkey-pill">Tab</span> Add to Stage 
+                <span class="cc-hotkey-pill" style="border-color:#8ab4f8; color:#8ab4f8">Shift + Enter</span> Paste All Results
             </div>
         </div>
     `;
@@ -437,6 +598,49 @@ function togglePalette() {
                 injectContextsToAI([currentResults[0]]);
             }
         }
+        // Keyboard Navigation
+        input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Escape') togglePalette();
+
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                if (currentResults.length > 0) {
+                    addToStage(currentResults[0]);
+                    input.value = '';
+                    resultsContainer.innerHTML = '';
+                }
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+
+                // NEW: Shift + Enter logic (Bulk Inject)
+                if (e.shiftKey) {
+                    if (currentResults.length > 0) {
+                        injectContextsToAI(currentResults);
+                    }
+                    return;
+                }
+
+                // Standard Enter logic
+                if (stagedItems.length > 0) {
+                    injectContextsToAI(stagedItems);
+                    return;
+                }
+                if (!input.value.trim()) {
+                    input.placeholder = "Fetching latest...";
+                    try {
+                        const res = await fetch(`http://localhost:8000/latest?limit=1`);
+                        const data = await res.json();
+                        if (data.results && data.results.length > 0) injectContextsToAI([data.results[0]]);
+                    } catch (err) {
+                        input.placeholder = "Error fetching latest.";
+                    }
+                } else if (currentResults.length > 0) {
+                    injectContextsToAI([currentResults[0]]);
+                }
+            }
+        });
     });
 
     document.getElementById('cc-inject-all-btn').addEventListener('click', () => {
@@ -655,10 +859,16 @@ function renderStagingArea() {
 }
 
 // --- MULTI-INJECTION ENGINE ---
+// --- MULTI-INJECTION ENGINE (Anti-Freeze Edition) ---
 
 async function injectContextsToAI(dataArray) {
     if (dataArray.length === 0) return;
-    togglePalette(); // Close UI
+
+    // 1. Show processing state so the user doesn't think it froze
+    const originalPlaceholder = activeInputElement ? activeInputElement.placeholder : "";
+    if (activeInputElement) activeInputElement.placeholder = `Injecting ${dataArray.length} items. Please wait...`;
+
+    togglePalette(); // Close UI immediately to make it feel snappy
 
     if (!activeInputElement) return;
     activeInputElement.focus();
@@ -668,7 +878,7 @@ async function injectContextsToAI(dataArray) {
     const dt = new DataTransfer();
     let hasImages = false;
 
-    // Loop through in exact order and compile text/images
+    // 2. Loop through and compile text/images
     for (let i = 0; i < dataArray.length; i++) {
         const data = dataArray[i];
         const match = data.content.match(imgRegex);
@@ -692,18 +902,32 @@ async function injectContextsToAI(dataArray) {
         }
     }
 
-    // 1. Paste the concatenated text
-    document.execCommand('insertText', false, combinedText.trim());
+    combinedText = combinedText.trim();
 
-    // 2. Fire the unified Image payload event
-    if (hasImages) {
-        const pasteEvent = new ClipboardEvent('paste', {
-            clipboardData: dt,
-            bubbles: true,
-            cancelable: true
-        });
-        activeInputElement.dispatchEvent(pasteEvent);
-    }
+    // 3. THE FIX: Attach the massive text payload directly to the clipboard event
+    dt.setData('text/plain', combinedText);
+
+    // 4. Fire ONE unified native paste event
+    // This pushes the heavy lifting to Gemini's optimized React/Angular paste handler
+    const pasteEvent = new ClipboardEvent('paste', {
+        clipboardData: dt,
+        bubbles: true,
+        cancelable: true
+    });
+
+    activeInputElement.dispatchEvent(pasteEvent);
+
+    // 5. Fallback for stubborn websites that ignore programmatic paste events
+    // We wrap this in a tiny setTimeout to yield the main thread so it doesn't freeze!
+    setTimeout(() => {
+        if (!activeInputElement.value && !activeInputElement.innerText.includes(combinedText.substring(0, 20))) {
+            console.warn("[Context Clipboard] Native paste rejected, falling back to execCommand.");
+            document.execCommand('insertText', false, combinedText);
+        }
+
+        // Restore placeholder
+        if (activeInputElement) activeInputElement.placeholder = originalPlaceholder;
+    }, 50);
 }
 
 // --- DYNAMIC HOTKEY STATE ---
