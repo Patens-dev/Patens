@@ -1,5 +1,4 @@
 # config.py
-import os
 import logging
 import shutil
 from pathlib import Path

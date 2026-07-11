@@ -4,14 +4,14 @@ import threading
 import logging
 import uvicorn
 from fastmcp import FastMCP
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
-# Import our modular components
-from config import (
+# NATIVE ABSOLUTE IMPORTS
+from context_clipboard.server.config import (
     setup_logging, DB_PATH, IMAGE_DIR, MODEL_NAME, API_HOST, API_PORT
 )
-from database import DatabaseManager
-from api import create_app
+from context_clipboard.server.database import DatabaseManager
+from context_clipboard.server.api import create_app
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ os.makedirs(IMAGE_DIR, exist_ok=True)
 # Initialize Core Services (Database & AI)
 db_manager = DatabaseManager(str(DB_PATH))
 
-logger.info("Loading SentenceTransformer model...")
-embedder = SentenceTransformer(MODEL_NAME)
+logger.info("Loading FastEmbed model...")
+embedder = TextEmbedding(model_name=MODEL_NAME)
 logger.info("Model loaded successfully.")
 
 # Initialize the API and MCP Server instances
@@ -40,9 +40,10 @@ def query_browser_context(search_query: str, limit: int = 3) -> str:
     Example triggers: "Do I have any context saved about React?", "Search my memory for Stripe API", "Check my clips for useEffect".
     """
     logger.info(f"Semantic search requested for: '{search_query}'")
-    query_vector = embedder.encode(search_query).tolist()
 
-    # Note the new `search_query` argument passed here!
+    # UPDATED FOR FASTEMBED
+    query_vector = list(embedder.embed([search_query]))[0].tolist()
+
     results = db_manager.search_similar(search_query, query_vector, limit)
 
     if not results:
@@ -62,7 +63,8 @@ def memorize_ide_insight(title: str, insight: str) -> str:
     """
     logger.info(f"Saving IDE insight to memory: '{title}'")
 
-    embedding = embedder.encode(insight).tolist()
+    # UPDATED FOR FASTEMBED
+    embedding = list(embedder.embed([insight]))[0].tolist()
     internal_url = f"ide://chat-resolution/{int(time.time())}"
 
     content_id = db_manager.insert_snippet(
@@ -127,8 +129,6 @@ def review_latest_clip() -> str:
 
 ```text
 {r['content']}
-```
-
 Please analyze my current open file and tell me how I can apply this snippet to my code."""
 
 
@@ -138,24 +138,26 @@ def memorize_chat() -> str:
     Creates a slash command to instantly summarize and save the current conversation.
     """
     logger.info("Prompt requested: memorize_chat")
-    return """Please analyze our entire conversation up to this point. 
+    return """Please analyze our entire conversation up to this point.
 
-1. Identify the core problem we were trying to solve.
-2. Summarize the final solution, including any key code snippets, architectural decisions, or bugs we fixed.
-3. Call the `memorize_ide_insight` tool to save this summary into my permanent memory database. 
+    Identify the core problem we were trying to solve.
 
-Format the title as "Chat Resolution: [Topic]"."""
+    Summarize the final solution, including any key code snippets, architectural decisions, or bugs we fixed.
+
+    Call the memorize_ide_insight tool to save this summary into my permanent memory database.
+
+    Format the title as "Chat Resolution: [Topic]"."""
 
 
 def run_fastapi():
     """Runs the FastAPI server in a background thread."""
+
     logger.info(f"Starting background FastAPI on {API_HOST}:{API_PORT}...")
     uvicorn.run(fastapi_app, host=API_HOST, port=API_PORT, log_level="error")
 
 
-if __name__ == "__main__":
-    api_thread = threading.Thread(target=run_fastapi, daemon=True)
-    api_thread.start()
+def run_mcp():
+    """Runs the MCP server over stdio for IDE integration."""
 
     logger.info("Initializing stdio MCP server for the IDE...")
     mcp.run()
