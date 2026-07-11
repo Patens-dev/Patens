@@ -592,16 +592,18 @@ function renderStagingArea() {
     btn.innerText = `✨ Paste ${stagedItems.length} Item${stagedItems.length > 1 ? 's' : ''} (Enter)`;
 
     list.innerHTML = stagedItems.map((item, index) => {
-        // Strip the image path so the user only sees clean text
-        const cleanText = item.content.replace(/\[Local Image Path:.*?\]/g, '').trim();
+        // Strip image paths and STRICTLY truncate to keep the UI clean and drag ghosts small
+        let cleanText = item.content.replace(/\[Local Image Path:.*?\]/g, '').trim();
+        if (cleanText.length > 60) cleanText = cleanText.substring(0, 60) + '...';
 
         return `
         <div class="cc-staged-item" draggable="true" data-index="${index}">
+            <div class="cc-staged-drag-handle">⠿</div>
             <div class="cc-staged-text" style="pointer-events:none">
-                <span class="cc-staged-title">≡ ${item.title}</span>
+                <span class="cc-staged-title">${item.title}</span>
                 <span class="cc-staged-preview"> — ${cleanText}</span>
             </div>
-            <span class="cc-staged-remove" data-index="${index}">✕</span>
+            <span class="cc-staged-remove" data-index="${index}" style="cursor:pointer;" title="Remove">✕</span>
         </div>
         `;
     }).join('');
@@ -615,7 +617,7 @@ function renderStagingArea() {
         });
     });
 
-    // HTML5 Drag and Drop logic for reordering
+    // HTML5 Drag and Drop logic for reordering (Upgraded UI)
     let dragStartIndex;
 
     list.querySelectorAll('.cc-staged-item').forEach(item => {
@@ -625,10 +627,16 @@ function renderStagingArea() {
         });
 
         item.addEventListener('dragover', (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Required to allow dropping
+            e.currentTarget.classList.add('drag-over');
+        });
+
+        item.addEventListener('dragleave', (e) => {
+            e.currentTarget.classList.remove('drag-over');
         });
 
         item.addEventListener('drop', (e) => {
+            e.currentTarget.classList.remove('drag-over');
             const dragEndIndex = parseInt(e.currentTarget.getAttribute('data-index'));
 
             const draggedItem = stagedItems[dragStartIndex];
@@ -640,6 +648,8 @@ function renderStagingArea() {
 
         item.addEventListener('dragend', (e) => {
             e.target.classList.remove('dragging');
+            // Failsafe: Clear all drag-over visual states just in case
+            list.querySelectorAll('.cc-staged-item').forEach(el => el.classList.remove('drag-over'));
         });
     });
 }

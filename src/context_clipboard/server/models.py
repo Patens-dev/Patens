@@ -3,7 +3,6 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 
-# --- Data Models ---
 class IngestPayload(BaseModel):
     url: str
     title: str

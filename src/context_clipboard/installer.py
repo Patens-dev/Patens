@@ -1,15 +1,31 @@
+# src/context_clipboard/installer.py
+import sys
 import json
 from pathlib import Path
 
 
-def install_to_ides(exe_path: Path):
-    """Injects this exact executable into IDE MCP configs."""
-    print("🚀 Installing Context Clipboard MCP...")
+def install_to_ides(is_debug: bool = False):
+    """Dynamically injects the correct execution path into IDE MCP configs."""
+    print("🚀 Auto-configuring IDEs for Context Clipboard...")
 
-    # The IDE will run the exe with the --mcp flag
+    is_frozen = getattr(sys, 'frozen', False)
+
+    if is_frozen:
+        # We are running as a compiled .exe
+        command = sys.executable
+        args = ["--mcp"]
+    else:
+        # We are running from raw Python source code
+        command = sys.executable  # Grabs the python.exe from your active build_env
+        script_path = str(Path(sys.modules['__main__'].__file__).absolute())
+        args = [script_path, "--mcp"]
+
+    if is_debug:
+        args.append("--debug")
+
     server_config = {
-        "command": str(exe_path),
-        "args": ["--mcp"]
+        "command": command,
+        "args": args
     }
 
     config_blocks = {
@@ -17,10 +33,7 @@ def install_to_ides(exe_path: Path):
         "mcpServers": server_config
     }
 
-    # 1. GitHub Copilot Configuration
     copilot_file = Path.home() / "AppData" / "Local" / "github-copilot" / "intellij" / "mcp.json"
-
-    # 2. Cursor Configuration
     cursor_file = Path.home() / "AppData" / "Roaming" / "Cursor" / "User" / "globalStorage" / "rooveterinaryinc.roo-cline" / "settings" / "cline_mcp_settings.json"
 
     for file_path in [copilot_file, cursor_file]:
@@ -41,4 +54,5 @@ def install_to_ides(exe_path: Path):
         with open(file_path, "w") as f:
             json.dump(data, f, indent=2)
 
-        print(f"✅ Configured IDE -> {file_path}")
+        mode = "Compiled EXE" if is_frozen else "Python Source"
+        print(f"✅ Configured IDE ({mode}) -> {file_path}")

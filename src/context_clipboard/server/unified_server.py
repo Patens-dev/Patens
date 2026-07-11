@@ -1,12 +1,10 @@
 import os
 import time
-import threading
 import logging
 import uvicorn
 from fastmcp import FastMCP
 from fastembed import TextEmbedding
 
-# NATIVE ABSOLUTE IMPORTS
 from context_clipboard.server.config import (
     setup_logging, DB_PATH, IMAGE_DIR, MODEL_NAME, API_HOST, API_PORT
 )
@@ -153,8 +151,7 @@ def run_fastapi():
     """Runs the FastAPI server in a background thread."""
 
     logger.info(f"Starting background FastAPI on {API_HOST}:{API_PORT}...")
-    uvicorn.run(fastapi_app, host=API_HOST, port=API_PORT, log_level="error")
-
+    uvicorn.run(fastapi_app, host=API_HOST, port=API_PORT, log_level="info")
 
 def run_mcp():
     """Runs the MCP server over stdio for IDE integration."""
