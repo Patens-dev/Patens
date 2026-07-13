@@ -1,3 +1,12 @@
+/* Force your UI to always be on top of everything */
+#cc-palette,
+.cc-palette-overlay,
+.cc-cart-modal,
+#cc-search-overlay {
+    z-index: 2147483647 !important;
+    position: fixed !important;
+}
+
 /* The blue highlight effect when holding Alt */
 .cc-highlight-hover {
     outline: 2px dashed #007bff !important;
@@ -631,17 +640,54 @@ SELECTION TOOLTIP (Like Medium/Notion)
     font-size: 11px;
     margin: 0 4px;
 }
+
 /* --- METADATA & TIMESTAMPS --- */
 .cc-item-meta {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column; /* Stacks elements vertically */
+    align-items: flex-end; /* Aligns badge and date to the right */
+    justify-content: flex-start;
+    gap: 4px; /* Space between badge and date */
+    min-width: 80px; /* Fixed width prevents UI jumping */
+    flex-shrink: 0; /* Prevents long titles from squishing the meta area */
 }
 
 .cc-item-time {
-    color: #5f6368;
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+/* --- TIMELINE FILTERS --- */
+.cc-search-filters {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+}
+
+.cc-filter-btn {
+    background: #2d2d2d;
+    color: #a0a0a0;
+    border: 1px solid #444;
+    border-radius: 14px;
+    padding: 4px 12px;
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cc-filter-btn:hover {
+    background: #3d3d3d;
+    color: #fff;
+}
+
+.cc-filter-btn.active {
+    background: #8ab4f8;
+    color: #121212;
+    border-color: #8ab4f8;
+    font-weight: 600;
 }

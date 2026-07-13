@@ -4,7 +4,7 @@ import os
 import time
 import logging
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta  # Ensure timedelta is imported at the top!
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
@@ -38,66 +38,67 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     router = APIRouter()
 
     @router.get("/search", response_model=SearchResponse)
-    async def search_context(q: str, limit: int = 10, offset: int = 0):
-        logger.info(f"[SEARCH INPUT] Query: '{q}' | Limit: {limit} | Offset: {offset}")
+    async def search_context(
+            q: str = "", limit: int = 10, offset: int = 0,
+            time_filter: str = "all", tz_offset: int = 0
+    ):
         try:
-            query_vector = list(embedder_model.embed([q]))[0].tolist()
+            start_utc_str = None
+            end_utc_str = None
 
-            # 1. Fetch a larger pool of candidates to properly re-rank (ignoring offset temporarily)
+            # 1. Translate UI Local Boundaries to Database UTC Boundaries
+            if time_filter != "all":
+                user_tz = timezone(timedelta(minutes=-tz_offset))  # Convert JS offset to Python TZ
+                now_local = datetime.now(user_tz)
+
+                if time_filter == "2h":
+                    start_utc = (now_local - timedelta(hours=2)).astimezone(timezone.utc)
+                    start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
+                elif time_filter == "today":
+                    start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+                    start_utc_str = start_local.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                elif time_filter == "yesterday":
+                    start_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+                    end_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+                    start_utc_str = start_local.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                    end_utc_str = end_local.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
             fetch_limit = max(50, offset + limit * 2)
-            raw_results = db_manager.search_similar(q, query_vector, limit=fetch_limit, offset=0)
-
             now = datetime.now(timezone.utc)
 
-            # 2. Apply Time-Decay Hybrid Scoring
+            # 2. Incredible UX Feature: If search is empty but a filter is clicked, just browse the timeline!
+            if not q.strip():
+                raw_results = db_manager.get_latest(limit=fetch_limit, offset=0, start_time=start_utc_str,
+                                                    end_time=end_utc_str)
+            else:
+                query_vector = list(embedder_model.embed([q]))[0].tolist()
+                raw_results = db_manager.search_similar(q, query_vector, limit=fetch_limit, offset=0,
+                                                        start_time=start_utc_str, end_time=end_utc_str)
+
+            # 3. Apply Time-Decay Scoring
             for r in raw_results:
-                # Similarity inversion: lower vector distance = higher base similarity
                 distance = r.get("distance", 0.5)
                 base_similarity = 1.0 / (1.0 + distance)
 
-                # Parse timestamp safely
                 try:
-                    created_str = r.get("timestamp") or r.get("created_at") or now.isoformat()
-
-                    # 1. Ensure JS strings have proper timezone offsets
-                    created_str = str(created_str).replace("Z", "+00:00")
-
-                    # 2. Convert SQLite's space into a valid ISO 'T'
+                    created_str = str(r.get("timestamp") or r.get("created_at") or now.isoformat()).replace("Z",
+                                                                                                            "+00:00")
                     if " " in created_str and "T" not in created_str:
                         created_str = created_str.replace(" ", "T")
-
                     created_dt = datetime.fromisoformat(created_str)
-
-                    # Ensure datetime is timezone-aware
                     if created_dt.tzinfo is None:
                         created_dt = created_dt.replace(tzinfo=timezone.utc)
-
-                    # 3. Calculate age_days for the hybrid scoring
                     age_days = (now - created_dt).total_seconds() / 86400.0
-
                     r["timestamp"] = created_dt.isoformat()
                 except (ValueError, TypeError):
                     age_days = 0
                     r["timestamp"] = now.isoformat()
 
-                # Exponential time decay: Time bonus halves roughly every 7 days
                 time_bonus = math.exp(-0.1 * max(0, age_days))
-
-                # 3. Hybrid Score: 70% semantic match, 30% recency
                 r["hybrid_score"] = (base_similarity * 0.7) + (time_bonus * 0.3)
 
-            # 4. Sort by our new hybrid score (Highest first)
             raw_results.sort(key=lambda x: x.get("hybrid_score", 0), reverse=True)
-
-            # 5. Apply the requested pagination slicing
             paginated_results = raw_results[offset: offset + limit]
-
-            # --- LOG OUTPUT ---
-            output_summary = [
-                f"[ID:{res.get('id')} | Score:{res.get('hybrid_score', 0):.3f} | Title:'{res.get('title', '')[:20]}']"
-                for res in paginated_results
-            ]
-            logger.info(f"[SEARCH OUTPUT] Returned {len(paginated_results)} results: {', '.join(output_summary)}")
 
             return {"status": "success", "results": paginated_results}
 

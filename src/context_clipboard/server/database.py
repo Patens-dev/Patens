@@ -69,10 +69,9 @@ class DatabaseManager:
                 return content_id
 
     def search_similar(self, query_text: str, query_vector: List[float],
-                       limit: int = 10, offset: int = 0, threshold: float = 1.15) -> List[Dict[str, Any]]:
-        """Performs a Hybrid Search (Keyword + Vector) with strict pagination."""
+                       limit: int = 10, offset: int = 0, threshold: float = 1.15,
+                       start_time: str = None, end_time: str = None) -> List[Dict[str, Any]]:
 
-        # 1. KEYWORD SEARCH PREPARATION
         terms = [t for t in query_text.strip().split() if len(t) > 1]
         if not terms and query_text.strip():
             terms = [query_text.strip()]
@@ -80,84 +79,81 @@ class DatabaseManager:
         kw_results = []
         vec_results = []
 
+        # --- NEW: Dynamic Time Constraints ---
+        time_sql = ""
+        time_params = []
+        if start_time:
+            time_sql += " AND s.created_at >= ?" if "s." in time_sql else " AND created_at >= ?"
+            time_params.append(start_time)
+        if end_time:
+            time_sql += " AND s.created_at < ?" if "s." in time_sql else " AND created_at < ?"
+            time_params.append(end_time)
+
         with closing(self._get_connection()) as db:
             # Execute Lexical Match
             if terms:
                 where_clauses = ["(title LIKE ? OR content LIKE ?)"] * len(terms)
                 params = [val for term in terms for val in (f"%{term}%", f"%{term}%")]
 
-                where_sql = " AND ".join(where_clauses)
                 kw_sql = f"""
                     SELECT id, title, url, content, created_at
                     FROM snippets
-                    WHERE {where_sql}
-                    ORDER BY id DESC
-                    LIMIT 50
+                    WHERE {" AND ".join(where_clauses)} {time_sql.replace('s.', '')}
+                    ORDER BY id DESC LIMIT 50
                 """
-                kw_results = db.execute(kw_sql, params).fetchall()
+                kw_results = db.execute(kw_sql, params + time_params).fetchall()
 
             # Execute Vector Semantic Match
-            vec_sql = """
+            vec_sql = f"""
                       SELECT s.id, s.title, s.url, s.content, s.created_at, v.distance
                       FROM snippets s
-                               INNER JOIN vec_snippets v ON s.id = v.content_id
-                      WHERE v.embedding MATCH ? AND v.k = 50 \
+                      INNER JOIN vec_snippets v ON s.id = v.content_id
+                      WHERE v.embedding MATCH ? AND v.k = 50 {time_sql}
                       """
-            vec_results = db.execute(vec_sql, [serialize_float32(query_vector)]).fetchall()
+            vec_params = [serialize_float32(query_vector)] + time_params
+            vec_results = db.execute(vec_sql, vec_params).fetchall()
 
-        # 2. MERGE & DEDUPLICATE
+        # Merge & Deduplicate
         seen_ids = set()
         final_results = []
 
-        # A. Add exact keyword matches FIRST (Priority)
         for r in kw_results:
             if r["id"] not in seen_ids:
-                final_results.append({
-                    "id": r["id"],
-                    "title": r["title"],
-                    "url": r["url"],
-                    "content": r["content"],
-                    "created_at": r["created_at"],
-                    "distance": 0.0,  # Perfect score
-                })
+                final_results.append({"id": r["id"], "title": r["title"], "url": r["url"], "content": r["content"],
+                                      "created_at": r["created_at"], "distance": 0.0})
                 seen_ids.add(r["id"])
 
-        # B. Add semantic matches SECOND (Only if they pass the strict threshold)
         valid_vec = sorted([r for r in vec_results if r["distance"] <= threshold], key=lambda x: x["distance"])
         for r in valid_vec:
             if r["id"] not in seen_ids:
-                final_results.append({
-                    "id": r["id"],
-                    "title": r["title"],
-                    "url": r["url"],
-                    "content": r["content"],
-                    "created_at": r["created_at"],
-                    "distance": r["distance"],
-                })
+                final_results.append({"id": r["id"], "title": r["title"], "url": r["url"], "content": r["content"],
+                                      "created_at": r["created_at"], "distance": r["distance"]})
                 seen_ids.add(r["id"])
 
-        # 3. PAGINATE
         return final_results[offset: offset + limit]
 
-    def get_latest(self, limit: int = 1) -> List[Dict[str, Any]]:
-        """Fetches the most recently saved snippets chronologically."""
+    def get_latest(self, limit: int = 10, offset: int = 0, start_time: str = None, end_time: str = None) -> List[
+        Dict[str, Any]]:
+        """Fetches recent snippets with optional time boundaries."""
         with closing(self._get_connection()) as db:
-            sql = """
-                  SELECT id, title, url, content, created_at
-                  FROM snippets
-                  ORDER BY id DESC
-                  LIMIT ? \
-                  """
-            results = db.execute(sql, (limit,)).fetchall()
+            sql = "SELECT id, title, url, content, created_at FROM snippets WHERE 1=1"
+            params = []
+
+            if start_time:
+                sql += " AND created_at >= ?"
+                params.append(start_time)
+            if end_time:
+                sql += " AND created_at < ?"
+                params.append(end_time)
+
+            sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            results = db.execute(sql, params).fetchall()
 
         return [
-            {
-                "id": r["id"],
-                "title": r["title"],
-                "url": r["url"],
-                "content": r["content"],
-                "created_at": r["created_at"]
-            }
+            {"id": r["id"], "title": r["title"], "url": r["url"], "content": r["content"],
+             "created_at": r["created_at"], "distance": 0.0}
             for r in results
         ]
 

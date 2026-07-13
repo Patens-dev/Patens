@@ -1,158 +1,97 @@
-console.log("[Context Clipboard] Shopping Cart initialized.");
+console.log("[Context Clipboard] Initialization started...");
 
-const validTags = ['P', 'PRE', 'BLOCKQUOTE', 'LI', 'CODE', 'DIV', 'SPAN', 'H1', 'H2', 'H3', 'H4', 'IMG'];
-let cartOpen = false; // Removed the broken isCtrlHeld variable!
-const containerTags = ['DIV', 'SECTION', 'ARTICLE', 'MAIN', 'ASIDE', 'BODY', 'UL', 'OL'];
-const readableTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'PRE', 'BLOCKQUOTE', 'TD'];
-// NEW: Variables to remember cursor position
+// ==========================================
+// 1. CONFIGURATION & STATE
+// ==========================================
+
+const CONFIG = {
+    API_BASE: 'http://localhost:8000',
+    BATCH_SIZE: 10,
+    MIN_TEXT_LENGTH: 15,
+    VALID_TAGS: ['P', 'PRE', 'BLOCKQUOTE', 'LI', 'CODE', 'DIV', 'SPAN', 'H1', 'H2', 'H3', 'H4', 'IMG'],
+    CONTAINER_TAGS: ['DIV', 'SECTION', 'ARTICLE', 'MAIN', 'ASIDE', 'BODY', 'UL', 'OL'],
+    READABLE_TAGS: ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'PRE', 'BLOCKQUOTE', 'TD']
+};
+
+// Global UI State
+let cartOpen = false;
+let paletteOpen = false;
+
+// Editor & Palette State
+let activeInputElement = null;
 let savedRange = null;
 let savedInputState = null;
+let stagedItems = [];
+let currentResults = [];
 
-// Extremely fast hashing function (DJB2)
+// Infinite Scroll State
+// Infinite Scroll State
+let currentQuery = '';
+let currentOffset = 0;
+let isFetching = false;
+let hasMore = true;
+let currentTimeFilter = 'all'; // <-- ADD THIS HERE TO MAKE IT GLOBAL
+
+// Dynamic Hotkey Config (Defaults)
+let currentHotkeys = {
+    capture: {ctrl: true, shift: true, alt: false, meta: false},
+    palette: {ctrl: true, shift: true, alt: false, meta: false, key: " "}
+};
+
+
+// ==========================================
+// 2. UTILITY HELPERS
+// ==========================================
+
+/** Fast hashing function (DJB2) for deduplication */
 function fastHash(str) {
     let hash = 5381;
     for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) + hash) + str.charCodeAt(i); /* hash * 33 + c */
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
     }
-    return hash >>> 0; // Force positive integer representation
+    return hash >>> 0;
 }
 
-// Universal helper to push items to the cart
-function saveToCartDirectly(text, title, isImage, base64Data, eventX, eventY, flashElement = null) {
-    const contentToHash = isImage ? base64Data : text;
-    const itemHash = fastHash(contentToHash).toString();
-
-    chrome.storage.local.get(['contextCart'], (result) => {
-        const cart = result.contextCart || [];
-
-        // Duplicate check
-        if (cart.some(item => item.hash === itemHash)) {
-            if (eventX && eventY) showDuplicateWarning(eventX, eventY);
-            return;
-        }
-
-        // Apply visual flash if an element was provided
-        if (flashElement) {
-            flashElement.classList.add('cc-added-flash');
-            setTimeout(() => flashElement.classList.remove('cc-added-flash'), 600);
-        }
-
-        const newItem = {
-            id: Date.now().toString(),
-            hash: itemHash,
-            type: isImage ? 'image' : 'text',
-            url: window.location.href,
-            title: title,
-            content: text,
-            media: base64Data
-        };
-
-        cart.push(newItem);
-        chrome.storage.local.set({contextCart: cart});
-    });
+/** Truncates title to 5 words max for clean UI scanning */
+function truncateTitle(title) {
+    if (!title) return 'Untitled';
+    const words = title.trim().split(/\s+/);
+    return words.length <= 5 ? title : `${words.slice(0, 5).join(' ')}...`;
 }
 
-// A UI notification for bulk saves
-function showBulkSummary(x, y, added, dupes) {
-    const popup = document.createElement('div');
-    popup.className = 'cc-duplicate-warning'; // Reusing your existing tooltip class
+/** Smart absolute local date formatter */
+function formatDateTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = Math.max(0, now - date);
 
-    if (added > 0 && dupes === 0) {
-        popup.innerText = `✨ Saved ${added} items`;
-        popup.style.background = '#10b981'; // Success Green
-    } else if (added > 0 && dupes > 0) {
-        popup.innerText = `✨ Saved ${added} items (${dupes} duplicates)`;
-        popup.style.background = '#f59e0b'; // Warning Orange
-    } else {
-        popup.innerText = `All items already in cart`;
-        popup.style.background = '#ff5252'; // Error Red
+    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
+
+    const timeOpts = {hour: 'numeric', minute: '2-digit'};
+    const timeStr = date.toLocaleTimeString(undefined, timeOpts);
+
+    if (isToday) {
+        if (diffMs < 60000) return `Just now`;
+        if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
+        return `Today at ${timeStr}`;
     }
 
-    popup.style.left = `${x + 15}px`;
-    popup.style.top = `${y + 15}px`;
-    document.body.appendChild(popup);
-
-    setTimeout(() => {
-        popup.classList.add('cc-duplicate-fade');
-        setTimeout(() => popup.remove(), 300);
-    }, 1500);
-}
-
-// Safely saves arrays of elements to Chrome Storage at once
-function saveBulkToCartDirectly(itemsToSave, eventX, eventY) {
-    chrome.storage.local.get(['contextCart'], (result) => {
-        let cart = result.contextCart || [];
-        let addedCount = 0;
-        let duplicateCount = 0;
-
-        itemsToSave.forEach(item => {
-            const contentToHash = item.isImage ? item.base64Data : item.text;
-            const itemHash = fastHash(contentToHash).toString();
-
-            if (!cart.some(cartItem => cartItem.hash === itemHash)) {
-                cart.push({
-                    id: Date.now().toString() + Math.random().toString().slice(2, 6),
-                    hash: itemHash,
-                    type: item.isImage ? 'image' : 'text',
-                    url: window.location.href,
-                    title: item.title,
-                    content: item.text,
-                    media: item.base64Data
-                });
-                addedCount++;
-
-                // Visual feedback on the specific DOM element
-                if (item.element) {
-                    item.element.classList.add('cc-added-flash');
-                    setTimeout(() => item.element.classList.remove('cc-added-flash'), 600);
-                }
-            } else {
-                duplicateCount++;
-            }
-        });
-
-        if (addedCount > 0) {
-            chrome.storage.local.set({contextCart: cart});
-        }
-
-        showBulkSummary(eventX, eventY, addedCount, duplicateCount);
-    });
-}
-
-// Spawns a tiny floating div near the cursor
-function showDuplicateWarning(x, y) {
-    const warning = document.createElement('div');
-    warning.className = 'cc-duplicate-warning';
-    warning.innerText = "Already in cart";
-    warning.style.left = `${x + 15}px`;
-    warning.style.top = `${y + 15}px`;
-    document.body.appendChild(warning);
-
-    setTimeout(() => {
-        warning.classList.add('cc-duplicate-fade');
-        setTimeout(() => warning.remove(), 300);
-    }, 1200);
-}
-
-// Helper: Strict Image Finder (Prevents hijacking large container clicks)
-function findUnderlyingImage(targetElement) {
-    if (!targetElement || targetElement.nodeType !== Node.ELEMENT_NODE) return null;
-
-    // 1. Direct click on image
-    if (targetElement.tagName === 'IMG') return targetElement;
-
-    // 2. Clicked a tight wrapper (picture, figure, or a link)
-    const tightWrappers = ['PICTURE', 'FIGURE', 'A'];
-    if (tightWrappers.includes(targetElement.tagName)) {
-        const nestedImg = targetElement.querySelector('img');
-        if (nestedImg) return nestedImg;
+    if (isYesterday) {
+        return `Yesterday at ${timeStr}`;
     }
 
-    // Return null if they clicked a massive div/article
-    return null;
+    const dateOpts = {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'};
+    if (date.getFullYear() !== now.getFullYear()) dateOpts.year = 'numeric';
+
+    return date.toLocaleDateString(undefined, dateOpts);
 }
 
-// Helper: Converts images to Base64 strings safely
+/** Converts images to Base64 strings safely with Canvas fallback */
 async function getBase64Image(imgElement) {
     if (imgElement.src.startsWith('data:')) return imgElement.src;
 
@@ -166,119 +105,149 @@ async function getBase64Image(imgElement) {
             reader.readAsDataURL(blob);
         });
     } catch (err) {
-        console.warn("CORS blocked fetch, using Canvas fallback...");
+        console.warn("[Context Clipboard] CORS blocked image fetch, using Canvas fallback.");
         const canvas = document.createElement("canvas");
         canvas.width = imgElement.naturalWidth || imgElement.width;
         canvas.height = imgElement.naturalHeight || imgElement.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(imgElement, 0, 0);
+        canvas.getContext("2d").drawImage(imgElement, 0, 0);
         return canvas.toDataURL("image/png");
     }
 }
 
-// --------------------------------------------------------
-// THE HYPERLINK SHIELD (Updated for Ctrl+Shift+Click)
-// --------------------------------------------------------
+/** Strict Image Finder: Prevents hijacking large container clicks */
+function findUnderlyingImage(targetElement) {
+    if (!targetElement || targetElement.nodeType !== Node.ELEMENT_NODE) return null;
+    if (targetElement.tagName === 'IMG') return targetElement;
+
+    const tightWrappers = ['PICTURE', 'FIGURE', 'A'];
+    if (tightWrappers.includes(targetElement.tagName)) {
+        return targetElement.querySelector('img');
+    }
+    return null;
+}
+
+/** Checks if the current keyboard event strictly matches the config */
+function checkModifiers(e, configObj) {
+    return (e.ctrlKey === configObj.ctrl) &&
+        (e.shiftKey === configObj.shift) &&
+        (e.altKey === configObj.alt) &&
+        (e.metaKey === configObj.meta);
+}
+
+
+// ==========================================
+// 3. STORAGE & NOTIFICATIONS
+// ==========================================
+
+/** Unified UI notification spawner */
+function showFloatingNotification(message, color, x, y) {
+    const popup = document.createElement('div');
+    popup.className = 'cc-duplicate-warning';
+    popup.innerText = message;
+    popup.style.background = color;
+    popup.style.left = `${x + 15}px`;
+    popup.style.top = `${y + 15}px`;
+
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.classList.add('cc-duplicate-fade');
+        setTimeout(() => popup.remove(), 300);
+    }, 1500);
+}
+
+/** Safely saves an array of elements to Chrome Storage */
+async function saveBulkToCartDirectly(itemsToSave, eventX, eventY) {
+    const result = await chrome.storage.local.get(['contextCart']);
+    let cart = result.contextCart || [];
+    let addedCount = 0;
+    let duplicateCount = 0;
+
+    itemsToSave.forEach(item => {
+        const contentToHash = item.isImage ? item.base64Data : item.text;
+        const itemHash = fastHash(contentToHash).toString();
+
+        if (!cart.some(cartItem => cartItem.hash === itemHash)) {
+            cart.push({
+                id: Date.now().toString() + Math.random().toString().slice(2, 6),
+                hash: itemHash,
+                type: item.isImage ? 'image' : 'text',
+                url: window.location.href,
+                title: item.title,
+                content: item.text,
+                media: item.base64Data
+            });
+            addedCount++;
+
+            if (item.element) {
+                item.element.classList.add('cc-added-flash');
+                setTimeout(() => item.element.classList.remove('cc-added-flash'), 600);
+            }
+        } else {
+            duplicateCount++;
+        }
+    });
+
+    if (addedCount > 0) await chrome.storage.local.set({contextCart: cart});
+
+    // Handle feedback UI
+    if (addedCount > 0 && duplicateCount === 0) {
+        showFloatingNotification(`✨ Saved ${addedCount} items`, '#10b981', eventX, eventY);
+    } else if (addedCount > 0 && duplicateCount > 0) {
+        showFloatingNotification(`✨ Saved ${addedCount} items (${duplicateCount} duplicates)`, '#f59e0b', eventX, eventY);
+    } else if (addedCount === 0) {
+        showFloatingNotification(`Already in cart`, '#ff5252', eventX, eventY);
+    }
+}
+
+
+// ==========================================
+// 4. BROWSER EVENT LISTENERS
+// ==========================================
+
+// --- SYNC CONFIG & STORAGE ---
+chrome.storage.local.get(['hotkeys'], (res) => {
+    if (res.hotkeys) currentHotkeys = res.hotkeys;
+});
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'local') return;
+    if (changes.hotkeys) currentHotkeys = changes.hotkeys.newValue;
+    if (changes.contextCart) renderUI();
+});
+
+chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === "open_palette") togglePalette();
+});
+
+// --- COMMAND PALETTE HOTKEY ---
+window.addEventListener('keydown', (e) => {
+    const isHotkeyMatch = checkModifiers(e, currentHotkeys.palette) &&
+        e.key.toLowerCase() === currentHotkeys.palette.key.toLowerCase();
+
+    if (isHotkeyMatch) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePalette();
+    }
+}, true);
+
+// --- HYPERLINK SHIELD ---
 document.body.addEventListener('click', (e) => {
-    // Only intercept if BOTH Ctrl and Shift are held down
-    if (e.ctrlKey && e.shiftKey) {
+    if (checkModifiers(e, currentHotkeys.capture)) {
         const isLink = e.target.closest('a');
-        const isValidTag = validTags.includes(e.target.tagName) || e.target.closest(validTags.join(','));
+        const isValidTag = CONFIG.VALID_TAGS.includes(e.target.tagName) || e.target.closest(CONFIG.VALID_TAGS.join(','));
 
         if (isLink || isValidTag) {
             e.preventDefault();
             e.stopPropagation();
-            console.log("[Context Clipboard] Captured context via Ctrl+Shift+Click.");
         }
     }
 }, true);
 
-
-// --------------------------------------------------------
-// HOVER EFFECTS (Now requires Ctrl + Shift)
-// --------------------------------------------------------
-document.body.addEventListener('mousedown', async (e) => {
-    // Ignore UI clicks
-    if (e.target.closest('.cc-cart-btn') || e.target.closest('.cc-cart-modal') || e.target.id === 'cc-search-overlay') return;
-
-    const isShortcutPressed = e.ctrlKey && e.shiftKey;
-
-    if (isShortcutPressed && e.target) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const textSelection = window.getSelection().toString().trim();
-        const targetImg = findUnderlyingImage(e.target);
-        let itemsToSave = [];
-
-        if (textSelection) {
-            // 1. Text Selection Priority (Always wins)
-            itemsToSave.push({text: textSelection, title: document.title, isImage: false, element: e.target});
-        } else if (targetImg) {
-            // 2. Explicit Image Click
-            const base64Data = await getBase64Image(targetImg);
-            itemsToSave.push({
-                text: targetImg.alt || targetImg.title || "Image snippet from " + document.title,
-                title: document.title,
-                isImage: true,
-                base64Data: base64Data,
-                element: targetImg
-            });
-        } else {
-            // 3. Smart Container Parsing
-            const tagName = e.target.tagName;
-
-            if (containerTags.includes(tagName)) {
-                // Find EVERY readable element inside the clicked container
-                const allReadable = Array.from(e.target.querySelectorAll(readableTags.join(',')));
-
-                // CRITICAL FIX: Filter out nested elements to prevent duplicate text
-                // (e.g. if we have a TD containing a P, keep the TD, ignore the P)
-                const topLevelReadable = allReadable.filter(el => {
-                    return !allReadable.some(parent => parent.contains(el) && parent !== el);
-                });
-
-                if (topLevelReadable.length > 0) {
-                    topLevelReadable.forEach(child => {
-                        const childText = child.innerText.trim();
-                        // Ignore tiny fragments like an empty table cell or single character
-                        if (childText.length > 15) {
-                            itemsToSave.push({text: childText, title: document.title, isImage: false, element: child});
-                        }
-                    });
-                } else {
-                    // Fallback: It's a div with just raw text inside, no structural tags
-                    const text = e.target.innerText.trim();
-                    if (text.length > 15) itemsToSave.push({
-                        text,
-                        title: document.title,
-                        isImage: false,
-                        element: e.target
-                    });
-                }
-            } else if (readableTags.includes(tagName) || tagName === 'SPAN') {
-                // 4. They clicked exactly on a paragraph or header
-                const text = e.target.innerText.trim();
-                if (text.length > 15) itemsToSave.push({
-                    text,
-                    title: document.title,
-                    isImage: false,
-                    element: e.target
-                });
-            }
-        }
-
-        // Fire the bulk save engine
-        if (itemsToSave.length > 0) {
-            saveBulkToCartDirectly(itemsToSave, e.clientX, e.clientY);
-        }
-    }
-}, true);
-
-
+// --- HOVER HIGHLIGHTS ---
 document.body.addEventListener('mouseover', (e) => {
-    // Only highlight if both keys are held while moving the mouse
-    if (e.ctrlKey && e.shiftKey && e.target && validTags.includes(e.target.tagName)) {
+    if (checkModifiers(e, currentHotkeys.capture) && e.target && CONFIG.VALID_TAGS.includes(e.target.tagName)) {
         e.target.classList.add('cc-highlight-hover');
     }
 });
@@ -287,41 +256,101 @@ document.body.addEventListener('mouseout', (e) => {
         e.target.classList.remove('cc-highlight-hover');
     }
 });
-// --------------------------------------------------------
-// MANUAL TEXT SELECTION TOOLTIP
-// --------------------------------------------------------
+
+// --- CAPTURE CLICK LISTENER ---
+document.body.addEventListener('mousedown', async (e) => {
+    // Ignore internal UI clicks
+    if (e.target.closest('.cc-cart-btn') || e.target.closest('.cc-cart-modal') || e.target.id === 'cc-search-overlay') return;
+
+    if (checkModifiers(e, currentHotkeys.capture) && e.target) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const textSelection = window.getSelection().toString().trim();
+        const targetImg = findUnderlyingImage(e.target);
+        let itemsToSave = [];
+
+        if (textSelection) {
+            // 1. Explicit Text Selection
+            itemsToSave.push({text: textSelection, title: document.title, isImage: false, element: e.target});
+        } else if (targetImg) {
+            // 2. Explicit Image Click
+            const base64Data = await getBase64Image(targetImg);
+            itemsToSave.push({
+                text: targetImg.alt || targetImg.title || `Image snippet from ${document.title}`,
+                title: document.title,
+                isImage: true,
+                base64Data: base64Data,
+                element: targetImg
+            });
+        } else {
+            // 3. Smart Container Parsing
+            const tagName = e.target.tagName;
+            const isCustomElement = tagName.includes('-');
+            const isEditable = e.target.isContentEditable;
+
+            if (CONFIG.CONTAINER_TAGS.includes(tagName) || isCustomElement || isEditable) {
+                const allReadable = Array.from(e.target.querySelectorAll(CONFIG.READABLE_TAGS.join(',')));
+                const topLevelReadable = allReadable.filter(el => !allReadable.some(parent => parent.contains(el) && parent !== el));
+
+                if (topLevelReadable.length > 0) {
+                    topLevelReadable.forEach(child => {
+                        const childText = child.innerText.trim();
+                        if (childText.length > CONFIG.MIN_TEXT_LENGTH) {
+                            itemsToSave.push({text: childText, title: document.title, isImage: false, element: child});
+                        }
+                    });
+                } else {
+                    const text = e.target.innerText.trim();
+                    if (text.length > CONFIG.MIN_TEXT_LENGTH) {
+                        itemsToSave.push({text, title: document.title, isImage: false, element: e.target});
+                    }
+                }
+            } else if (CONFIG.READABLE_TAGS.includes(tagName) || tagName === 'SPAN') {
+                const text = e.target.innerText.trim();
+                if (text.length > CONFIG.MIN_TEXT_LENGTH) {
+                    itemsToSave.push({text, title: document.title, isImage: false, element: e.target});
+                }
+            }
+        }
+
+        if (itemsToSave.length > 0) saveBulkToCartDirectly(itemsToSave, e.clientX, e.clientY);
+    }
+}, true);
+
+// --- MANUAL TEXT SELECTION TOOLTIP ---
 document.addEventListener('mouseup', (e) => {
-    // Ignore clicks inside our own UI to prevent immediate disappearance
     if (e.target.closest('.cc-selection-tooltip') || e.target.closest('.cc-palette-overlay') || e.target.closest('.cc-cart-modal')) return;
 
     const selection = window.getSelection();
     const text = selection.toString().trim();
 
-    // Clean up old tooltips
-    const existing = document.getElementById('cc-selection-tooltip');
-    if (existing) existing.remove();
+    document.getElementById('cc-selection-tooltip')?.remove();
 
     if (text.length > 0 && !e.ctrlKey && !e.shiftKey) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
         const tooltip = document.createElement('div');
+
         tooltip.id = 'cc-selection-tooltip';
         tooltip.className = 'cc-selection-tooltip';
         tooltip.innerHTML = '✨ Save Context';
-
-        // Position it centered directly above the highlighted text
         tooltip.style.top = `${window.scrollY + rect.top - 45}px`;
         tooltip.style.left = `${window.scrollX + rect.left + (rect.width / 2) - 60}px`;
 
         tooltip.onmousedown = (ev) => {
-            ev.preventDefault(); // Prevents the selection from clearing
+            ev.preventDefault();
             ev.stopPropagation();
 
-            saveToCartDirectly(text, "Manual Selection: " + document.title, false, null, ev.clientX, ev.clientY);
+            // Route through bulk saver to utilize DRY principle
+            saveBulkToCartDirectly([{
+                text,
+                title: `Manual Selection: ${document.title}`,
+                isImage: false,
+                element: null
+            }], ev.clientX, ev.clientY);
 
             tooltip.innerHTML = '✓ Saved';
-            tooltip.style.background = '#10b981'; // Success green
+            tooltip.style.background = '#10b981';
 
             setTimeout(() => {
                 tooltip.remove();
@@ -332,18 +361,18 @@ document.addEventListener('mouseup', (e) => {
         document.body.appendChild(tooltip);
     }
 });
-// --------------------------------------------------------
-// UI RENDERING ENGINE (Cross-Tab Synced)
-// --------------------------------------------------------
+
+
+// ==========================================
+// 5. CART MODAL UI
+// ==========================================
 
 function renderUI() {
     chrome.storage.local.get(['contextCart'], (result) => {
         const cart = result.contextCart || [];
-
         let btn = document.getElementById('cc-cart-btn');
 
         if (cart.length > 0) {
-            // Main Cart Button
             if (!btn) {
                 btn = document.createElement('div');
                 btn.id = 'cc-cart-btn';
@@ -353,7 +382,6 @@ function renderUI() {
                 document.body.appendChild(btn);
             }
             document.getElementById('cc-badge').innerText = cart.length;
-
         } else {
             if (btn) btn.remove();
             if (cartOpen) toggleModal();
@@ -374,36 +402,34 @@ function toggleModal() {
         modal.className = 'cc-cart-modal';
         document.body.appendChild(modal);
         cartOpen = true;
-        renderUI(); // Populates the newly opened modal
+        renderUI();
     }
 }
-
-// --- UPDATED MODAL RENDERING (Replace your existing renderModalContents function) ---
 
 function renderModalContents(cart) {
     const modal = document.getElementById('cc-cart-modal');
     if (!modal) return;
 
     let itemsHTML = cart.map(item => `
-    <div class="cc-cart-item" data-id="${item.id}">
-      <div class="cc-item-remove" data-id="${item.id}">✕</div>
-      <div class="cc-item-source">${item.title}</div>
-      <div class="cc-item-text">${item.content}</div>
-    </div>
-  `).join('');
+        <div class="cc-cart-item" data-id="${item.id}">
+            <div class="cc-item-remove" data-id="${item.id}">✕</div>
+            <div class="cc-item-source">${item.title}</div>
+            <div class="cc-item-text">${item.content.replace(/</g, '&lt;')}</div>
+        </div>
+    `).join('');
 
     modal.innerHTML = `
-    <div class="cc-cart-header">
-      <span>Context Cart</span>
-      <span style="cursor:pointer" onclick="document.getElementById('cc-cart-btn').click()">_</span>
-    </div>
-    <div class="cc-cart-items">${itemsHTML}</div>
-    <div class="cc-cart-footer">
-      <button class="cc-send-btn" id="cc-send-all">✨ Send All to Local Memory</button>
-    </div>
-  `;
+        <div class="cc-cart-header">
+            <span>Context Cart</span>
+            <span style="cursor:pointer" onclick="document.getElementById('cc-cart-btn').click()">_</span>
+        </div>
+        <div class="cc-cart-items">${itemsHTML}</div>
+        <div class="cc-cart-footer">
+            <button class="cc-send-btn" id="cc-send-all">✨ Send All to Local Memory</button>
+        </div>
+    `;
 
-    // 1. Tooltip Setup
+    // Tooltip rendering logic
     let tooltip = document.getElementById('cc-cart-tooltip');
     if (!tooltip) {
         tooltip = document.createElement('div');
@@ -412,7 +438,6 @@ function renderModalContents(cart) {
         document.body.appendChild(tooltip);
     }
 
-    // 2. Attach Hover Listeners for Preview
     modal.querySelectorAll('.cc-cart-item').forEach(itemEl => {
         const itemId = itemEl.getAttribute('data-id');
         const itemData = cart.find(i => i.id === itemId);
@@ -421,58 +446,48 @@ function renderModalContents(cart) {
             if (itemData.type === 'image') {
                 tooltip.innerHTML = `<img src="${itemData.media}" alt="Preview" />`;
             } else {
-                // Truncate at 256 characters for clean rendering
-                const text = itemData.content.length > 256
-                    ? itemData.content.substring(0, 256) + '<span style="color:#8ab4f8">...</span>'
-                    : itemData.content;
-                tooltip.innerHTML = text;
+                const safeText = itemData.content.replace(/</g, '&lt;');
+                tooltip.innerHTML = safeText.length > 256
+                    ? `${safeText.substring(0, 256)}<span style="color:#8ab4f8">...</span>`
+                    : safeText;
             }
 
-            // Position tooltip to the left of the modal
             const modalRect = modal.getBoundingClientRect();
             const itemRect = itemEl.getBoundingClientRect();
-
             tooltip.style.right = `${window.innerWidth - modalRect.left + 15}px`;
 
-            // Try to align with the item, but prevent it from going off the bottom of the screen
             let topPosition = itemRect.top;
-            if (topPosition + 250 > window.innerHeight) {
-                topPosition = window.innerHeight - 260; // clamp
-            }
+            if (topPosition + 250 > window.innerHeight) topPosition = window.innerHeight - 260;
+
             tooltip.style.top = `${topPosition}px`;
             tooltip.classList.add('cc-tooltip-visible');
         });
 
-        itemEl.addEventListener('mouseleave', () => {
-            tooltip.classList.remove('cc-tooltip-visible');
-        });
+        itemEl.addEventListener('mouseleave', () => tooltip.classList.remove('cc-tooltip-visible'));
     });
 
-    // 3. Attach Delete Listeners
+    // Event Listeners for UI interaction
     modal.querySelectorAll('.cc-item-remove').forEach(btn => {
         btn.onclick = (e) => {
-            e.stopPropagation(); // Prevent triggering other clicks
+            e.stopPropagation();
             const idToRemove = btn.getAttribute('data-id');
             const updatedCart = cart.filter(item => item.id !== idToRemove);
-            tooltip.classList.remove('cc-tooltip-visible'); // Hide tooltip if deleting
+            tooltip.classList.remove('cc-tooltip-visible');
             chrome.storage.local.set({contextCart: updatedCart});
         };
     });
 
-    // 4. Attach Send Logic
     modal.querySelector('#cc-send-all').onclick = (e) => {
         const btn = e.target;
         btn.innerText = "Sending...";
         btn.disabled = true;
 
         chrome.runtime.sendMessage({action: "ingest_batch", payload: cart}, (response) => {
-            if (response && response.success) {
+            if (response?.success) {
                 btn.innerText = "✓ Saved!";
                 btn.style.background = "#006400";
                 tooltip.classList.remove('cc-tooltip-visible');
-                setTimeout(() => {
-                    chrome.storage.local.set({contextCart: []});
-                }, 1000);
+                setTimeout(() => chrome.storage.local.set({contextCart: []}), 1000);
             } else {
                 btn.innerText = "❌ Failed to send";
                 btn.style.background = "#8B0000";
@@ -482,30 +497,16 @@ function renderModalContents(cart) {
     };
 }
 
-// --------------------------------------------------------
-// COMMAND PALETTE (Search, Multi-Select, Infinite Scroll)
-// --------------------------------------------------------
-let paletteOpen = false;
-let activeInputElement = null;
-let stagedItems = [];
-let currentResults = []; // Global cache for keyboard navigation
 
-// Infinite Scroll State
-let currentQuery = '';
-let currentOffset = 0;
-let isFetching = false;
-let hasMore = true;
-const BATCH_SIZE = 10;
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "open_palette") togglePalette();
-});
+// ==========================================
+// 6. COMMAND PALETTE UI
+// ==========================================
 
 function togglePalette() {
     let palette = document.getElementById('cc-palette');
 
+    // Close logic
     if (paletteOpen && palette) {
-        // CLOSING THE PALETTE
         palette.remove();
         paletteOpen = false;
         stagedItems = [];
@@ -513,32 +514,32 @@ function togglePalette() {
         return;
     }
 
-    // OPENING THE PALETTE: Take snapshot of current focus and cursor position
+    // Capture cursor state before opening
     activeInputElement = document.activeElement;
     savedRange = null;
     savedInputState = null;
 
     if (activeInputElement) {
         if (activeInputElement.tagName === 'TEXTAREA' || activeInputElement.tagName === 'INPUT') {
-            savedInputState = {
-                start: activeInputElement.selectionStart,
-                end: activeInputElement.selectionEnd
-            };
+            savedInputState = {start: activeInputElement.selectionStart, end: activeInputElement.selectionEnd};
         } else if (activeInputElement.isContentEditable) {
             const sel = window.getSelection();
-            if (sel.rangeCount > 0) {
-                savedRange = sel.getRangeAt(0).cloneRange();
-            }
+            if (sel.rangeCount > 0) savedRange = sel.getRangeAt(0).cloneRange();
         }
     }
 
     palette = document.createElement('div');
     palette.id = 'cc-palette';
     palette.className = 'cc-palette-overlay';
-
     palette.innerHTML = `
         <div class="cc-palette-container">
             <input type="text" id="cc-palette-input" placeholder="Search memory..." autocomplete="off" />
+            <div class="cc-search-filters" id="cc-search-filters">
+                <button class="cc-filter-btn active" data-time="all">Any time</button>
+                <button class="cc-filter-btn" data-time="2h">Last 2 Hours</button>
+                <button class="cc-filter-btn" data-time="today">Today</button>
+                <button class="cc-filter-btn" data-time="yesterday">Yesterday</button>
+            </div>
             <div id="cc-palette-results" class="cc-palette-results"></div>
             <div id="cc-staging-container" class="cc-staging-container" style="display: none;">
                 <div class="cc-staging-header">Staged for Injection</div>
@@ -558,38 +559,70 @@ function togglePalette() {
 
     const input = document.getElementById('cc-palette-input');
     const resultsContainer = document.getElementById('cc-palette-results');
-
-    input.focus();
     let timeout = null;
+    input.focus();
 
-    // 1. Core Search Input Listener
+    // -- Event Listeners --
     input.addEventListener('input', (e) => {
         clearTimeout(timeout);
         currentQuery = e.target.value.trim();
 
         timeout = setTimeout(() => {
-            // Reset infinite scroll state on new query
             currentOffset = 0;
             hasMore = true;
             currentResults = [];
             resultsContainer.innerHTML = '';
-
-            if (!currentQuery) return;
-            fetchBatch();
+            if (currentQuery) fetchBatch();
         }, 300);
     });
 
-// 2. Infinite Scroll Event Listener (Now guarded against spam)
     resultsContainer.addEventListener('scroll', () => {
-        // Only check if we are NOT currently fetching, and we STILL have more items
         if (!isFetching && hasMore && resultsContainer.scrollTop + resultsContainer.clientHeight >= resultsContainer.scrollHeight - 20) {
             fetchBatch();
         }
     });
+    activeInputElement = document.activeElement;
+    savedRange = null;
+    savedInputState = null;
 
-    // Keyboard Navigation
+    // NEW: Reset states so it doesn't get stuck on old filters if you close/reopen
+    currentTimeFilter = 'all';
+    currentQuery = '';
+
+    // 1. Filter Click Listener
+    document.getElementById('cc-search-filters').addEventListener('click', (e) => {
+        if (e.target.classList.contains('cc-filter-btn')) {
+            document.querySelectorAll('.cc-filter-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentTimeFilter = e.target.getAttribute('data-time');
+
+            // Re-trigger search instantly
+            currentOffset = 0;
+            hasMore = true;
+            currentResults = [];
+            resultsContainer.innerHTML = '';
+            fetchBatch();
+        }
+    });
+
+    // 2. Fetch Trigger Patch (Run instantly on load so timeline populates)
+    fetchBatch();
+
+    input.addEventListener('input', (e) => {
+        clearTimeout(timeout);
+        currentQuery = e.target.value; // Removed .trim() so they can empty it
+
+        timeout = setTimeout(() => {
+            currentOffset = 0;
+            hasMore = true;
+            currentResults = [];
+            resultsContainer.innerHTML = '';
+            fetchBatch(); // Always run fetchBatch, even if query is empty
+        }, 300);
+    });
+    // Keyboard Navigation & Shortcuts
     input.addEventListener('keydown', async (e) => {
-        if (e.key === 'Escape') togglePalette();
+        if (e.key === 'Escape') return togglePalette();
 
         if (e.key === 'Tab') {
             e.preventDefault();
@@ -602,16 +635,25 @@ function togglePalette() {
 
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (stagedItems.length > 0) {
-                injectContextsToAI(stagedItems);
+
+            // Bulk Injection
+            if (e.shiftKey) {
+                if (currentResults.length > 0) injectContextsToAI([...currentResults]);
                 return;
             }
+
+            // Standard Injection
+            if (stagedItems.length > 0) {
+                injectContextsToAI([...stagedItems]);
+                return;
+            }
+
             if (!input.value.trim()) {
                 input.placeholder = "Fetching latest...";
                 try {
-                    const res = await fetch(`http://localhost:8000/latest?limit=1`);
+                    const res = await fetch(`${CONFIG.API_BASE}/latest?limit=1`);
                     const data = await res.json();
-                    if (data.results && data.results.length > 0) injectContextsToAI([data.results[0]]);
+                    if (data.results?.length) injectContextsToAI([data.results[0]]);
                 } catch (err) {
                     input.placeholder = "Error fetching latest.";
                 }
@@ -619,53 +661,10 @@ function togglePalette() {
                 injectContextsToAI([currentResults[0]]);
             }
         }
-        // Keyboard Navigation
-        input.addEventListener('keydown', async (e) => {
-            if (e.key === 'Escape') togglePalette();
-
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                if (currentResults.length > 0) {
-                    addToStage(currentResults[0]);
-                    input.value = '';
-                    resultsContainer.innerHTML = '';
-                }
-            }
-
-            if (e.key === 'Enter') {
-                e.preventDefault();
-
-                // NEW: Shift + Enter logic (Bulk Inject)
-                if (e.shiftKey) {
-                    if (currentResults.length > 0) {
-                        injectContextsToAI(currentResults);
-                    }
-                    return;
-                }
-
-                // Standard Enter logic
-                if (stagedItems.length > 0) {
-                    injectContextsToAI(stagedItems);
-                    return;
-                }
-                if (!input.value.trim()) {
-                    input.placeholder = "Fetching latest...";
-                    try {
-                        const res = await fetch(`http://localhost:8000/latest?limit=1`);
-                        const data = await res.json();
-                        if (data.results && data.results.length > 0) injectContextsToAI([data.results[0]]);
-                    } catch (err) {
-                        input.placeholder = "Error fetching latest.";
-                    }
-                } else if (currentResults.length > 0) {
-                    injectContextsToAI([currentResults[0]]);
-                }
-            }
-        });
     });
 
     document.getElementById('cc-inject-all-btn').addEventListener('click', () => {
-        if (stagedItems.length > 0) injectContextsToAI(stagedItems);
+        if (stagedItems.length > 0) injectContextsToAI([...stagedItems]);
     });
 
     palette.addEventListener('click', (e) => {
@@ -673,16 +672,17 @@ function togglePalette() {
     });
 }
 
-// 3. The Fetch Engine
-// 3. The Fetch Engine (Patched for the infinite loop)
+// ==========================================
+// 7. PALETTE DATA FETCHING & RENDERING
+// ==========================================
+
 async function fetchBatch() {
     if (isFetching || !hasMore) return;
     isFetching = true;
 
     const container = document.getElementById('cc-palette-results');
-
-    // Add loading spinner securely
     let spinner = document.getElementById('cc-search-spinner');
+
     if (!spinner) {
         spinner = document.createElement('div');
         spinner.className = 'cc-loading-spinner';
@@ -692,28 +692,27 @@ async function fetchBatch() {
     }
 
     try {
-        const res = await fetch(`http://localhost:8000/search?q=${encodeURIComponent(currentQuery)}&limit=${BATCH_SIZE}&offset=${currentOffset}`);
+        // Grabs your browser's exact timezone offset (EEST)
+        const tzOffset = new Date().getTimezoneOffset();
+
+        const url = `${CONFIG.API_BASE}/search?q=${encodeURIComponent(currentQuery.trim())}&limit=${CONFIG.BATCH_SIZE}&offset=${currentOffset}&time_filter=${currentTimeFilter}&tz_offset=${tzOffset}`;
+
+        const res = await fetch(url);
         const data = await res.json();
         const fetchedResults = data.results || [];
 
-        // Remove spinner
-        spinner = document.getElementById('cc-search-spinner');
-        if (spinner) spinner.remove();
+        document.getElementById('cc-search-spinner')?.remove();
 
-        // STRICT DEDUPLICATION
         const uniqueNewResults = fetchedResults.filter(newRes =>
             !currentResults.some(existingRes => existingRes.content === newRes.content)
         );
 
-        // Always advance the offset
-        currentOffset += BATCH_SIZE;
+        currentOffset += CONFIG.BATCH_SIZE;
 
-        // THE FIX: If the DB is exhausted, OR if the DB just fed us a full page of duplicates, stop the loop.
-        if (fetchedResults.length < BATCH_SIZE || (fetchedResults.length > 0 && uniqueNewResults.length === 0)) {
+        if (fetchedResults.length < CONFIG.BATCH_SIZE || (fetchedResults.length > 0 && uniqueNewResults.length === 0)) {
             hasMore = false;
         }
 
-        // Render Logic
         if (currentResults.length === 0 && uniqueNewResults.length === 0) {
             container.innerHTML = '<div class="cc-palette-empty">No closely matching memories found.</div>';
         } else if (uniqueNewResults.length > 0) {
@@ -722,20 +721,15 @@ async function fetchBatch() {
             appendResultsToDOM(uniqueNewResults, startIndex);
         }
 
-        // Add the "No more results" text securely (Check if it already exists first!)
-        if (!hasMore && currentResults.length > 0) {
-            if (!document.querySelector('.cc-end-of-results')) {
-                const endMsg = document.createElement('div');
-                endMsg.className = 'cc-end-of-results';
-                endMsg.innerText = 'No more results available in context db';
-                container.appendChild(endMsg);
-            }
+        if (!hasMore && currentResults.length > 0 && !document.querySelector('.cc-end-of-results')) {
+            const endMsg = document.createElement('div');
+            endMsg.className = 'cc-end-of-results';
+            endMsg.innerText = 'No more results available in context db';
+            container.appendChild(endMsg);
         }
-
     } catch (err) {
         console.error(err);
-        spinner = document.getElementById('cc-search-spinner');
-        if (spinner) spinner.remove();
+        document.getElementById('cc-search-spinner')?.remove();
         if (currentResults.length === 0) {
             container.innerHTML = '<div class="cc-palette-error">Local server disconnected.</div>';
         }
@@ -744,35 +738,30 @@ async function fetchBatch() {
     isFetching = false;
 }
 
-// 4. DOM Appender (Smooth injection without rebuilding HTML)
 function appendResultsToDOM(newResults, startIndex) {
     const container = document.getElementById('cc-palette-results');
 
     const html = newResults.map((r, i) => {
         const hasImage = r.content.includes('[Local Image Path:');
         const cleanPreview = r.content.replace(/\[Local Image Path:.*?\]/g, '').trim();
+        const displayTitle = truncateTitle(r.title);
+        const displayDate = formatDateTime(r.created_at || r.timestamp);
+        const safeTooltipText = (r.title || '').replace(/"/g, '&quot;');
+
         const badgeHTML = hasImage
             ? `<span class="cc-badge cc-badge-image">🖼️ Image</span>`
             : `<span class="cc-badge cc-badge-text">📝 Text</span>`;
 
-        // NEW: Parse the timestamp from your DB (adjust 'created_at' if your DB uses a different column name)
-        const timeText = formatDateTime(r.created_at || r.timestamp);
-
-        const globalIndex = startIndex + i;
-
         return `
-            <div class="cc-palette-item" data-index="${globalIndex}">
+            <div class="cc-palette-item" data-index="${startIndex + i}">
                 <button class="cc-add-to-stage-btn" title="Add to bundle (Tab)">+</button>
                 <div class="cc-item-clickable">
                     <div class="cc-palette-title-row">
-                        <div class="cc-palette-title">${r.title}</div>
-                        
-                        <!-- NEW: Metadata Wrapper -->
+                        <div class="cc-palette-title" title="${safeTooltipText}">${displayTitle}</div>
                         <div class="cc-item-meta">
-                            ${timeText ? `<span class="cc-item-time">${timeText}</span>` : ''}
                             ${badgeHTML}
+                            <span class="cc-item-time">${displayDate}</span>
                         </div>
-                        
                     </div>
                     <div class="cc-palette-preview">${cleanPreview.substring(0, 100)}...</div>
                 </div>
@@ -780,18 +769,15 @@ function appendResultsToDOM(newResults, startIndex) {
         `;
     }).join('');
 
-    // Safely append to the bottom of the list without breaking scroll state
     container.insertAdjacentHTML('beforeend', html);
 
-    // Attach event listeners only to the newly added elements
     const allItems = container.querySelectorAll('.cc-palette-item');
     for (let i = startIndex; i < allItems.length; i++) {
         const item = allItems[i];
         const data = currentResults[i];
 
         item.querySelector('.cc-item-clickable').addEventListener('click', () => {
-            if (stagedItems.length > 0) addToStage(data);
-            else injectContextsToAI([data]);
+            stagedItems.length > 0 ? addToStage(data) : injectContextsToAI([data]);
         });
 
         item.querySelector('.cc-add-to-stage-btn').addEventListener('click', (e) => {
@@ -801,10 +787,12 @@ function appendResultsToDOM(newResults, startIndex) {
     }
 }
 
-// --- STAGING & DRAG AND DROP LOGIC ---
+
+// ==========================================
+// 8. STAGING & DRAG AND DROP
+// ==========================================
 
 function addToStage(data) {
-    // Prevent duplicates in staging
     if (!stagedItems.some(i => i.content === data.content)) {
         stagedItems.push(data);
         renderStagingArea();
@@ -825,34 +813,31 @@ function renderStagingArea() {
     btn.innerText = `✨ Paste ${stagedItems.length} Item${stagedItems.length > 1 ? 's' : ''} (Enter)`;
 
     list.innerHTML = stagedItems.map((item, index) => {
-        // Strip image paths and STRICTLY truncate to keep the UI clean and drag ghosts small
         let cleanText = item.content.replace(/\[Local Image Path:.*?\]/g, '').trim();
-        if (cleanText.length > 60) cleanText = cleanText.substring(0, 60) + '...';
+        if (cleanText.length > 60) cleanText = `${cleanText.substring(0, 60)}...`;
 
         return `
-        <div class="cc-staged-item" draggable="true" data-index="${index}">
-            <div class="cc-staged-drag-handle">⠿</div>
-            <div class="cc-staged-text" style="pointer-events:none">
-                <span class="cc-staged-title">${item.title}</span>
-                <span class="cc-staged-preview"> — ${cleanText}</span>
+            <div class="cc-staged-item" draggable="true" data-index="${index}">
+                <div class="cc-staged-drag-handle">⠿</div>
+                <div class="cc-staged-text" style="pointer-events:none">
+                    <span class="cc-staged-title">${item.title}</span>
+                    <span class="cc-staged-preview"> — ${cleanText}</span>
+                </div>
+                <span class="cc-staged-remove" data-index="${index}" style="cursor:pointer;" title="Remove">✕</span>
             </div>
-            <span class="cc-staged-remove" data-index="${index}" style="cursor:pointer;" title="Remove">✕</span>
-        </div>
         `;
     }).join('');
 
-    // Remove logic
+    // Remove Listeners
     list.querySelectorAll('.cc-staged-remove').forEach(rm => {
         rm.addEventListener('click', (e) => {
-            const idx = parseInt(e.target.getAttribute('data-index'));
-            stagedItems.splice(idx, 1);
+            stagedItems.splice(parseInt(e.target.getAttribute('data-index')), 1);
             renderStagingArea();
         });
     });
 
-    // HTML5 Drag and Drop logic for reordering (Upgraded UI)
+    // Drag and Drop Logic
     let dragStartIndex;
-
     list.querySelectorAll('.cc-staged-item').forEach(item => {
         item.addEventListener('dragstart', (e) => {
             dragStartIndex = parseInt(e.target.getAttribute('data-index'));
@@ -860,13 +845,11 @@ function renderStagingArea() {
         });
 
         item.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Required to allow dropping
+            e.preventDefault();
             e.currentTarget.classList.add('drag-over');
         });
 
-        item.addEventListener('dragleave', (e) => {
-            e.currentTarget.classList.remove('drag-over');
-        });
+        item.addEventListener('dragleave', (e) => e.currentTarget.classList.remove('drag-over'));
 
         item.addEventListener('drop', (e) => {
             e.currentTarget.classList.remove('drag-over');
@@ -875,39 +858,35 @@ function renderStagingArea() {
             const draggedItem = stagedItems[dragStartIndex];
             stagedItems.splice(dragStartIndex, 1);
             stagedItems.splice(dragEndIndex, 0, draggedItem);
-
             renderStagingArea();
         });
 
         item.addEventListener('dragend', (e) => {
             e.target.classList.remove('dragging');
-            // Failsafe: Clear all drag-over visual states just in case
             list.querySelectorAll('.cc-staged-item').forEach(el => el.classList.remove('drag-over'));
         });
     });
 }
 
-// --- MULTI-INJECTION ENGINE ---
-// --- MULTI-INJECTION ENGINE (Anti-Freeze Edition) ---
 
-// --- MULTI-INJECTION ENGINE (Cursor-Restoration Edition) ---
+// ==========================================
+// 9. INJECTION ENGINE (Dual-Payload Bypass)
+// ==========================================
 
 async function injectContextsToAI(dataArray) {
-    if (dataArray.length === 0) return;
+    if (!dataArray || dataArray.length === 0) return;
 
     const originalPlaceholder = activeInputElement ? activeInputElement.placeholder : "";
     if (activeInputElement) activeInputElement.placeholder = `Injecting ${dataArray.length} items. Please wait...`;
 
-    togglePalette(); // Close UI immediately to make it feel snappy
+    togglePalette();
 
     if (!activeInputElement) return;
 
-    // 1. RESTORE EXACT CURSOR POSITION BEFORE PASTING
+    // Restore exact cursor position
     try {
         if (activeInputElement.tagName === 'TEXTAREA' || activeInputElement.tagName === 'INPUT') {
-            if (savedInputState) {
-                activeInputElement.setSelectionRange(savedInputState.start, savedInputState.end);
-            }
+            if (savedInputState) activeInputElement.setSelectionRange(savedInputState.start, savedInputState.end);
         } else if (activeInputElement.isContentEditable) {
             if (savedRange) {
                 const sel = window.getSelection();
@@ -916,136 +895,77 @@ async function injectContextsToAI(dataArray) {
             }
         }
     } catch (e) {
-        console.warn("[Context Clipboard] Could not restore cursor position:", e);
+        console.warn("[Context Clipboard] Cursor restore failed:", e);
     }
 
-    const imgRegex = /\[Local Image Path:\s*(.*?)\]/;
+    const imgRegex = /\[Local Image Path:\s*(.*?)\]/g;
     let combinedText = "";
-    const dt = new DataTransfer();
-    let hasImages = false;
+    const filesToPaste = [];
+    const imagePromises = [];
 
-    // 2. Compile text/images
-    for (let i = 0; i < dataArray.length; i++) {
-        const data = dataArray[i];
-        const match = data.content.match(imgRegex);
-        const cleanText = data.content.replace(imgRegex, '').trim();
+    // Compile Text & Queue Images
+    dataArray.forEach((data, i) => {
+        const cleanText = (data.content || "").replace(imgRegex, '').trim();
+        combinedText += `\n--- Context ${i + 1}: ${data.title || 'Untitled'} ---\n${cleanText}\n`;
 
-        // Add a line break before the context block to ensure it drops cleanly
-        // without mashing into your existing sentence
-        combinedText += `\n--- Context ${i + 1}: ${data.title} ---\n${cleanText}\n`;
-
-        if (match && match[1]) {
-            try {
-                const res = await fetch(`http://localhost:8000/image?path=${encodeURIComponent(match[1])}`);
-                if (res.ok) {
-                    const blob = await res.blob();
-                    const file = new File([blob], `context_image_${i}.png`, {type: blob.type});
-                    dt.items.add(file);
-                    hasImages = true;
-                }
-            } catch (err) {
-                console.error("Failed to fetch image for injection:", err);
+        const matches = [...(data.content || "").matchAll(imgRegex)];
+        matches.forEach(match => {
+            if (match && match[1]) {
+                const imgPromise = fetch(`${CONFIG.API_BASE}/image?path=${encodeURIComponent(match[1])}`)
+                    .then(res => res.ok ? res.blob() : null)
+                    .then(blob => {
+                        if (blob) filesToPaste.push(new File([blob], `context_img_${i}_${Date.now()}.png`, {type: blob.type}));
+                    })
+                    .catch(err => console.error("Image fetch error:", err));
+                imagePromises.push(imgPromise);
             }
-        }
-    }
+        });
+    });
 
-    // 3. Attach payload to the clipboard event
-    dt.setData('text/plain', combinedText);
+    combinedText = combinedText.trim();
+    if (imagePromises.length > 0) await Promise.all(imagePromises);
 
-    // 4. Fire ONE unified native paste event exactly at the restored cursor
-    const pasteEvent = new ClipboardEvent('paste', {
-        clipboardData: dt,
+    // PASTE EVENT 1: TEXT ONLY
+    const dtText = new DataTransfer();
+    dtText.setData('text/plain', combinedText);
+    const safeHtml = combinedText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    dtText.setData('text/html', `<div>${safeHtml}</div>`);
+
+    const pasteEventText = new ClipboardEvent('paste', {
+        clipboardData: dtText,
         bubbles: true,
         cancelable: true
     });
+    activeInputElement.dispatchEvent(pasteEventText);
 
-    activeInputElement.dispatchEvent(pasteEvent);
-
-    // 5. Fallback mechanism
+    // PASTE EVENT 2: IMAGES ONLY (Delayed to prevent Editor UI lockup)
     setTimeout(() => {
-        if (!activeInputElement.value && !activeInputElement.innerText.includes("--- Context")) {
-            console.warn("[Context Clipboard] Native paste rejected, falling back to execCommand.");
+        const currentBoxContent = activeInputElement.value || activeInputElement.innerText || "";
+        const uniqueSnippet = combinedText.substring(0, 30);
+
+        // Text Fallback check if native event was rejected
+        if (!currentBoxContent.includes(uniqueSnippet)) {
+            console.warn("[Context Clipboard] Native text paste rejected, falling back to execCommand.");
             document.execCommand('insertText', false, combinedText);
         }
 
+        // Fire Image Paste
+        if (filesToPaste.length > 0) {
+            const dtImages = new DataTransfer();
+            filesToPaste.forEach(file => dtImages.items.add(file));
+
+            const pasteEventImages = new ClipboardEvent('paste', {
+                clipboardData: dtImages,
+                bubbles: true,
+                cancelable: true
+            });
+            activeInputElement.dispatchEvent(pasteEventImages);
+        }
+
         if (activeInputElement) activeInputElement.placeholder = originalPlaceholder;
-    }, 50);
+
+    }, 150);
 }
 
-// --- DYNAMIC HOTKEY STATE ---
-let currentHotkeys = {
-    capture: {ctrl: true, shift: true, alt: false, meta: false},
-    palette: {ctrl: true, shift: true, alt: false, meta: false, key: " "}
-};
-
-// Listen for updates from background.js
-chrome.storage.local.get(['hotkeys'], (res) => {
-    if (res.hotkeys) currentHotkeys = res.hotkeys;
-});
-chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.hotkeys) {
-        currentHotkeys = changes.hotkeys.newValue;
-    }
-});
-
-// Helper to check if the exact modifiers are pressed
-function checkModifiers(e, configObj) {
-    return (e.ctrlKey === configObj.ctrl) &&
-        (e.shiftKey === configObj.shift) &&
-        (e.altKey === configObj.alt) &&
-        (e.metaKey === configObj.meta);
-}
-
-// --------------------------------------------------------
-// THE SYNCHRONIZATION HOOK
-// --------------------------------------------------------
-// Listen for changes to Chrome storage (triggered by ANY open tab)
-chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.contextCart) {
-        renderUI();
-    }
-});
-// Listen for the custom Search Palette hotkey
-document.addEventListener('keydown', (e) => {
-    const pal = currentHotkeys.palette;
-    if (checkModifiers(e, pal) && e.key.toLowerCase() === pal.key.toLowerCase()) {
-        e.preventDefault();
-        e.stopPropagation();
-        togglePalette();
-    }
-});
-
-// Converts UTC database strings into the user's local timezone with relative time
-function formatDateTime(dateString) {
-    if (!dateString) return '';
-
-    // JS automatically applies local timezone offsets when parsing an ISO string
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-
-    // Format local absolute time (e.g., "Jul 12, 12:26 AM")
-    const localFormat = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' +
-                        date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-    // Handle relative suffixes
-    if (seconds < 60) return `${localFormat} (Just now)`;
-
-    let interval = Math.floor(seconds / 31536000);
-    if (interval >= 1) return `${localFormat} (${interval}y ago)`;
-
-    interval = Math.floor(seconds / 2592000);
-    if (interval >= 1) return `${localFormat} (${interval}mo ago)`;
-
-    interval = Math.floor(seconds / 86400);
-    if (interval >= 1) return `${localFormat} (${interval}d ago)`;
-
-    interval = Math.floor(seconds / 3600);
-    if (interval >= 1) return `${localFormat} (${interval}h ago)`;
-
-    interval = Math.floor(seconds / 60);
-    return `${localFormat} (${interval}m ago)`;
-}
-
-// Initialize on page load
+// Run setup on load
 renderUI();
