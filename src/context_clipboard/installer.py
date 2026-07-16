@@ -1,58 +1,112 @@
-# src/context_clipboard/installer.py
 import sys
 import json
+import platform
+import re
 from pathlib import Path
 
 
+def get_ide_paths():
+    """Resolves correct 2026 IDE configuration paths across Windows, macOS, and Linux."""
+    system = platform.system()
+    home = Path.home()
+
+    if system == "Windows":
+        roaming = home / "AppData" / "Roaming"
+        local = home / "AppData" / "Local"
+    elif system == "Darwin":
+        roaming = home / "Library" / "Application Support"
+        local = roaming
+    else:
+        roaming = home / ".config"
+        local = home / ".local" / "share"
+
+    return {
+        "VS Code (Native)": roaming / "Code" / "User" / "mcp.json",
+        "Cursor (Native)": home / ".cursor" / "mcp.json",
+        "JetBrains (Copilot)": local / "github-copilot" / "intellij" / "mcp.json"
+    }
+
+
+def clean_json_comments(json_str: str) -> str:
+    """Strips // and /* */ comments to prevent parsing crashes."""
+    json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
+    json_str = re.sub(r'//.*', '', json_str)
+    return json_str
+
+
 def install_to_ides(is_debug: bool = False):
-    """Dynamically injects the correct execution path into IDE MCP configs."""
-    print("🚀 Auto-configuring IDEs for Context Clipboard...")
+    """Dynamically injects the execution path into IDE configs with smart schema routing."""
+    print("\n🚀 Auto-configuring IDEs for Context Clipboard...\n")
 
     is_frozen = getattr(sys, 'frozen', False)
+    mode = "Compiled EXE" if is_frozen else "Python Source"
 
+    # 1. Build the Execution Command
     if is_frozen:
-        # We are running as a compiled .exe
-        command = sys.executable
+        command = str(Path(sys.executable).absolute())
         args = ["--mcp"]
     else:
-        # We are running from raw Python source code
-        command = sys.executable  # Grabs the python.exe from your active build_env
+        command = str(Path(sys.executable).absolute())
         script_path = str(Path(sys.modules['__main__'].__file__).absolute())
         args = [script_path, "--mcp"]
 
     if is_debug:
         args.append("--debug")
 
-    server_config = {
-        "command": command,
-        "args": args
-    }
+    # 2. Iterate and Inject Configs
+    ide_paths = get_ide_paths()
+    configured_count = 0
 
-    config_blocks = {
-        "servers": server_config,
-        "mcpServers": server_config
-    }
-
-    copilot_file = Path.home() / "AppData" / "Local" / "github-copilot" / "intellij" / "mcp.json"
-    cursor_file = Path.home() / "AppData" / "Roaming" / "Cursor" / "User" / "globalStorage" / "rooveterinaryinc.roo-cline" / "settings" / "cline_mcp_settings.json"
-
-    for file_path in [copilot_file, cursor_file]:
+    for ide_name, file_path in ide_paths.items():
         data = {}
+
+        # Check if IDE is even installed
+        if not file_path.parent.exists():
+            continue
+
         if file_path.exists():
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    raw_content = f.read()
+                    clean_content = clean_json_comments(raw_content)
+                    data = json.loads(clean_content) if clean_content.strip() else {}
             except json.JSONDecodeError:
-                pass
+                print(f"⚠️  Skipped [ {ide_name} ] - File contains complex formatting.")
+                continue
 
-        for root_key, config in config_blocks.items():
-            if root_key not in data:
-                data[root_key] = {}
-            data[root_key]["ContextClipboard"] = config
+        # --- THE FIX: ROUTING LOGIC based on IDE NAME instead of filename ---
+        if "VS Code" in ide_name or "JetBrains" in ide_name:
+            root_key = "servers"
+        else:
+            root_key = "mcpServers"
 
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
+        if root_key not in data:
+            data[root_key] = {}
 
-        mode = "Compiled EXE" if is_frozen else "Python Source"
-        print(f"✅ Configured IDE ({mode}) -> {file_path}")
+        data[root_key]["context-clipboard"] = {
+            "type": "stdio",
+            "command": command,
+            "args": args
+        }
+
+        # Write data back safely
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+            print(f"✅ Configured [ {ide_name} ] -> {file_path}")
+            configured_count += 1
+        except Exception as e:
+            print(f"❌ Failed to write to [ {ide_name} ]: {e}")
+
+    # 3. User Feedback Summary
+    print("\n" + "=" * 50)
+    if configured_count > 0:
+        print(f"🎉 Success! Configured {configured_count} IDE(s) using {mode}.")
+        print("🔄 Please restart your IDE completely for the changes to take effect.")
+    else:
+        print("⚠️  No supported IDE configurations were found or modified.")
+    print("=" * 50 + "\n")
+
+
+if __name__ == "__main__":
+    install_to_ides()

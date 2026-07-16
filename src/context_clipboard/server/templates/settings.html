@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Clipboard Settings</title>
+    <style>
+        body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; padding-top: 8vh; margin: 0; padding-bottom: 8vh; }
+        .wrapper { width: 500px; }
+        .container { background: #161b22; padding: 24px; border-radius: 6px; border: 1px solid #30363d; margin-bottom: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        h2 { color: #58a6ff; margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        p.subtitle { color: #8b949e; font-size: 13px; line-height: 1.5; margin-bottom: 24px; margin-top: 0; }
+
+        .setting-group { margin-bottom: 24px; border-bottom: 1px solid #30363d; padding-bottom: 20px; }
+        .setting-group:last-of-type { border-bottom: none; padding-bottom: 0; margin-bottom: 16px; }
+        .setting-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #c9d1d9; }
+
+        /* Pill-based layout */
+        .pill-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .modifier-pill { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; user-select: none; }
+        .modifier-pill:hover { border-color: #8b949e; background: #30363d; }
+        .modifier-pill.active { background: rgba(56, 139, 253, 0.15); border-color: #388bfd; color: #58a6ff; }
+
+        /* Character key input box */
+        .key-input-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+        .key-input-label { font-size: 13px; color: #8b949e; }
+        .key-box { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; width: 120px; text-align: center; cursor: pointer; user-select: none; transition: border-color 0.2s ease; }
+        .key-box:hover { border-color: #8b949e; }
+        .key-box.recording { border-color: #f85149; background: rgba(248, 81, 73, 0.1); color: #f85149; }
+
+        .save-btn { background: #238636; color: #ffffff; border: 1px solid rgba(240, 246, 252, 0.1); padding: 8px 16px; width: 100%; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+        .save-btn:hover { background: #2ea043; }
+
+        /* --- GitHub Style Danger Zone --- */
+        .danger-zone h3 {
+            color: #f85149;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .danger-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #f85149;
+            padding: 16px;
+            border-radius: 6px;
+            background: transparent;
+        }
+
+        .danger-info h4 {
+            color: #c9d1d9;
+            margin: 0 0 4px 0;
+            font-size: 14px;
+        }
+
+        .danger-info p {
+            color: #8b949e;
+            font-size: 12px;
+            margin: 0;
+            max-width: 280px;
+            line-height: 1.4;
+        }
+
+        .btn-danger {
+            background: #21262d;
+            color: #f85149;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .btn-danger:hover {
+            background: #b62324;
+            color: #ffffff;
+            border-color: #b62324;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <h2>⚙️ Context Clipboard Settings</h2>
+            <p class="subtitle">Toggle the modifier buttons below to construct your desired combinations. Changes apply globally without requiring restarts.</p>
+
+            <!-- 1. CAPTURE HOTKEY CONFIG -->
+            <div class="setting-group">
+                <label>1. Add to Cart (Mouse Shortcut)</label>
+                <div class="pill-container">
+                    <div id="cap-ctrl" class="modifier-pill" onclick="toggleModifier('capture', 'ctrl')">Ctrl</div>
+                    <div id="cap-shift" class="modifier-pill" onclick="toggleModifier('capture', 'shift')">Shift</div>
+                    <div id="cap-alt" class="modifier-pill" onclick="toggleModifier('capture', 'alt')">Alt</div>
+                    <div id="cap-meta" class="modifier-pill" onclick="toggleModifier('capture', 'meta')">⌘ Win/Mac</div>
+                </div>
+                <span style="font-size: 12px; color: #8b949e;">Triggered via: Selected Modifiers + Mouse Click/Hover</span>
+            </div>
+
+            <!-- 2. PALETTE HOTKEY CONFIG -->
+            <div class="setting-group">
+                <label>2. Open Search Palette (Keyboard Shortcut)</label>
+                <div class="pill-container">
+                    <div id="pal-ctrl" class="modifier-pill" onclick="toggleModifier('palette', 'ctrl')">Ctrl</div>
+                    <div id="pal-shift" class="modifier-pill" onclick="toggleModifier('palette', 'shift')">Shift</div>
+                    <div id="pal-alt" class="modifier-pill" onclick="toggleModifier('palette', 'alt')">Alt</div>
+                    <div id="pal-meta" class="modifier-pill" onclick="toggleModifier('palette', 'meta')">⌘ Win/Mac</div>
+                </div>
+                <div class="key-input-wrapper">
+                    <span class="key-input-label">Plus Key:</span>
+                    <div id="pal-key-box" class="key-box" onclick="startRecordingKey()">Space</div>
+                </div>
+            </div>
+
+            <button class="save-btn" onclick="saveSettings()">Save & Sync Settings</button>
+        </div>
+
+        <!-- Danger Zone placed OUTSIDE the main container -->
+        <div class="danger-zone">
+            <h3>Danger Zone</h3>
+            <div class="danger-card">
+                <div class="danger-info">
+                    <h4>Force Quit Server</h4>
+                    <p>Instantly kills all background instances of Context Clipboard. You must restart the .exe manually to reconnect.</p>
+                </div>
+                <button id="kill-btn" class="btn-danger">Shutdown Server</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentConfig = { capture: {}, palette: {} };
+        let isRecordingKey = false;
+
+        fetch('/api/config').then(r => r.json()).then(data => {
+            currentConfig = data;
+            renderUI();
+        });
+
+        function renderUI() {
+            document.getElementById('cap-ctrl').classList.toggle('active', currentConfig.capture.ctrl);
+            document.getElementById('cap-shift').classList.toggle('active', currentConfig.capture.shift);
+            document.getElementById('cap-alt').classList.toggle('active', currentConfig.capture.alt);
+            document.getElementById('cap-meta').classList.toggle('active', currentConfig.capture.meta);
+
+            document.getElementById('pal-ctrl').classList.toggle('active', currentConfig.palette.ctrl);
+            document.getElementById('pal-shift').classList.toggle('active', currentConfig.palette.shift);
+            document.getElementById('pal-alt').classList.toggle('active', currentConfig.palette.alt);
+            document.getElementById('pal-meta').classList.toggle('active', currentConfig.palette.meta);
+
+            const keyVal = currentConfig.palette.key;
+            document.getElementById('pal-key-box').innerText = keyVal === " " ? "Space" : keyVal.toUpperCase();
+        }
+
+        function toggleModifier(type, modifier) {
+            currentConfig[type][modifier] = !currentConfig[type][modifier];
+            renderUI();
+        }
+
+        function startRecordingKey() {
+            isRecordingKey = true;
+            const box = document.getElementById('pal-key-box');
+            box.classList.add('recording');
+            box.innerText = "Press any key...";
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!isRecordingKey) return;
+            e.preventDefault();
+            if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return;
+
+            currentConfig.palette.key = e.key;
+            const box = document.getElementById('pal-key-box');
+            box.classList.remove('recording');
+            isRecordingKey = false;
+            renderUI();
+        });
+
+        function saveSettings() {
+            const btn = document.querySelector('.save-btn');
+            btn.innerText = "Syncing with Extension...";
+            fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentConfig)
+            }).then(() => {
+                btn.innerText = "✓ Saved & Synced Successfully";
+                setTimeout(() => btn.innerText = "Save & Sync Settings", 2000);
+            });
+        }
+
+        // MOVED FROM WELCOME_HTML: Kill Button Logic
+        const killBtn = document.getElementById('kill-btn');
+        let killConfirmState = false;
+
+        killBtn.addEventListener('click', async () => {
+            if (!killConfirmState) {
+                // First click: Ask for confirmation
+                killBtn.innerText = "Are you sure?";
+                killBtn.style.background = "#b62324";
+                killBtn.style.color = "#fff";
+                killConfirmState = true;
+
+                // Reset after 3 seconds if they don't confirm
+                setTimeout(() => {
+                    killConfirmState = false;
+                    killBtn.innerText = "Shutdown Server";
+                    killBtn.style.background = "#21262d";
+                    killBtn.style.color = "#f85149";
+                }, 3000);
+                return;
+            }
+
+            // Second click: Execute Kill
+            killBtn.innerText = "Terminating...";
+            killBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/shutdown', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force_global: true })
+                });
+
+                if (response.ok) {
+                    document.body.innerHTML = `
+                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; background:#0d1117;">
+                            <h1 style="color:#f85149; font-size:42px; margin-bottom:16px;">Server Terminated</h1>
+                            <p style="color:#8b949e; font-size:16px;">All instances have been successfully destroyed. You can safely close this tab.</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error("Shutdown failed:", err);
+            }
+        });
+    </script>
+</body>
+</html>

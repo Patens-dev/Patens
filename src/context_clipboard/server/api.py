@@ -4,13 +4,14 @@ import os
 import time
 import logging
 import math
-from datetime import datetime, timezone, timedelta  # Ensure timedelta is imported at the top!
-
+import sys
+from pathlib import Path
+from datetime import datetime, timezone, timedelta
+import threading
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from context_clipboard.server import config
-from context_clipboard.server.ui_templates import SETTINGS_HTML, WELCOME_HTML
 from context_clipboard.server.models import IngestResponse, IngestPayload, SearchResponse
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,24 @@ def save_base64_image(media_string: str, image_dir: str) -> str:
     except Exception as e:
         logger.error(f"Failed to save image to disk: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to process image payload")
+
+
+def get_template_html(filename: str) -> str:
+    """Dynamically locates and reads HTML templates in both Dev and EXE environments."""
+    if getattr(sys, 'frozen', False):
+        # We are running inside the PyInstaller .exe bundle
+        base_dir = Path(sys._MEIPASS) / "context_clipboard" / "server" / "templates"
+    else:
+        # We are running from raw Python source code
+        base_dir = Path(__file__).parent / "templates"
+
+    file_path = base_dir / filename
+
+    try:
+        return file_path.read_text(encoding="utf-8")
+    except Exception as e:
+        logger.error(f"Failed to load template {filename}: {str(e)}")
+        return f"<h1>Error: Could not load {filename}</h1><p>{str(e)}</p>"
 
 
 # --- Routing ---
@@ -191,12 +210,14 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     @router.get("/settings", response_class=HTMLResponse)
     async def settings_page():
         """Serves the intuitive and reliable Settings UI."""
-        return HTMLResponse(content=SETTINGS_HTML)
+        html_content = get_template_html("settings.html")
+        return HTMLResponse(content=html_content)
 
     @router.get("/welcome", response_class=HTMLResponse)
     async def welcome_page():
         """Serves the intuitive onboarding flow for first-time users."""
-        return HTMLResponse(content=WELCOME_HTML)
+        html_content = get_template_html("welcome.html")
+        return HTMLResponse(content=html_content)
 
     @router.get("/api/config")
     async def get_config():
@@ -205,6 +226,33 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
             "capture": config.HOTKEY_CAPTURE,
             "palette": config.HOTKEY_PALETTE
         }
+
+    @router.post("/api/shutdown")
+    async def shutdown_server(request: Request):
+        """Aggressively hunts and kills all Context Clipboard instances."""
+        data = await request.json()
+        force_global = data.get("force_global", True)
+
+        def execute_kill():
+            time.sleep(1)  # Allow FastAPI to return the 200 OK response first
+
+            if force_global:
+                import subprocess, platform
+                system = platform.system()
+                try:
+                    if system == "Windows":
+                        subprocess.run(["taskkill", "/f", "/im", "ContextClipboard.exe"], capture_output=True)
+                    else:
+                        subprocess.run(["pkill", "-f", "ContextClipboard"], capture_output=True)
+                except Exception as e:
+                    logger.error(f"Failed to execute global kill: {e}")
+
+            # Failsafe: Force-kill the current Python process if system commands missed it
+            os._exit(0)
+
+        threading.Thread(target=execute_kill).start()
+
+        return {"status": "success", "message": "Server instances destroyed."}
 
     @router.post("/api/config")
     async def save_config(request: Request):
