@@ -5,9 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setup Context Clipboard</title>
     <style>
+        html {
+            scroll-padding-top: 120px;
+        }
+
         :root {
             --bg-base: #0c0d10;
             --bg-card: #16181d;
+            --bg-card-active: #1e222b;
             --border-color: #2d313a;
             --text-main: #e2e8f0;
             --text-muted: #94a3b8;
@@ -15,9 +20,14 @@
             --accent-blue-hover: #2563eb;
             --accent-glow: rgba(59, 130, 246, 0.15);
             --success-color: #10b981;
+            --warning-color: #f59e0b;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -28,66 +38,117 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            background-image:
-                radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
-                linear-gradient(to bottom, transparent, var(--bg-base));
+            background-image: radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
+            linear-gradient(to bottom, transparent, var(--bg-base));
+            padding-bottom: 60px;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 700px;
             width: 100%;
             padding: 60px 24px;
             margin: 0 auto;
         }
 
-        /* Hero Section */
-        .hero { text-align: center; margin-bottom: 48px; }
-
-        .hero-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            filter: drop-shadow(0 0 12px var(--accent-glow));
+        /* Hero & Progress */
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
         }
 
         .hero h1 {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 800;
             letter-spacing: -0.5px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             color: #f8fafc;
         }
 
         .hero p {
-            font-size: 16px;
+            font-size: 15px;
             color: var(--text-muted);
-            max-width: 500px;
-            margin: 0 auto;
         }
 
-        /* Setup Flow */
+        .time-estimate {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .progress-container {
+            width: 100%;
+            background: var(--border-color);
+            height: 6px;
+            border-radius: 3px;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-blue);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: bold;
+            margin-top: -20px;
+            margin-bottom: 30px;
+        }
+
+        /* Setup Flow Cards */
         .setup-flow {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
         }
 
         .step-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 32px;
+            border-radius: 12px;
+            padding: 24px 24px 24px 64px;
             position: relative;
-            display: flex;
-            gap: 32px;
-            align-items: center;
+            transition: all 0.3s ease;
+            opacity: 0.4;
+            pointer-events: none;
+            transform: translateY(10px);
+        }
+
+        .step-card.active {
+            opacity: 1;
+            pointer-events: auto;
+            background: var(--bg-card-active);
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.2);
+        }
+
+        .step-card.done {
+            opacity: 0.7;
+            pointer-events: none;
+            transform: translateY(0);
+            border-color: var(--success-color);
         }
 
         .step-number {
             position: absolute;
-            top: -16px;
-            left: 32px;
-            background: var(--accent-blue);
-            color: white;
+            top: 24px;
+            left: -16px;
+            background: var(--bg-base);
+            border: 2px solid var(--border-color);
+            color: var(--text-muted);
             width: 32px;
             height: 32px;
             display: flex;
@@ -96,68 +157,111 @@
             border-radius: 50%;
             font-weight: bold;
             font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .step-card.active .step-number {
+            border-color: var(--accent-blue);
+            background: var(--accent-blue);
+            color: white;
             box-shadow: 0 0 0 4px var(--bg-base);
         }
 
-        .step-content { flex: 1; }
+        .step-card.done .step-number {
+            border-color: var(--success-color);
+            background: var(--success-color);
+            color: white;
+            content: "✓";
+        }
 
         .step-content h2 {
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 8px;
             color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .step-content p {
             color: var(--text-muted);
-            font-size: 15px;
+            font-size: 14px;
             margin-bottom: 16px;
+            line-height: 1.5;
         }
 
-        /* GIF / Media Placeholder */
-        .media-placeholder {
-            flex: 1;
-            background: #0f1115;
-            border: 1px dashed #475569;
-            border-radius: 8px;
-            height: 200px;
-            display: flex;
-            flex-direction: column;
+        /* Interactive Elements */
+        .status-pill {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: #333;
+            color: #ccc;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            color: #64748b;
-            font-size: 13px;
-            overflow: hidden;
+            gap: 6px;
+        }
+
+        .status-pill.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-pill.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .interactive-target {
+            background: #1a1e27;
+            border: 1px dashed var(--accent-blue);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #cbd5e1;
+            cursor: crosshair;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .interactive-target:hover {
+            background: #232834;
+        }
+
+        .mock-chat-box {
+            width: 100%;
+            background: #0f1115;
+            border: 1px solid #334155;
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .mock-chat-box:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .code-block {
+            background: #0f1115;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #a5b4fc;
+            overflow-x: auto;
             position: relative;
         }
 
-        .media-placeholder img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0; left: 0;
-            opacity: 0;
-        }
-
-        /* Test Prompt Box */
-        .prompt-box {
-            background: #0f1115;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 16px;
-        }
-
-        .prompt-text {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 13px;
-            color: #a5b4fc;
-        }
-
-        .copy-btn {
+        .btn-manual {
             background: transparent;
             border: 1px solid #475569;
             color: var(--text-muted);
@@ -165,126 +269,277 @@
             border-radius: 4px;
             font-size: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            float: right;
         }
 
-        .copy-btn:hover { background: #334155; color: white; }
-
-        /* Final Action */
-        .footer-action {
-            margin-top: 48px;
-            text-align: center;
-        }
-
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--accent-blue);
+        .btn-manual:hover {
+            background: #334155;
             color: white;
-            padding: 14px 28px;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s ease;
         }
 
-        .btn-primary:hover {
-            background: var(--accent-blue-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
+        .celebration {
+            text-align: center;
+            display: none;
+            margin-top: 40px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @media (max-width: 768px) {
-            .step-card { flex-direction: column; gap: 24px; padding: 24px; }
-            .media-placeholder { width: 100%; }
+        .celebration h2 {
+            color: var(--success-color);
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Header -->
-        <header class="hero">
-            <div class="hero-icon">✅</div>
-            <h1>Server Connected</h1>
-            <p>Your local database is running and IDE configurations have been injected. Complete these final manual steps to bypass your IDE's security sandbox.</p>
-        </header>
+<div class="container">
+    <header class="hero">
+        <h1>Welcome to Context Clipboard</h1>
+        <p>Let's configure your memory layer and get your IDE connected.</p>
+        <div class="time-estimate">⏱️ Takes ~2 minutes</div>
 
-        <!-- Setup Flow -->
-        <main class="setup-flow">
-
-            <!-- Step 1 -->
-            <div class="step-card">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                    <h2>Restart your IDE</h2>
-                    <p>To load the newly injected configurations, you must completely restart Visual Studio Code, Cursor, or JetBrains.</p>
-                </div>
-            </div>
-
-            <!-- Step 2 -->
-            <div class="step-card">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                    <h2>Authorize the Tools</h2>
-                    <p>For security reasons, your IDE requires you to manually enable third-party tools.</p>
-                    <ul style="color: var(--text-muted); font-size: 14px; margin-left: 20px; line-height: 1.8;">
-                        <li>Open the GitHub Copilot or Cursor Chat panel.</li>
-                        <li>Click the <strong>Tools (📎)</strong> icon.</li>
-                        <li>Find <strong>ContextClipboard</strong> and check the boxes to enable your memory tools.</li>
-                    </ul>
-                </div>
-                <div class="media-placeholder">
-                    <svg width="24" height="24" fill="currentColor" style="margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                    Replace with tool_enable.gif
-                </div>
-            </div>
-
-            <!-- Step 3 -->
-            <div class="step-card">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                    <h2>Test Your Memory</h2>
-                    <p>Save a snippet from the browser extension, then ask your AI assistant to read your clipboard.</p>
-
-                    <div class="prompt-box">
-                        <span class="prompt-text">Review the latest context I saved in my clipboard.</span>
-                        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-
-        <!-- Footer -->
-        <div class="footer-action">
-            <a href="/settings" class="btn-primary">
-                I've done this, take me to Settings
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
         </div>
-    </div>
+        <div class="progress-text">Step <span id="current-step-display">1</span> of 5</div>
+    </header>
 
-    <script>
-        function copyPrompt(btn) {
-            const text = "Review the latest context I saved in my clipboard.";
-            navigator.clipboard.writeText(text).then(() => {
-                const originalText = btn.innerText;
-                btn.innerText = "Copied!";
-                btn.style.color = "var(--success-color)";
-                btn.style.borderColor = "var(--success-color)";
+    <main class="setup-flow">
+
+        <!-- STEP 1: VERIFICATION -->
+        <div class="step-card active" id="step1">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h2>System Check
+                    <button class="btn-manual" onclick="advanceStep(2)">Skip</button>
+                </h2>
+                <p>Verifying your background connections.</p>
+                <div style="display: flex; gap: 12px; margin-top: 12px;">
+                    <span class="status-pill success">🟢 Extension Active</span>
+                    <span class="status-pill warning" id="server-status">🟡 Checking Server (localhost:8000)...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: CAPTURE -->
+        <div class="step-card" id="step2">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h2>Capture Context
+                    <button class="btn-manual" onclick="advanceStep(3)">Skip</button>
+                </h2>
+                <p>Now I will show you how to use this. Hold <strong style="color:var(--accent-blue)">Ctrl +
+                    Shift</strong> and click with your mouse anywhere on the text block below. <em>(Don't worry, you can
+                    change the keys later)</em>.</p>
+
+                <div class="interactive-target" id="capture-target">
+                    "Use this text as a tutorial! You can add information from various tabs without your progress being
+                    deleted. Context Clipboard handles deduplication and automatic title resolution behind the scenes."
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: COMMIT TO CART -->
+        <div class="step-card" id="step3">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h2>Commit to Memory
+                    <button class="btn-manual" onclick="advanceStep(4)">Skip</button>
+                </h2>
+                <p>Look at the bottom corner of your screen—the context cart icon (📦) is showing what you just read, but
+                    haven't committed yet.</p>
+                <p><strong>Open the cart and click "Send All to Local Memory"</strong> to permanently save it to your
+                    local database.</p>
+            </div>
+        </div>
+
+        <!-- STEP 4: RETRIEVE -->
+        <div class="step-card" id="step4">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h2>Retrieve Context
+                    <button class="btn-manual" onclick="advanceStep(5)">Skip</button>
+                </h2>
+                <p>Step 4 is to read from your memory layer. Press <strong style="color:var(--accent-blue)">Ctrl + Shift
+                    + Space</strong> to open your Command Palette right here.</p>
+                <p>Use your arrow keys to select the text you just saved, and press <strong>Enter</strong> to paste it
+                    into the chat box below.</p>
+                <textarea class="mock-chat-box" id="mock-chat-box" placeholder="Message AI..."></textarea>
+            </div>
+        </div>
+
+        <!-- STEP 5: IDE -->
+        <div class="step-card" id="step5">
+            <div class="step-number">5</div>
+            <div class="step-content">
+                <h2>Connect your IDE
+                    <button class="btn-manual" onclick="finishSetup()">Done</button>
+                </h2>
+                <p>You've mastered the browser! Now let's connect this memory directly to Cursor, VS Code, or
+                    Copilot.</p>
+                <p>1. Open your IDE settings and locate your <strong>MCP (Model Context Protocol)</strong> configuration
+                    file.<br>
+                    2. Paste the following configuration:</p>
+
+                <div class="code-block">
+<pre>{
+  "mcpServers": {
+    "context-clipboard": {
+      "command": "python",
+      "args": ["-m", "context_clipboard.server"],
+      "env": {}
+    }
+  }
+}</pre>
+                </div>
+                <p style="margin-top: 12px; font-size: 13px;">3. Restart your IDE to apply the changes.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="celebration" id="celebration">
+        <h2>🎉 You are all set!</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Your context is now synced across your browser and
+            IDE.</p>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+    const totalSteps = 5; // Updated to 5 steps
+
+    function updateProgress() {
+        document.getElementById('current-step-display').innerText = currentStep;
+        document.getElementById('progress-bar').style.width = `${((currentStep - 1) / totalSteps) * 100}%`;
+
+        for (let i = 1; i <= totalSteps; i++) {
+            const card = document.getElementById(`step${i}`);
+            if (i < currentStep) {
+                card.className = 'step-card done';
+                card.querySelector('.step-number').innerHTML = '✓';
+            } else if (i === currentStep) {
+                card.className = 'step-card active';
+            } else {
+                card.className = 'step-card';
+            }
+        }
+    }
+
+    function advanceStep(targetStep) {
+        currentStep = targetStep;
+        updateProgress();
+
+        const activeCard = document.getElementById(`step${targetStep}`);
+        if (!activeCard) return;
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                activeCard.scrollIntoView({behavior: 'smooth', block: 'start'});
+            });
+        });
+    }
+
+    function finishSetup() {
+        currentStep = 6;
+        document.getElementById('progress-bar').style.width = '100%';
+        document.querySelectorAll('.step-card').forEach(c => {
+            c.className = 'step-card done';
+            c.querySelector('.step-number').innerHTML = '✓';
+        });
+        document.getElementById('celebration').style.display = 'block';
+        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+    }
+
+    // ==========================================
+    // AUTO-ADVANCE DOM LISTENERS
+    // ==========================================
+
+    // Step 1: Check Server Connection
+    async function checkServer() {
+        if (currentStep !== 1) return;
+        try {
+            const res = await fetch("http://localhost:8000/api/config");
+            if (res.ok) {
+                const statusEl = document.getElementById('server-status');
+                statusEl.className = 'status-pill success';
+                statusEl.innerText = '🟢 Server Connected';
+                setTimeout(() => advanceStep(2), 1500);
+            }
+        } catch (e) {
+            setTimeout(checkServer, 2000);
+        }
+    }
+
+    // Step 2: Detect Ctrl+Shift+Click on target
+    const captureTarget = document.getElementById('capture-target');
+    const originalText = captureTarget.innerText;
+
+    // Step 2: Detect Ctrl+Shift+Click (Window-level Capture Phase Bypass)
+    window.addEventListener('mousedown', (e) => {
+        if (currentStep !== 2) return;
+
+        const captureTarget = document.getElementById('capture-target');
+
+        // Check if the click happened inside our target box
+        if (e.target === captureTarget || captureTarget.contains(e.target)) {
+            if (e.ctrlKey && e.shiftKey) {
+                // Success: Modifiers held! Advance UI
+                captureTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+                captureTarget.style.borderColor = 'var(--success-color)';
+                captureTarget.innerText = "✨ Captured successfully!";
+                setTimeout(() => advanceStep(3), 1000);
+            } else {
+                // Fail: User clicked without hotkeys. Show hint!
+                const originalText = '"Use this text as a tutorial! You can add information from various tabs without your progress being deleted. Context Clipboard handles deduplication and automatic title resolution behind the scenes."';
+
+                captureTarget.innerText = "⚠️ Oops! Make sure to hold Ctrl + Shift while clicking.";
+                captureTarget.style.borderColor = 'var(--warning-color)';
+                captureTarget.style.background = 'rgba(245, 158, 11, 0.1)';
 
                 setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.color = "var(--text-muted)";
-                    btn.style.borderColor = "#475569";
-                }, 2000);
-            });
+                    captureTarget.innerText = originalText;
+                    captureTarget.style.borderColor = 'var(--accent-blue)';
+                    captureTarget.style.background = '#1a1e27';
+                }, 2500);
+            }
         }
-    </script>
+    }, true); // <-- The "true" here is the magic! It catches the event before the extension stops it.
+
+    // Step 3: Detect click on the Extension's "Send All" button
+    // Because the extension injects the button into the body, events bubble up here!
+    document.body.addEventListener('click', (e) => {
+        if (currentStep === 3 && e.target && e.target.id === 'cc-send-all') {
+            // Give it a second to show the "Saved!" UI in the extension before moving on
+            setTimeout(() => advanceStep(4), 1200);
+        }
+    });
+
+    // Step 4: Detect Paste/Injection in Mock Editor
+    document.getElementById('mock-chat-box').addEventListener('input', (e) => {
+        if (currentStep === 4 && e.target.value.trim().length > 10) {
+            e.target.style.borderColor = 'var(--success-color)';
+            e.target.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.2)';
+            setTimeout(() => advanceStep(5), 1000);
+        }
+    });
+
+
+    // Init
+    updateProgress();
+    checkServer();
+</script>
 </body>
 </html>
