@@ -1,8 +1,10 @@
 # src/context_clipboard/server/database.py
 import sqlite3
 import logging
+import math
 from contextlib import closing
 from typing import List, Dict, Optional, Any
+from datetime import datetime, timezone
 
 import sqlite_vec
 from sqlite_vec import serialize_float32
@@ -70,7 +72,8 @@ class DatabaseManager:
 
     def search_similar(self, query_text: str, query_vector: List[float],
                        limit: int = 10, offset: int = 0, threshold: float = 1.15,
-                       start_time: str = None, end_time: str = None) -> List[Dict[str, Any]]:
+                       start_time: str = None, end_time: str = None,
+                       url_filter: str = "") -> List[Dict[str, Any]]:
 
         terms = [t for t in query_text.strip().split() if len(t) > 1]
         if not terms and query_text.strip():
@@ -79,15 +82,21 @@ class DatabaseManager:
         kw_results = []
         vec_results = []
 
-        # --- NEW: Dynamic Time Constraints ---
-        time_sql = ""
-        time_params = []
+        # --- Dynamic Constraints (Time & URL) ---
+        extra_sql = ""
+        extra_params = []
+
         if start_time:
-            time_sql += " AND s.created_at >= ?" if "s." in time_sql else " AND created_at >= ?"
-            time_params.append(start_time)
+            extra_sql += " AND s.created_at >= ?" if "s." in extra_sql or True else " AND created_at >= ?"  # force s. for uniform logic
+            extra_params.append(start_time)
         if end_time:
-            time_sql += " AND s.created_at < ?" if "s." in time_sql else " AND created_at < ?"
-            time_params.append(end_time)
+            extra_sql += " AND s.created_at < ?"
+            extra_params.append(end_time)
+
+        # NEW: Filter by URL token (e.g. from:github.com)
+        if url_filter:
+            extra_sql += " AND s.url LIKE ?"
+            extra_params.append(f"%{url_filter}%")
 
         with closing(self._get_connection()) as db:
             # Execute Lexical Match
@@ -95,22 +104,25 @@ class DatabaseManager:
                 where_clauses = ["(title LIKE ? OR content LIKE ?)"] * len(terms)
                 params = [val for term in terms for val in (f"%{term}%", f"%{term}%")]
 
+                # Replace 's.' for lexical query since it doesn't use table alias 's'
+                kw_extra_sql = extra_sql.replace('s.', '')
+
                 kw_sql = f"""
                     SELECT id, title, url, content, created_at
                     FROM snippets
-                    WHERE {" AND ".join(where_clauses)} {time_sql.replace('s.', '')}
+                    WHERE {" AND ".join(where_clauses)} {kw_extra_sql}
                     ORDER BY id DESC LIMIT 50
                 """
-                kw_results = db.execute(kw_sql, params + time_params).fetchall()
+                kw_results = db.execute(kw_sql, params + extra_params).fetchall()
 
             # Execute Vector Semantic Match
             vec_sql = f"""
                       SELECT s.id, s.title, s.url, s.content, s.created_at, v.distance
                       FROM snippets s
                       INNER JOIN vec_snippets v ON s.id = v.content_id
-                      WHERE v.embedding MATCH ? AND v.k = 50 {time_sql}
+                      WHERE v.embedding MATCH ? AND v.k = 50 {extra_sql}
                       """
-            vec_params = [serialize_float32(query_vector)] + time_params
+            vec_params = [serialize_float32(query_vector)] + extra_params
             vec_results = db.execute(vec_sql, vec_params).fetchall()
 
         # Merge & Deduplicate
@@ -132,9 +144,9 @@ class DatabaseManager:
 
         return final_results[offset: offset + limit]
 
-    def get_latest(self, limit: int = 10, offset: int = 0, start_time: str = None, end_time: str = None) -> List[
-        Dict[str, Any]]:
-        """Fetches recent snippets with optional time boundaries."""
+    def get_latest(self, limit: int = 10, offset: int = 0, start_time: str = None,
+                   end_time: str = None, url_filter: str = "") -> List[Dict[str, Any]]:
+        """Fetches recent snippets with optional time and URL boundaries."""
         with closing(self._get_connection()) as db:
             sql = "SELECT id, title, url, content, created_at FROM snippets WHERE 1=1"
             params = []
@@ -145,6 +157,11 @@ class DatabaseManager:
             if end_time:
                 sql += " AND created_at < ?"
                 params.append(end_time)
+
+            # NEW: Filter by URL token (e.g. from:github.com)
+            if url_filter:
+                sql += " AND url LIKE ?"
+                params.append(f"%{url_filter}%")
 
             sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
             params.extend([limit, offset])

@@ -59,7 +59,8 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     @router.get("/search", response_model=SearchResponse)
     async def search_context(
             q: str = "", limit: int = 10, offset: int = 0,
-            time_filter: str = "all", tz_offset: int = 0
+            time_filter: str = "all", tz_offset: int = 0,
+            url_filter: str = ""  # <--- NEW: Added URL filter parameter
     ):
         try:
             start_utc_str = None
@@ -87,12 +88,20 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
 
             # 2. Incredible UX Feature: If search is empty but a filter is clicked, just browse the timeline!
             if not q.strip():
-                raw_results = db_manager.get_latest(limit=fetch_limit, offset=0, start_time=start_utc_str,
-                                                    end_time=end_utc_str)
+                # Pass url_filter down to db_manager
+                raw_results = db_manager.get_latest(
+                    limit=fetch_limit, offset=0,
+                    start_time=start_utc_str, end_time=end_utc_str,
+                    url_filter=url_filter  # <--- NEW
+                )
             else:
                 query_vector = list(embedder_model.embed([q]))[0].tolist()
-                raw_results = db_manager.search_similar(q, query_vector, limit=fetch_limit, offset=0,
-                                                        start_time=start_utc_str, end_time=end_utc_str)
+                # Pass url_filter down to db_manager
+                raw_results = db_manager.search_similar(
+                    q, query_vector, limit=fetch_limit, offset=0,
+                    start_time=start_utc_str, end_time=end_utc_str,
+                    url_filter=url_filter  # <--- NEW
+                )
 
             # 3. Apply Time-Decay Scoring
             for r in raw_results:

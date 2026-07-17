@@ -33,7 +33,12 @@
         "content.css"
       ],
       "js": [
-        "content.js"
+        "config.js",
+        "utils.js",
+        "cart.js",
+        "palette.js",
+        "injector.js",
+        "main.js"
       ]
     }
   ]

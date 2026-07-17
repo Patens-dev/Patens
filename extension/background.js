@@ -15,8 +15,10 @@ async function syncSettings() {
 syncSettings();
 setInterval(syncSettings, 5000);
 
-// Your existing ingestion code
+// Unified Message Listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+    // --- 1. EXISTING: Ingest Batch (Save to DB) ---
     if (request.action === "ingest_batch") {
         const requests = request.payload.map(item => sendToLocalServer(item));
         Promise.all(requests)
@@ -26,6 +28,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({success: false});
             });
         return true;
+    }
+
+    // --- 2. NEW: Proxy Fetch (Bypass Firefox/Gemini CSP for Search/Latest/Images) ---
+    if (request.action === "proxy_fetch") {
+        fetch(request.url)
+            .then(async (res) => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+                if (request.responseType === 'blob') {
+                    // Chrome messaging cannot send raw Blobs, so we convert to Base64
+                    const blob = await res.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => sendResponse({ success: true, data: reader.result });
+                    reader.onerror = () => sendResponse({ success: false, error: "Failed to read blob" });
+                    reader.readAsDataURL(blob);
+                } else {
+                    const text = await res.text();
+                    sendResponse({ success: true, data: text });
+                }
+            })
+            .catch(err => {
+                console.error("Proxy Fetch Error:", err);
+                sendResponse({ success: false, error: err.message });
+            });
+
+        return true; // CRITICAL: This tells the browser we will call sendResponse asynchronously!
     }
 });
 
