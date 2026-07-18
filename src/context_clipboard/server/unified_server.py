@@ -1,6 +1,8 @@
 import os
 import time
 import logging
+import urllib
+
 import uvicorn
 from fastmcp import FastMCP
 from fastembed import TextEmbedding
@@ -153,8 +155,19 @@ def run_fastapi():
     logger.info(f"Starting background FastAPI on {API_HOST}:{API_PORT}...")
     uvicorn.run(fastapi_app, host=API_HOST, port=API_PORT, log_level="info")
 
+
 def run_mcp():
     """Runs the MCP server over stdio for IDE integration."""
-
     logger.info("Initializing stdio MCP server for the IDE...")
+
+    try:
+        req = urllib.request.Request(
+            f"http://{API_HOST}:{API_PORT}/api/internal/ide-connected",
+            method="POST"
+        )
+        urllib.request.urlopen(req, timeout=1.5)
+        logger.info("Successfully notified FastAPI process that IDE is connected.")
+    except urllib.error.URLError as e:
+        logger.debug(f"Could not ping FastAPI server (expected if running headless): {e}")
+
     mcp.run()

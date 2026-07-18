@@ -2,6 +2,7 @@
 from typing import List, Optional
 from pydantic import BaseModel
 
+
 class IngestPayload(BaseModel):
     type: str
     url: str
@@ -9,9 +10,11 @@ class IngestPayload(BaseModel):
     content: str
     media: Optional[str] = None
 
+
 class IngestResponse(BaseModel):
     status: str
     id: int
+
 
 # --- NEW: Strict Schema for Search Results ---
 class SearchResultItem(BaseModel):
@@ -26,6 +29,11 @@ class SearchResultItem(BaseModel):
     distance: Optional[float] = None
     hybrid_score: Optional[float] = None
 
+
 class SearchResponse(BaseModel):
     status: str
     results: List[SearchResultItem]
+
+
+class ConnectionState(BaseModel):
+    ide_connected: bool = False

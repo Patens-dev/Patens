@@ -8,11 +8,12 @@ import sys
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import threading
-from fastapi import FastAPI, APIRouter, HTTPException, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from context_clipboard.server import config
-from context_clipboard.server.models import IngestResponse, IngestPayload, SearchResponse
+from context_clipboard.server.models import IngestResponse, IngestPayload, SearchResponse, ConnectionState
+from context_clipboard.server.state import app_state
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,29 @@ def get_template_html(filename: str) -> str:
 def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     """Constructs the API endpoints with dependency injection."""
     router = APIRouter()
+
+    # Dependency provider
+    def get_connection_state() -> ConnectionState:
+        return app_state
+
+    @router.get("/api/config")
+    def get_config():
+        return {
+            "status": "running",
+            "python_path": sys.executable,  # <-- ADD THIS: e.g., "D:\\dev\\memory-layer\\.venv\\Scripts\\python.exe"
+            "module_path": "context_clipboard.server"
+        }
+
+    @router.get("/api/mcp-status")
+    def get_mcp_status(state: ConnectionState = Depends(get_connection_state)):
+        """Polled by the frontend to check if the IDE is connected."""
+        return {"connected": state.ide_connected}
+
+    @router.post("/api/internal/ide-connected")
+    def mark_ide_connected(state: ConnectionState = Depends(get_connection_state)):
+        """Called secretly by the MCP process when the IDE boots it up."""
+        state.ide_connected = True
+        return {"status": "ok"}
 
     @router.get("/search", response_model=SearchResponse)
     async def search_context(
