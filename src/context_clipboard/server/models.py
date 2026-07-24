@@ -14,9 +14,9 @@ class IngestPayload(BaseModel):
 class IngestResponse(BaseModel):
     status: str
     id: int
+    smart_clipboard: Optional[str] = None
 
 
-# --- NEW: Strict Schema for Search Results ---
 class SearchResultItem(BaseModel):
     id: Optional[int] = None
     url: str

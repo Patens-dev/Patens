@@ -44,7 +44,7 @@
         }
 
         .container {
-            max-width: 700px;
+            max-width: 760px;
             width: 100%;
             padding: 60px 24px;
             margin: 0 auto;
@@ -265,26 +265,25 @@
             color: white;
         }
 
-        /* IDE Step 5 Specific Styles */
-        .ide-instructions {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid #334155;
-        }
-
-        .ide-instructions ol {
-            margin-left: 20px;
-            color: #cbd5e1;
+        .btn-primary {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
             font-size: 14px;
-            line-height: 1.8;
+            transition: background 0.2s;
         }
 
-        .ide-instructions li strong {
-            color: #f8fafc;
+        .btn-primary:hover {
+            background: var(--accent-blue-hover);
         }
 
+        /* Radar Box */
         .radar-box {
             display: flex;
             align-items: center;
@@ -293,7 +292,7 @@
             border: 1px solid #334155;
             padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 24px;
         }
 
         .radar-indicator {
@@ -329,40 +328,151 @@
             }
         }
 
-        /* Advanced Options Drawer */
-        .advanced-toggle {
-            font-size: 12px;
-            color: var(--text-muted);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            user-select: none;
+        /* IDE Selector & Cards */
+        .ide-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
         }
 
-        .advanced-toggle:hover {
+        .ide-card {
+            background: #0f1115;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+        }
+
+        .ide-card:hover {
+            border-color: #475569;
+            background: #1a1e27;
             color: var(--text-main);
         }
 
-        .advanced-content {
-            display: none;
-            margin-top: 12px;
+        .ide-card.active {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
+            color: #fff;
+            box-shadow: 0 0 0 1px var(--accent-blue);
         }
 
-        .advanced-content.open {
-            display: block;
+        .ide-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: currentColor;
+        }
+
+        /* IDE Specific Content Panels */
+        .ide-content-panel {
+            display: none;
             animation: fadeIn 0.3s ease;
+        }
+
+        .ide-content-panel.active {
+            display: block;
+        }
+
+        .setup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .setup-steps ol {
+            margin-left: 20px;
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .setup-steps li {
+            margin-bottom: 12px;
+        }
+
+        .setup-steps li strong {
+            color: #fff;
+        }
+
+        .setup-gif {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0c0d10;
+            aspect-ratio: 16/9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .setup-gif img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background-color: #1a1e27;
         }
 
         .code-block {
             background: #0c0d10;
             border: 1px solid #1e222b;
-            padding: 12px;
-            border-radius: 6px;
+            padding: 16px;
+            border-radius: 8px;
             font-family: monospace;
             font-size: 12px;
             color: #a5b4fc;
             overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: "JSON Configuration";
+            position: absolute;
+            top: -10px;
+            left: 12px;
+            background: var(--bg-card-active);
+            padding: 0 6px;
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dynamic-python-path {
+            color: #fcd34d;
+        }
+
+        /* Step 6 Instructions */
+        .activation-instructions {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        .activation-instructions ol {
+            margin-left: 20px;
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .activation-instructions li strong {
+            color: #f8fafc;
         }
 
         .celebration {
@@ -378,34 +488,44 @@
             margin-bottom: 8px;
         }
 
-        /* IDE Tabs */
-        .ide-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .ide-tab {
-            padding: 6px 12px;
+        .prompt-box {
+            background: #000;
+            border: 1px solid #334155;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            color: #a5b4fc;
+            margin: 12px 0 16px 20px;
             font-size: 13px;
-            color: var(--text-muted);
+            user-select: all;
             cursor: pointer;
-            border-bottom: 2px solid transparent;
+            position: relative;
         }
 
-        .ide-tab:hover {
-            color: var(--text-main);
+        .prompt-box::after {
+            content: "Click to copy";
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: var(--font-sans);
+            font-size: 11px;
+            color: #475569;
+            text-transform: uppercase;
         }
 
-        .ide-tab.active {
-            color: var(--accent-blue);
-            border-bottom-color: var(--accent-blue);
-            font-weight: bold;
+        .prompt-box:active {
+            border-color: var(--accent-blue);
         }
 
-        .dynamic-python-path {
-            color: #fcd34d; /* Highlights the dynamic path in yellow */
+        @media (max-width: 650px) {
+            .setup-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ide-cards {
+                grid-template-columns: 1fr;
+            }
         }
 
         @keyframes popIn {
@@ -429,6 +549,7 @@
                 transform: translateY(0);
             }
         }
+
     </style>
 </head>
 <body>
@@ -437,12 +558,12 @@
     <header class="hero">
         <h1>Welcome to Context Clipboard</h1>
         <p>Let's configure your memory layer and get your IDE connected.</p>
-        <div class="time-estimate">⏱️ Takes ~2 minutes</div>
+        <div class="time-estimate">⏱️ Takes ~3 minutes</div>
 
         <div class="progress-container">
             <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div class="progress-text">Step <span id="current-step-display">1</span> of 5</div>
+        <div class="progress-text">Step <span id="current-step-display">1</span> of 6</div>
     </header>
 
     <main class="setup-flow">
@@ -509,48 +630,70 @@
             </div>
         </div>
 
-        <!-- STEP 5: IDE ACTIVATION -->
+        <!-- STEP 5: ADD MCP TO IDE -->
         <div class="step-card" id="step5">
             <div class="step-number">5</div>
             <div class="step-content">
-                <h2>Enable in your IDE
-                    <button class="btn-manual" onclick="finishSetup()" id="btn-finish">I did this (Done)</button>
+                <h2>Install Server in IDE
+                    <button class="btn-manual" onclick="advanceStep(6)">Skip / Already Added</button>
                 </h2>
-                <p>Our server has already attempted to inject the MCP connection into your IDE. We just need you to
-                    manually activate the tool.</p>
+                <p>If the Context Clipboard server hasn't been added to your IDE yet, select your editor below to see
+                    exact instructions on how to link your memory database.</p>
 
-                <div class="radar-box" id="ide-radar">
-                    <div class="radar-indicator">
-                        <div class="radar-dot"></div>
-                        Listening for IDE Connection...
+                <!-- IDE Selector -->
+                <div class="ide-cards">
+                    <div class="ide-card active" onclick="selectIDE('cursor')">
+                        <div class="ide-icon">
+                            <!-- Basic Cursor Logo Representation -->
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 3l12 9-5.5 1.5 2.5 6.5-2.5 1-2.5-6.5-4.5 3z"/>
+                            </svg>
+                        </div>
+                        <strong>Cursor</strong>
+                    </div>
+
+                    <div class="ide-card" onclick="selectIDE('vscode')">
+                        <div class="ide-icon">
+                            <!-- Basic VS Code Logo Representation -->
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
+                            </svg>
+                        </div>
+                        <strong>VS Code</strong>
+                    </div>
+
+                    <div class="ide-card" onclick="selectIDE('jetbrains')">
+                        <div class="ide-icon">
+                            <!-- Basic JetBrains Box Logo Representation -->
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1h22v22H1z" fill="none" stroke="currentColor" stroke-width="2"/>
+                                <path d="M6 6h12v12H6z" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <strong>JetBrains</strong>
                     </div>
                 </div>
 
-                <div class="ide-instructions">
-                    <ol>
-                        <li><strong>Restart</strong> Cursor or VS Code.</li>
-                        <li>Open the AI Chat panel.</li>
-                        <li>Click the <strong>Tools (📎)</strong> icon.</li>
-                        <li>Find and enable <strong>context-clipboard</strong>.</li>
-                        <li>Ask the AI: <em>"Review the latest context in my clipboard."</em></li>
-                    </ol>
-                </div>
-
-                <!-- Advanced Options Toggle -->
-                <div class="advanced-toggle" onclick="toggleAdvanced()">
-                    ▶ Advanced / Manual Setup
-                </div>
-                <div class="advanced-content" id="advanced-config">
-                    <p style="margin-top:8px; font-size:13px; margin-bottom: 12px;">If the automatic installer failed,
-                        select your IDE below and paste the exact configuration into your settings:</p>
-
-                    <div class="ide-tabs">
-                        <div class="ide-tab active" onclick="switchIdeTab('cursor')">Cursor / Cline</div>
-                        <div class="ide-tab" onclick="switchIdeTab('vscode')">VS Code / Copilot</div>
+                <!-- Cursor Panel -->
+                <div id="panel-cursor" class="ide-content-panel active">
+                    <div class="setup-grid">
+                        <div class="setup-steps">
+                            <ol>
+                                <li>Open Cursor <strong>Settings</strong>.</li>
+                                <li>Navigate to <strong>Features &gt; MCP Servers</strong>.</li>
+                                <li>Click <strong>+ Add New MCP Server</strong>.</li>
+                                <li>Set Type to <strong>command</strong>.</li>
+                                <li>Copy the JSON below or set Command to your Python path and Args to <code>-m
+                                    context_clipboard.server</code>.
+                                </li>
+                            </ol>
+                        </div>
+                        <div class="setup-gif">
+                            <img src="assets/cursor-setup.gif" alt="Cursor Setup Demo"
+                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<span style=\'padding:20px;text-align:center;\'>Replace with cursor-setup.gif</span>'">
+                        </div>
                     </div>
-
-                    <!-- Cursor / Cline Config -->
-                    <div class="code-block active-code" id="code-cursor">
+                    <div class="code-block">
 <pre>{
   "mcpServers": {
     "context-clipboard": {
@@ -560,11 +703,29 @@
   }
 }</pre>
                     </div>
+                </div>
 
-                    <!-- VS Code / Copilot Config -->
-                    <div class="code-block" id="code-vscode" style="display: none;">
+                <!-- VS Code Panel -->
+                <div id="panel-vscode" class="ide-content-panel">
+                    <div class="setup-grid">
+                        <div class="setup-steps">
+                            <ol>
+                                <li>Open VS Code with an MCP extension (like <strong>Cline</strong> or Copilot).</li>
+                                <li>Open the extension's MCP Settings (often a button saying <strong>MCP
+                                    Servers</strong>).
+                                </li>
+                                <li>Edit the configuration JSON file.</li>
+                                <li>Paste the exact configuration below.</li>
+                            </ol>
+                        </div>
+                        <div class="setup-gif">
+                            <img src="assets/vscode-setup.gif" alt="VS Code Setup Demo"
+                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<span style=\'padding:20px;text-align:center;\'>Replace with vscode-setup.gif</span>'">
+                        </div>
+                    </div>
+                    <div class="code-block">
 <pre>{
-  "servers": {
+  "mcpServers": {
     "context-clipboard": {
       "command": "<span class="dynamic-python-path">python</span>",
       "args": ["-m", "context_clipboard.server"]
@@ -572,10 +733,76 @@
   }
 }</pre>
                     </div>
-                    <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                        <span id="path-warning" style="color: var(--warning-color); display: none;">⚠️ Ensure you use the absolute path to your virtual environment's python executable.</span>
-                    </p>
                 </div>
+
+                <!-- JetBrains Panel -->
+                <div id="panel-jetbrains" class="ide-content-panel">
+                    <div class="setup-grid">
+                        <div class="setup-steps">
+                            <ol>
+                                <li>Open your JetBrains IDE.</li>
+                                <li>Ensure you have an AI assistant plugin installed that supports MCP.</li>
+                                <li>Navigate to <strong>Settings &gt; Tools &gt; MCP Servers</strong>.</li>
+                                <li>Add a new server using the exact absolute path to your Python executable below.</li>
+                            </ol>
+                        </div>
+                        <div class="setup-gif">
+                            <img src="assets/jetbrains-setup.gif" alt="JetBrains Setup Demo"
+                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<span style=\'padding:20px;text-align:center;\'>Replace with jetbrains-setup.gif</span>'">
+                        </div>
+                    </div>
+                    <div class="code-block">
+<pre>{
+  "mcpServers": {
+    "context-clipboard": {
+      "command": "<span class="dynamic-python-path">python</span>",
+      "args": ["-m", "context_clipboard.server"]
+    }
+  }
+}</pre>
+                    </div>
+                </div>
+
+                <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                    <span id="path-warning" style="color: var(--warning-color); display: none;">⚠️ Ensure you use the absolute path to your virtual environment's python executable.</span>
+                </p>
+
+                <button class="btn-primary" onclick="advanceStep(6)">Next: Activate & Verify Connection →</button>
+            </div>
+        </div>
+
+        <!-- STEP 6: ACTIVATE & CONNECT -->
+        <div class="step-card" id="step6">
+            <div class="step-number">6</div>
+            <div class="step-content">
+                <h2>Activate in Chat
+                    <button class="btn-manual" onclick="finishSetup()" id="btn-finish">I did this (Done)</button>
+                </h2>
+                <p>Now that your IDE knows about the server, let's initialize your local workspace files and verify the
+                    connection.</p>
+
+                <div class="activation-instructions">
+                    <ol>
+                        <li><strong>Restart</strong> your IDE so it loads the new configuration.</li>
+                        <li>Open your AI Chat panel.</li>
+                        <li>Click the <strong>Tools (📎)</strong> or <strong>MCP</strong> icon and enable <strong>context-clipboard</strong>.
+                        </li>
+                        <li>Ask the AI to initialize your workspace by sending this exact prompt:</li>
+                    </ol>
+
+                    <div class="prompt-box"
+                         onclick="navigator.clipboard.writeText('Sync my context files.'); this.style.borderColor='var(--success-color)'; setTimeout(()=>this.style.borderColor='#334155', 1000);">
+                        Sync my context files.
+                    </div>
+                </div>
+
+                <div class="radar-box" id="ide-radar">
+                    <div class="radar-indicator">
+                        <div class="radar-dot"></div>
+                        Waiting for your first AI prompt...
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -590,7 +817,7 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = 5;
+    const totalSteps = 6; // Updated to 6 steps
     let mcpPollingInterval = null;
 
     function updateProgress() {
@@ -599,18 +826,22 @@
 
         for (let i = 1; i <= totalSteps; i++) {
             const card = document.getElementById(`step${i}`);
+            if (!card) continue;
+
             if (i < currentStep) {
                 card.className = 'step-card done';
                 card.querySelector('.step-number').innerHTML = '✓';
             } else if (i === currentStep) {
                 card.className = 'step-card active';
 
-                // If we reach Step 5, start polling for IDE connection
-                if (i === 5 && !mcpPollingInterval) {
+                // Start polling ONLY when we reach Step 6
+                if (i === 6 && !mcpPollingInterval) {
                     startIDEPolling();
                 }
             } else {
                 card.className = 'step-card';
+                // Reset step numbers in case user goes backwards
+                card.querySelector('.step-number').innerHTML = i;
             }
         }
     }
@@ -631,7 +862,7 @@
 
     function finishSetup() {
         if (mcpPollingInterval) clearInterval(mcpPollingInterval);
-        currentStep = 6;
+        currentStep = 7; // Go past the final step to fill the bar
         document.getElementById('progress-bar').style.width = '100%';
         document.querySelectorAll('.step-card').forEach(c => {
             c.className = 'step-card done';
@@ -641,32 +872,23 @@
         window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
     }
 
-    function toggleAdvanced() {
-        const content = document.getElementById('advanced-config');
-        const toggle = document.querySelector('.advanced-toggle');
-        if (content.classList.contains('open')) {
-            content.classList.remove('open');
-            toggle.innerHTML = '▶ Advanced / Manual Setup';
-        } else {
-            content.classList.add('open');
-            toggle.innerHTML = '▼ Advanced / Manual Setup';
-        }
+    // ==========================================
+    // IDE SELECTOR LOGIC
+    // ==========================================
+    function selectIDE(ideName) {
+        // Remove active class from all cards and panels
+        document.querySelectorAll('.ide-card').forEach(card => card.classList.remove('active'));
+        document.querySelectorAll('.ide-content-panel').forEach(panel => panel.classList.remove('active'));
+
+        // Add active class to clicked card and corresponding panel
+        event.currentTarget.classList.add('active');
+        document.getElementById(`panel-${ideName}`).classList.add('active');
     }
 
     // ==========================================
     // AUTO-ADVANCE DOM LISTENERS
     // ==========================================
 
-    // Handles Tab Switching in the Advanced Menu
-    function switchIdeTab(ide) {
-        document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.advanced-content .code-block').forEach(c => c.style.display = 'none');
-
-        event.target.classList.add('active');
-        document.getElementById(`code-${ide}`).style.display = 'block';
-    }
-
-    // Updated Check Server to extract Absolute Python Path
     async function checkServer() {
         if (currentStep !== 1) return;
         try {
@@ -674,14 +896,11 @@
             if (res.ok) {
                 const data = await res.json();
 
-                // Update UI Status
                 const statusEl = document.getElementById('server-status');
                 statusEl.className = 'status-pill success';
                 statusEl.innerText = '🟢 Server Connected';
 
-                // DYNAMICALLY INJECT ABSOLUTE PYTHON PATH
                 if (data.python_path) {
-                    // Escape backslashes for JSON formatting on Windows
                     const escapedPath = data.python_path.replace(/\\/g, '\\\\');
                     document.querySelectorAll('.dynamic-python-path').forEach(el => {
                         el.innerText = escapedPath;
@@ -697,16 +916,14 @@
         }
     }
 
-    // Step 5: Poll backend to see if IDE MCP connected
+    // Step 6: Poll backend to see if IDE MCP connected
     function startIDEPolling() {
         mcpPollingInterval = setInterval(async () => {
             try {
-                // Point this to whatever endpoint you build in Python to check IDE status
                 const res = await fetch("http://localhost:8000/api/mcp-status");
                 if (res.ok) {
                     const data = await res.json();
                     if (data.connected === true) {
-                        // Success! The IDE made a connection to the MCP tool
                         const radarBox = document.getElementById('ide-radar');
                         radarBox.style.borderColor = 'var(--success-color)';
                         radarBox.style.background = 'rgba(16, 185, 129, 0.1)';
@@ -716,12 +933,12 @@
                     }
                 }
             } catch (e) {
-                // Silently fail and keep polling, user can still click "Done" manually
+                // Silently fail and keep polling
             }
-        }, 3000); // Check every 3 seconds
+        }, 3000);
     }
 
-    // Step 2: Detect Ctrl+Shift+Click (Window-level Capture Phase Bypass)
+    // Step 2: Detect Ctrl+Shift+Click
     window.addEventListener('mousedown', (e) => {
         if (currentStep !== 2) return;
 

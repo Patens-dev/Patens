@@ -80,11 +80,21 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
         state.ide_connected = True
         return {"status": "ok"}
 
+    # --- BULLETPROOF CONVERTER ---
+    def safe_row_to_dict(row):
+        """Forces a SQLite row into a dict, preventing all .get() errors."""
+        if isinstance(row, dict):
+            return row
+        try:
+            return dict(row)
+        except Exception:
+            return {k: row[k] for k in row.keys()}
+
     @router.get("/search", response_model=SearchResponse)
     async def search_context(
             q: str = "", limit: int = 10, offset: int = 0,
             time_filter: str = "all", tz_offset: int = 0,
-            url_filter: str = ""  # <--- NEW: Added URL filter parameter
+            url_filter: str = ""
     ):
         try:
             start_utc_str = None
@@ -92,7 +102,7 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
 
             # 1. Translate UI Local Boundaries to Database UTC Boundaries
             if time_filter != "all":
-                user_tz = timezone(timedelta(minutes=-tz_offset))  # Convert JS offset to Python TZ
+                user_tz = timezone(timedelta(minutes=-tz_offset))
                 now_local = datetime.now(user_tz)
 
                 if time_filter == "2h":
@@ -110,36 +120,47 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
             fetch_limit = max(50, offset + limit * 2)
             now = datetime.now(timezone.utc)
 
-            # 2. Incredible UX Feature: If search is empty but a filter is clicked, just browse the timeline!
+            # 2. Fetch Raw Data
             if not q.strip():
-                # Pass url_filter down to db_manager
                 raw_results = db_manager.get_latest(
                     limit=fetch_limit, offset=0,
                     start_time=start_utc_str, end_time=end_utc_str,
-                    url_filter=url_filter  # <--- NEW
+                    url_filter=url_filter
                 )
             else:
                 query_vector = list(embedder_model.embed([q]))[0].tolist()
-                # Pass url_filter down to db_manager
                 raw_results = db_manager.search_similar(
                     q, query_vector, limit=fetch_limit, offset=0,
                     start_time=start_utc_str, end_time=end_utc_str,
-                    url_filter=url_filter  # <--- NEW
+                    url_filter=url_filter
                 )
 
+            # --- ABSOLUTE SAFETY CHECK ---
+            safe_results = [safe_row_to_dict(r) for r in raw_results]
+
             # 3. Apply Time-Decay Scoring
-            for r in raw_results:
-                distance = r.get("distance", 0.5)
+            for r in safe_results:
+                # Safely check for distance without using .get()
+                distance = r["distance"] if "distance" in r else 0.5
                 base_similarity = 1.0 / (1.0 + distance)
 
                 try:
-                    created_str = str(r.get("timestamp") or r.get("created_at") or now.isoformat()).replace("Z",
-                                                                                                            "+00:00")
+                    # Safely check for timestamps without using .get()
+                    if "timestamp" in r and r["timestamp"]:
+                        created_str = str(r["timestamp"])
+                    elif "created_at" in r and r["created_at"]:
+                        created_str = str(r["created_at"])
+                    else:
+                        created_str = now.isoformat()
+
+                    created_str = created_str.replace("Z", "+00:00")
                     if " " in created_str and "T" not in created_str:
                         created_str = created_str.replace(" ", "T")
+
                     created_dt = datetime.fromisoformat(created_str)
                     if created_dt.tzinfo is None:
                         created_dt = created_dt.replace(tzinfo=timezone.utc)
+
                     age_days = (now - created_dt).total_seconds() / 86400.0
                     r["timestamp"] = created_dt.isoformat()
                 except (ValueError, TypeError):
@@ -149,8 +170,9 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
                 time_bonus = math.exp(-0.1 * max(0, age_days))
                 r["hybrid_score"] = (base_similarity * 0.7) + (time_bonus * 0.3)
 
-            raw_results.sort(key=lambda x: x.get("hybrid_score", 0), reverse=True)
-            paginated_results = raw_results[offset: offset + limit]
+            # Safely sort without using .get()
+            safe_results.sort(key=lambda x: x["hybrid_score"] if "hybrid_score" in x else 0, reverse=True)
+            paginated_results = safe_results[offset: offset + limit]
 
             return {"status": "success", "results": paginated_results}
 
@@ -162,40 +184,40 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
     async def latest_context(limit: int = 1):
         logger.info(f"[LATEST INPUT] Fetching {limit} most recent items")
         try:
-            results = db_manager.get_latest(limit)
+            raw_results = db_manager.get_latest(limit)
+
+            # --- ABSOLUTE SAFETY CHECK ---
+            safe_results = [safe_row_to_dict(r) for r in raw_results]
             now = datetime.now(timezone.utc)
 
-            # Ensure the timestamp is explicitly formatted for the strict Pydantic model
-            for r in results:
-                # Parse timestamp safely
+            for r in safe_results:
                 try:
-                    created_str = r.get("timestamp") or r.get("created_at") or now.isoformat()
+                    # Safely check for timestamps without using .get()
+                    if "timestamp" in r and r["timestamp"]:
+                        created_str = str(r["timestamp"])
+                    elif "created_at" in r and r["created_at"]:
+                        created_str = str(r["created_at"])
+                    else:
+                        created_str = now.isoformat()
 
-                    # 1. Ensure JS strings have proper timezone offsets
-                    created_str = str(created_str).replace("Z", "+00:00")
-
-                    # 2. Convert SQLite's space into a valid ISO 'T'
+                    created_str = created_str.replace("Z", "+00:00")
                     if " " in created_str and "T" not in created_str:
                         created_str = created_str.replace(" ", "T")
 
                     created_dt = datetime.fromisoformat(created_str)
-
-                    # Ensure datetime is timezone-aware
                     if created_dt.tzinfo is None:
                         created_dt = created_dt.replace(tzinfo=timezone.utc)
 
-                    # 3. Calculate age_days for the hybrid scoring
-                    age_days = (now - created_dt).total_seconds() / 86400.0
-
                     r["timestamp"] = created_dt.isoformat()
                 except (ValueError, TypeError):
-                    age_days = 0
                     r["timestamp"] = now.isoformat()
-            # --- LOG OUTPUT ---
-            output_summary = [f"[ID:{res.get('id')} | Title:'{res.get('title', '')[:20]}']" for res in results]
-            logger.info(f"[LATEST OUTPUT] Returned {len(results)} results: {', '.join(output_summary)}")
 
-            return {"status": "success", "results": results}
+            output_summary = [
+                f"[ID:{res['id'] if 'id' in res else 'N/A'} | Title:'{res['title'][:20] if 'title' in res else ''}']"
+                for res in safe_results]
+            logger.info(f"[LATEST OUTPUT] Returned {len(safe_results)} results: {', '.join(output_summary)}")
+
+            return {"status": "success", "results": safe_results}
 
         except Exception as e:
             logger.error(f"Latest fetch error: {str(e)}")
@@ -233,8 +255,25 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
                 embedding=embedding
             )
 
+            # --- NEW: Smart Clipboard Generation ---
+            # Rough token heuristic (~4 chars per token)
+            tokens = len(final_content) // 4
+
+            # Construct a beautiful, safe fallback payload
+            smart_clipboard = (
+                f"> 📎 **Context Saved:** {payload.title}\n"
+                f"> 📏 **Size:** ~{tokens} tokens\n"
+                f"> 📂 Available instantly in your IDE in the `_context/` folder."  # <--- Updated here
+            )
+            # ---------------------------------------
+
             logger.info(f"[INGEST OUTPUT] Successfully saved context ID: {content_id}")
-            return {"status": "success", "id": content_id}
+
+            return {
+                "status": "success",
+                "id": content_id,
+                "smart_clipboard": smart_clipboard  # <-- Send it back to the browser!
+            }
 
         except Exception as e:
             logger.error(f"Error during ingest: {str(e)}")
