@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patens | The Local Memory Layer for AI Coding Assistants</title>
+    <title>patens | The Local Memory Layer</title>
     <style>
         :root {
-            /* Modern sleek dark theme (Linear/Vercel inspired) */
-            --bg-base: #000000;
-            --bg-card: #0a0a0a;
-            --bg-card-hover: #121212;
+            /* Restored the tech-blue for life and energy */
+            --bg-base: #09090b;
+            --bg-card: #121214;
+            --bg-card-hover: #18181b;
             --border-color: #27272a;
-            --text-main: #ededed;
+            --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
+
             --accent-blue: #3b82f6;
             --accent-blue-hover: #2563eb;
-            --error-red: #ef4444;
-            --success-green: #10b981;
+            --accent-glow: rgba(59, 130, 246, 0.15);
 
             --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
@@ -34,11 +34,12 @@
             color: var(--text-main);
             line-height: 1.6;
             overflow-x: hidden;
-            /* Subtle grid background */
+            /* Restored the subtle blue glow so it isn't so grim */
             background-image:
-                linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+                radial-gradient(circle at 50% -10%, var(--accent-glow) 0%, transparent 50%),
+                linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
             background-position: center top;
         }
 
@@ -55,12 +56,17 @@
         }
 
         .logo {
-            font-weight: 700;
-            font-size: 18px;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-weight: 500; /* Bumped up for legibility */
+            font-size: 24px;
             letter-spacing: -0.5px;
+        }
+
+        .logo img {
+            height: 24px;
+            width: auto;
         }
 
         .nav-links a {
@@ -86,13 +92,14 @@
 
         .hero h1 {
             font-size: clamp(40px, 6vw, 64px);
-            font-weight: 800;
+            font-weight: 800; /* Stronger font weight */
             letter-spacing: -2px;
             line-height: 1.05;
             margin-bottom: 24px;
             color: #ffffff;
         }
 
+        /* Brought back the blue gradient to add color */
         .hero h1 span {
             background: linear-gradient(135deg, #60a5fa, #3b82f6);
             -webkit-background-clip: text;
@@ -106,6 +113,7 @@
             margin: 0 auto;
             line-height: 1.5;
             letter-spacing: -0.2px;
+            font-weight: 400; /* Better legibility */
         }
 
         /* Hero CTA Buttons */
@@ -119,7 +127,7 @@
 
         .hero-subtext {
             font-size: 14px !important;
-            color: #52525b !important;
+            color: #71717a !important;
             margin-bottom: 0 !important;
         }
 
@@ -133,10 +141,10 @@
         .story-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 2px; /* For the 1px border effect */
+            gap: 1px;
             background: var(--border-color);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 12px;
             overflow: hidden;
         }
 
@@ -146,24 +154,29 @@
         }
 
         .story-card h3 {
-            font-size: 18px;
+            font-size: 16px;
+            font-weight: 600;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .story-card.bad h3 { color: var(--error-red); }
-        .story-card.good h3 { color: var(--success-green); }
+        .story-card.bad h3 { color: #ef4444; } /* Restored subtle red */
+        .story-card.good h3 { color: #10b981; } /* Restored subtle green */
 
         .story-card p {
             color: var(--text-muted);
             font-size: 15px;
             margin-bottom: 16px;
+            font-weight: 400;
         }
 
         .story-card strong {
             color: var(--text-main);
+            font-weight: 600;
         }
 
         /* Interactive Demo Section */
@@ -180,12 +193,12 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
             min-height: 500px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
         }
 
         .demo-header {
-            background: #0a0a0a;
+            background: #09090b;
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
@@ -194,10 +207,9 @@
         }
 
         .window-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            background: #3f3f46;
         }
 
         .demo-title {
@@ -232,6 +244,7 @@
             opacity: 0;
             transform: translateY(10px);
             transition: all 0.3s ease;
+            font-weight: 400;
         }
 
         .chat-bubble.visible {
@@ -242,16 +255,16 @@
         .chat-user {
             align-self: flex-end;
             background: #18181b;
-            border: 1px solid #27272a;
+            border: 1px solid var(--border-color);
             padding: 12px 16px;
             border-radius: 8px;
-            color: #f8fafc;
+            color: #ffffff;
         }
 
         .chat-ai {
             align-self: flex-start;
             padding: 12px 0;
-            color: #cbd5e1;
+            color: #d4d4d8;
         }
 
         .chat-ai code {
@@ -260,9 +273,11 @@
             border-radius: 4px;
             font-family: var(--font-mono);
             font-size: 13px;
-            border: 1px solid #27272a;
+            border: 1px solid var(--border-color);
+            color: #ffffff;
         }
 
+        /* Restored the blue UI chip */
         .file-chip {
             display: inline-flex;
             align-items: center;
@@ -284,8 +299,8 @@
         }
 
         .chat-input-box {
-            background: #0a0a0a;
-            border: 1px solid #27272a;
+            background: #09090b;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 16px;
             font-size: 14px;
@@ -294,7 +309,6 @@
             display: flex;
             align-items: center;
             position: relative;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
 
         .cursor-blink {
@@ -317,11 +331,11 @@
             position: absolute;
             bottom: calc(100% + 8px);
             left: 24px;
-            background: #0a0a0a;
-            border: 1px solid #27272a;
+            background: #09090b;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             width: 320px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
             opacity: 0;
             pointer-events: none;
             transform: translateY(10px);
@@ -337,7 +351,7 @@
         .dropdown-item {
             padding: 12px 16px;
             font-size: 13px;
-            color: #a1a1aa;
+            color: var(--text-muted);
             border-bottom: 1px solid #18181b;
             display: flex;
             align-items: center;
@@ -379,42 +393,43 @@
         .feature-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 12px;
             padding: 32px;
             transition: border-color 0.2s ease;
         }
 
         .feature-card:hover {
-            border-color: #3f3f46;
+            border-color: #52525b;
         }
 
         .feature-icon {
-            width: 40px;
-            height: 40px;
-            background: #18181b;
-            border: 1px solid #27272a;
+            width: 44px;
+            height: 44px;
+            background: #000000;
+            border: 1px solid var(--border-color);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
-            color: #fff;
+            color: var(--accent-blue); /* Added blue back to icons */
         }
 
         .feature-card h3 {
             font-size: 18px;
             margin-bottom: 12px;
-            color: #fff;
+            color: #ffffff;
             font-weight: 600;
         }
 
         .feature-card p {
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.6;
+            font-weight: 400;
         }
 
-        /* Buttons & Footer CTA */
+        /* CTA & Architecture */
         .cta-section {
             max-width: 800px;
             margin: 0 auto 100px;
@@ -425,7 +440,7 @@
         .architecture-box {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 12px;
             padding: 40px;
             display: flex;
             gap: 20px;
@@ -440,7 +455,7 @@
             justify-content: center;
             gap: 8px;
             padding: 12px 24px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 14px;
             font-weight: 600;
             text-decoration: none;
@@ -448,19 +463,21 @@
             cursor: pointer;
         }
 
+        /* Button Colors Restored */
         .btn-primary {
-            background: #fff;
-            color: #000;
+            background: var(--accent-blue);
+            color: #ffffff;
+            border: 1px solid var(--accent-blue-hover);
         }
 
         .btn-primary:hover {
-            background: #e5e5e5;
+            background: var(--accent-blue-hover);
         }
 
         .btn-secondary {
             background: #18181b;
-            color: #fff;
-            border: 1px solid #27272a;
+            color: #ffffff;
+            border: 1px solid var(--border-color);
         }
 
         .btn-secondary:hover {
@@ -473,6 +490,7 @@
             text-align: center;
             color: var(--text-muted);
             font-size: 14px;
+            font-weight: 400;
         }
 
         @media (max-width: 768px) {
@@ -487,14 +505,12 @@
 
 <nav>
     <div class="logo">
-        <svg style="width: 20px; height: 20px; color: #fff;" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-        </svg>
-        Patens.dev
+        <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/pictogram.png" alt="Patens Icon">
+        patens
     </div>
     <div class="nav-links">
         <a href="#features">Features</a>
-        <a href="https://github.com/your-repo/patens" target="_blank">GitHub</a>
+        <a href="https://github.com/Patens-dev/Patens" target="_blank">GitHub</a>
     </div>
 </nav>
 
@@ -502,29 +518,25 @@
     <h1>Stop losing hours to <span>context switching.</span></h1>
     <p>Bridge the gap between Chrome and your IDE. No more messy copy-pasting, bloated prompts, or AI hallucinations.</p>
 
-    <!-- Primary CTA moved Above the Fold -->
     <div class="hero-cta">
         <a href="#" class="btn btn-secondary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            1. Get Chrome Extension
+            Get Extension
         </a>
         <a href="#" class="btn btn-primary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            2. Download Patens.exe
+            Download Server
         </a>
     </div>
     <p class="hero-subtext">Free & Open Source. Setup takes less than 3 minutes.</p>
 </header>
 
-<!-- Problem vs Solution (Emotional Hook) -->
+<!-- Problem vs Solution -->
 <section class="story-section">
     <div class="story-grid">
         <!-- The Bad Way -->
         <div class="story-card bad">
-            <h3>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                This is your life right now
-            </h3>
+            <h3>The Old Way</h3>
             <p>It's 2 PM. You're stuck on an authentication bug.</p>
             <p>You Google "Next.js App Router auth". You find a great answer on StackOverflow. You copy it.</p>
             <p>You switch to Cursor, paste it into the prompt. The AI's response is generic. You switch back to Chrome, copy the API docs, paste again.</p>
@@ -532,10 +544,7 @@
         </div>
         <!-- The Good Way -->
         <div class="story-card good">
-            <h3>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg>
-                The Patens workflow
-            </h3>
+            <h3>The Patens Workflow</h3>
             <p>It's 2 PM. You're stuck on an authentication bug.</p>
             <p>You find the answer in Chrome. You highlight it and press <strong>Ctrl+Shift+C</strong>.</p>
             <p>You switch to your IDE. You type: <em>"Fix this using @00_Context_Index.md"</em>.</p>
@@ -548,6 +557,7 @@
 <section class="demo-section">
     <div class="demo-panel">
         <div class="demo-header">
+            <!-- Restored Red, Orange, Green dots -->
             <div class="window-dot" style="background:#ef4444"></div>
             <div class="window-dot" style="background:#f59e0b"></div>
             <div class="window-dot" style="background:#10b981"></div>
@@ -613,8 +623,8 @@
 <section class="cta-section">
     <div class="architecture-box">
         <div style="text-align: left;">
-            <h3 style="color: #fff; font-size: 20px; margin-bottom: 8px;">Ready to stop copying and pasting?</h3>
-            <p style="color: var(--text-muted); font-size: 15px;">Setup takes just a few minutes. Open source and completely local.</p>
+            <h3 style="color: #fff; font-size: 20px; font-weight: 600; margin-bottom: 4px;">Ready to stop copying and pasting?</h3>
+            <p style="color: var(--text-muted); font-size: 15px; font-weight: 400;">Setup takes just a few minutes. Open source and completely local.</p>
         </div>
         <div style="display: flex; gap: 12px; margin-left: auto;">
             <a href="#" class="btn btn-primary" onclick="window.scrollTo({ top: 0, behavior: 'smooth' }); return false;">
@@ -625,7 +635,7 @@
 </section>
 
 <footer>
-    <p>Patens is an open-source tool utilizing the Model Context Protocol (MCP).</p>
+    <p>patens is an open-source tool utilizing the Model Context Protocol (MCP).</p>
 </footer>
 
 <!-- Interactive Live Demo Script -->
@@ -642,7 +652,6 @@
         bubble.className = `chat-bubble ${type} visible`;
         bubble.innerHTML = htmlContent;
         chatBox.appendChild(bubble);
-        // Auto-scroll
         chatBox.scrollTop = chatBox.scrollHeight;
         return bubble;
     }
@@ -656,41 +665,31 @@
 
     async function runDemoLoop() {
         while (true) {
-            // --- Reset ---
+            // Reset
             chatBox.innerHTML = '';
             inputText.innerHTML = '';
             dropdown.classList.remove('active');
             await sleep(1000);
 
-            // ==========================================
-            // COMMAND 1: MOUNT THE CONTEXT
-            // ==========================================
+            // COMMAND 1: MOUNT
             await typeText("Mount Patens context");
             await sleep(400);
-
-            // User Submits Mount Command
             createBubble('chat-user', inputText.innerHTML);
             inputText.innerHTML = '';
             cursor.style.display = 'none';
             await sleep(600);
 
-            // AI "Thinking"
-            const aiBubble1 = createBubble('chat-ai', "<span style='color:#71717a'>Running `mount_workspace_context` tool...</span>");
+            const aiBubble1 = createBubble('chat-ai', "<span style='color:#a1a1aa'>Running `mount_workspace_context` tool...</span>");
             await sleep(1200);
-
-            // AI Confirms Mount
             aiBubble1.innerHTML = "✅ Context successfully mounted. The <code>_context</code> folder and <code>00_Context_Index.md</code> map are now active in your sidebar.";
             cursor.style.display = 'inline-block';
             await sleep(1500);
 
-            // ==========================================
-            // COMMAND 2: USE THE CONTEXT
-            // ==========================================
+            // COMMAND 2: USE
             await typeText("Refactor auth flow using ");
             await sleep(300);
 
-            // Trigger Dropdown (@00)
-            inputText.innerHTML += "<span style='color:#60a5fa'>@00</span>";
+            inputText.innerHTML += "<span style='color:#60a5fa; font-weight: 500;'>@00</span>";
             dropdown.innerHTML = `
                 <div class="dropdown-item selected">
                     📄 00_Context_Index.md
@@ -703,31 +702,25 @@
             dropdown.classList.add('active');
             await sleep(1200);
 
-            // User Selects File
             dropdown.classList.remove('active');
             inputText.innerHTML = "Refactor auth flow using <span class='file-chip'>📄 00_Context_Index.md</span> ";
             await sleep(800);
 
-            // User Submits Task
             createBubble('chat-user', inputText.innerHTML);
             inputText.innerHTML = '';
             cursor.style.display = 'none';
             await sleep(600);
 
-            // AI "Thinking"
-            const aiBubble2 = createBubble('chat-ai', "<span style='color:#71717a'>Reading physical files...</span>");
+            const aiBubble2 = createBubble('chat-ai', "<span style='color:#a1a1aa'>Reading physical files...</span>");
             await sleep(1500);
 
-            // AI Final Output
             aiBubble2.innerHTML = "I read your saved StackOverflow clips from the master index.<br><br>I will update <code>layout.tsx</code> to use the Next.js protected routes pattern you just researched. Here is the refactored code...";
             cursor.style.display = 'inline-block';
 
-            // Wait before restarting loop
             await sleep(6500);
         }
     }
 
-    // Start the infinite loop
     runDemoLoop();
 </script>
 </body>
