@@ -1,4 +1,4 @@
-console.log("[Context Clipboard] Initialization started...");
+console.log("[Patens.dev] Initialization started...");
 
 const CONFIG = {
     API_BASE: 'http://localhost:8000',

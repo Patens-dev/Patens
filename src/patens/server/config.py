@@ -4,9 +4,9 @@ import shutil
 from pathlib import Path
 import yaml
 
-# 1. Define the User Data Directory (~/.context_clipboard)
+# 1. Define the User Data Directory (~/.patens)
 USER_HOME = Path.home()
-APP_DIR = USER_HOME / ".context_clipboard"
+APP_DIR = USER_HOME / ".patens"
 
 # Create standard subdirectories if they don't exist
 IMAGE_DIR = APP_DIR / "images"
@@ -39,7 +39,7 @@ API_PORT = int(_config["api"]["port"])
 MODEL_NAME = _config["ai"]["model_name"]
 
 # 5. Anchor data files to the App Directory, NOT the source code
-# E.g., ~/.context_clipboard/context_memory.db
+# E.g., ~/.patens/context_memory.db
 DB_PATH = APP_DIR / _config["database"].get("filename", "context_memory.db")
 LOG_FILE = LOG_DIR / _config["logging"].get("filename", "server.log")
 

@@ -14,13 +14,13 @@ VSVersionInfo(
       [
       StringTable(
         "040904B0",
-        [StringStruct("CompanyName", "Unknown Publisher"),
-        StringStruct("FileDescription", "Context Clipboard local backend and MCP server"),
+        [StringStruct("CompanyName", "Patens.dev"),
+        StringStruct("FileDescription", "A fast and efficient MCP server for your applications."),
         StringStruct("FileVersion", "1.1.0"),
-        StringStruct("InternalName", "context-clipboard"),
-        StringStruct("LegalCopyright", "Copyright (c) 2026 Unknown Publisher"),
-        StringStruct("OriginalFilename", "ContextClipboard.exe"),
-        StringStruct("ProductName", "context-clipboard"),
+        StringStruct("InternalName", "Patens"),
+        StringStruct("LegalCopyright", "Copyright (c) 2026 Patens.dev"),
+        StringStruct("OriginalFilename", "Patens.exe"),
+        StringStruct("ProductName", "Patens"),
         StringStruct("ProductVersion", "1.1.0")])
       ]),
     VarFileInfo([VarStruct("Translation", [1033, 1200])])

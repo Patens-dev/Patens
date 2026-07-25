@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "🧹 Cleaning old build files..."
-rm -rf build dist ContextClipboard.spec version_info.txt
+rm -rf build dist Patens.spec version_info.txt
 
 echo "📄 Reading pyproject.toml and generating version_info.txt..."
 python -c '
@@ -11,16 +11,19 @@ import re
 with open("pyproject.toml", "r", encoding="utf-8") as f:
     text = f.read()
 
-# Helper to extract values via regex
+# Helper to extract flat values via regex
 def get_val(key, default=""):
     match = re.search(fr"{key}\s*=\s*\"([^\"]+)\"", text)
     return match.group(1) if match else default
 
 # Extract metadata
-name = get_val("name", "ContextClipboard")
+name = get_val("name", "Patens")
 version = get_val("version", "1.0.0")
-company = get_val("company", "Unknown Publisher")
-desc = get_val("description", "Context Clipboard Executable")
+desc = get_val("description", "Patens Executable")
+
+# FIX: Extract company/publisher from the authors array
+author_match = re.search(r"authors\s*=\s*\[\s*\{\s*name\s*=\s*\"([^\"]+)\"\s*\}\s*\]", text)
+company = author_match.group(1) if author_match else "Unknown Publisher"
 
 # Convert version "1.1.0" into the required tuple format (1, 1, 0, 0)
 v_parts = version.split(".")
@@ -50,7 +53,7 @@ template = f"""VSVersionInfo(
         StringStruct(\"FileVersion\", \"{version}\"),
         StringStruct(\"InternalName\", \"{name}\"),
         StringStruct(\"LegalCopyright\", \"Copyright (c) 2026 {company}\"),
-        StringStruct(\"OriginalFilename\", \"ContextClipboard.exe\"),
+        StringStruct(\"OriginalFilename\", \"Patens.exe\"),
         StringStruct(\"ProductName\", \"{name}\"),
         StringStruct(\"ProductVersion\", \"{version}\")])
       ]),
@@ -66,17 +69,17 @@ print(f"✅ Generated v{version} metadata for {company}")
 
 echo "🚀 Building executable with PyInstaller..."
 
-# Run PyInstaller with all necessary flags, pointing to your virtual environment
+# Run PyInstaller with Patens target name
 ./build_env/Scripts/pyinstaller.exe \
-  --name "ContextClipboard" \
+  --name "Patens" \
   --onefile \
   --paths=src \
   --copy-metadata fastmcp \
   --copy-metadata fastmcp-slim \
-  --add-data "src/context_clipboard/server/default_config.yaml;context_clipboard/server" \
-  --add-data "src/context_clipboard/server/templates;context_clipboard/server/templates" \
+  --add-data "src/patens/server/default_config.yaml;patens/server" \
+  --add-data "src/patens/server/templates;patens/server/templates" \
   --collect-all sqlite_vec \
   --version-file="version_info.txt" \
-  src/context_clipboard/main.py
+  src/patens/main.py
 
 echo "🎉 Build complete! Your version-stamped .exe is waiting in the /dist folder."

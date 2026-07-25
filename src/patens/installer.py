@@ -36,7 +36,7 @@ def clean_json_comments(json_str: str) -> str:
 
 def install_to_ides(is_debug: bool = False):
     """Dynamically injects the execution path into IDE configs with smart schema routing."""
-    print("\n🚀 Auto-configuring IDEs for Context Clipboard...\n")
+    print("\n🚀 Auto-configuring IDEs for Patens...\n")
 
     is_frozen = getattr(sys, 'frozen', False)
     mode = "Compiled EXE" if is_frozen else "Python Source"
@@ -83,7 +83,8 @@ def install_to_ides(is_debug: bool = False):
         if root_key not in data:
             data[root_key] = {}
 
-        data[root_key]["context-clipboard"] = {
+        # Changed from "context-clipboard" to "patens"
+        data[root_key]["patens"] = {
             "type": "stdio",
             "command": command,
             "args": args

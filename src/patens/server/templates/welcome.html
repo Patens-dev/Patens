@@ -683,8 +683,7 @@
                                 <li>Navigate to <strong>Features &gt; MCP Servers</strong>.</li>
                                 <li>Click <strong>+ Add New MCP Server</strong>.</li>
                                 <li>Set Type to <strong>command</strong>.</li>
-                                <li>Copy the JSON below or set Command to your Python path and Args to <code>-m
-                                    context_clipboard.server</code>.
+                                <li>Copy the JSON below or set Command to your Python/Executable path and Args to <code>--mcp</code>.
                                 </li>
                             </ol>
                         </div>
@@ -696,9 +695,12 @@
                     <div class="code-block">
 <pre>{
   "mcpServers": {
-    "context-clipboard": {
+    "patens": {
+      "type": "stdio",
       "command": "<span class="dynamic-python-path">python</span>",
-      "args": ["-m", "context_clipboard.server"]
+      "args": [
+        "--mcp"
+      ]
     }
   }
 }</pre>
@@ -725,10 +727,13 @@
                     </div>
                     <div class="code-block">
 <pre>{
-  "mcpServers": {
-    "context-clipboard": {
+  "servers": {
+    "patens": {
+      "type": "stdio",
       "command": "<span class="dynamic-python-path">python</span>",
-      "args": ["-m", "context_clipboard.server"]
+      "args": [
+        "--mcp"
+      ]
     }
   }
 }</pre>
@@ -743,7 +748,7 @@
                                 <li>Open your JetBrains IDE.</li>
                                 <li>Ensure you have an AI assistant plugin installed that supports MCP.</li>
                                 <li>Navigate to <strong>Settings &gt; Tools &gt; MCP Servers</strong>.</li>
-                                <li>Add a new server using the exact absolute path to your Python executable below.</li>
+                                <li>Add a new server using the exact absolute path to your executable.</li>
                             </ol>
                         </div>
                         <div class="setup-gif">
@@ -753,10 +758,13 @@
                     </div>
                     <div class="code-block">
 <pre>{
-  "mcpServers": {
-    "context-clipboard": {
+  "servers": {
+    "patens": {
+      "type": "stdio",
       "command": "<span class="dynamic-python-path">python</span>",
-      "args": ["-m", "context_clipboard.server"]
+      "args": [
+        "--mcp"
+      ]
     }
   }
 }</pre>
@@ -764,7 +772,7 @@
                 </div>
 
                 <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
-                    <span id="path-warning" style="color: var(--warning-color); display: none;">⚠️ Ensure you use the absolute path to your virtual environment's python executable.</span>
+                    <span id="path-warning" style="color: var(--warning-color); display: none;">⚠️ Ensure you use the absolute path to your virtual environment's python executable or the Patens.exe file.</span>
                 </p>
 
                 <button class="btn-primary" onclick="advanceStep(6)">Next: Activate & Verify Connection →</button>
@@ -785,7 +793,7 @@
                     <ol>
                         <li><strong>Restart</strong> your IDE so it loads the new configuration.</li>
                         <li>Open your AI Chat panel.</li>
-                        <li>Click the <strong>Tools (📎)</strong> or <strong>MCP</strong> icon and enable <strong>context-clipboard</strong>.
+                        <li>Click the <strong>Tools (📎)</strong> or <strong>MCP</strong> icon and enable <strong>patens</strong>.
                         </li>
                         <li>Ask the AI to initialize your workspace by sending this exact prompt:</li>
                     </ol>

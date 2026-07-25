@@ -1,4 +1,4 @@
-# src/context_clipboard/server/database.py
+# src/patens/server/database.py
 import sqlite3
 import logging
 from contextlib import closing

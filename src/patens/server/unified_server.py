@@ -11,11 +11,11 @@ import uvicorn
 from fastmcp import FastMCP
 from fastembed import TextEmbedding
 
-from context_clipboard.server.config import (
+from patens.server.config import (
     setup_logging, DB_PATH, IMAGE_DIR, MODEL_NAME, API_HOST, API_PORT
 )
-from context_clipboard.server.database import DatabaseManager
-from context_clipboard.server.api import create_app
+from patens.server.database import DatabaseManager
+from patens.server.api import create_app
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ logger.info("Model loaded successfully.")
 
 # Initialize the API and MCP Server instances
 fastapi_app = create_app(db_manager, embedder, str(IMAGE_DIR))
-mcp = FastMCP("ContextClipboard")
+mcp = FastMCP("Patens")
 
 # =====================================================================
 # ZERO-FRICTION WORKSPACE SYNC ENGINE
@@ -98,7 +98,7 @@ def sync_workspace_files_loop():
 
             active_filenames = {".gitignore"}
 
-            index_content = "# 🧠 Context Clipboard Master Index\n\n"
+            index_content = "# 🧠 Patens Master Index\n\n"
             index_content += "> **⚠️ SYSTEM PROMPT FOR AI:**\n"
             index_content += "> **DO NOT guess or hallucinate.** You MUST use your file-reading tool to open and read the specific `.md` files linked below to get the actual context.\n"
             index_content += "> **DO NOT rely on your training data.** Read the physical file.\n\n"
@@ -126,7 +126,7 @@ def sync_workspace_files_loop():
                 index_content += "\n"
 
                 content_md = (
-                    f"<!-- Auto-synced by Context Clipboard -->\n"
+                    f"<!-- Auto-synced by Patens.dev -->\n"
                     f"# {raw_title}\n"
                     f"**Source:** {g_clip['url']}\n"
                     f"**Last Updated:** {g_clip['created_at']}\n"

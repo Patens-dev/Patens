@@ -1,12 +1,12 @@
-# src/context_clipboard/main.py
+# src/patens/main.py
 import sys
 import webbrowser
 import threading
 import time
 import ctypes
 
-from context_clipboard.server import unified_server
-from context_clipboard import installer
+from patens.server import unified_server
+from patens import installer
 
 def main():
     is_debug = "--debug" in sys.argv
@@ -22,7 +22,7 @@ def main():
         api_thread = threading.Thread(target=unified_server.run_fastapi, daemon=True)
         api_thread.start()
 
-        print("\n🎉 Context Clipboard Initialized!")
+        print("\n🎉 Patens Initialized!")
         time.sleep(1.5)
         webbrowser.open("http://localhost:8000/welcome")
 

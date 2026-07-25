@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "context-clipboard"
+name = "Patens"
 version = "1.1.0"
 authors = [
     {name = "Patens.dev"}
 ]
-description = "Context Clipboard local backend and MCP server"
+description = "A fast and efficient MCP server for your applications."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
-context-clipboard = "context_clipboard.main:main"
+patens = "patens.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

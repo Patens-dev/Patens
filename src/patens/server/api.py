@@ -1,4 +1,4 @@
-# src/context_clipboard/server/api.py
+# src/patens/server/api.py
 import base64
 import os
 import time
@@ -11,9 +11,9 @@ import threading
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from context_clipboard.server import config
-from context_clipboard.server.models import IngestResponse, IngestPayload, SearchResponse, ConnectionState
-from context_clipboard.server.state import app_state
+from patens.server import config
+from patens.server.models import IngestResponse, IngestPayload, SearchResponse, ConnectionState
+from patens.server.state import app_state
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def get_template_html(filename: str) -> str:
     """Dynamically locates and reads HTML templates in both Dev and EXE environments."""
     if getattr(sys, 'frozen', False):
         # We are running inside the PyInstaller .exe bundle
-        base_dir = Path(sys._MEIPASS) / "context_clipboard" / "server" / "templates"
+        base_dir = Path(sys._MEIPASS) / "patens" / "server" / "templates"
     else:
         # We are running from raw Python source code
         base_dir = Path(__file__).parent / "templates"
@@ -66,7 +66,7 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
         return {
             "status": "running",
             "python_path": sys.executable,  # <-- ADD THIS: e.g., "D:\\dev\\memory-layer\\.venv\\Scripts\\python.exe"
-            "module_path": "context_clipboard.server"
+            "module_path": "patens.server"
         }
 
     @router.get("/api/mcp-status")
@@ -301,7 +301,7 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
 
     @router.post("/api/shutdown")
     async def shutdown_server(request: Request):
-        """Aggressively hunts and kills all Context Clipboard instances."""
+        """Aggressively hunts and kills all Patens instances."""
         data = await request.json()
         force_global = data.get("force_global", True)
 

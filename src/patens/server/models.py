@@ -1,4 +1,4 @@
-# src/context_clipboard/server/models.py
+# src/patens/server/models.py
 from typing import List, Optional
 from pydantic import BaseModel
 
