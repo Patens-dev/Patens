@@ -1,5 +1,5 @@
 import os
-import re
+import sys
 import time
 import threading
 import logging
@@ -44,9 +44,23 @@ CONTEXT_DIR = WORKSPACE_ROOT / "_context"
 
 
 def is_valid_workspace(path: Path) -> bool:
-    """Safeguard: Prevents polluting the user's root or home directory if run globally."""
-    if path == Path.home() or str(path) == os.path.abspath(os.sep):
+    """Safeguard: Prevents polluting System32, Home, Root, or the EXE directory."""
+    abs_str = str(path.absolute()).lower()
+
+    # 1. Block Home directory and Root drive
+    if path == Path.home() or abs_str in [os.path.abspath(os.sep).lower(), "c:\\", "c:/"]:
         return False
+
+    # 2. Block system directories
+    system_dirs = ["system32", "windows", "program files", "program files (x86)", "appdata"]
+    if any(sys_dir in abs_str for sys_dir in system_dirs):
+        return False
+
+    # 3. CRITICAL FIX: Block the directory where the .exe actually lives!
+    exe_dir = str(Path(sys.executable).parent.absolute()).lower()
+    if abs_str == exe_dir:
+        return False
+
     return True
 
 
@@ -57,8 +71,7 @@ def sync_workspace_files_loop():
         logger.warning(f"Server is running globally ({WORKSPACE_ROOT}). Physical _context files disabled.")
         return
 
-    print(f"\n📁 [SYNC ENGINE] Generating physical context files at:\n{CONTEXT_DIR.absolute()}\n")
-
+    logger.info(f"[SYNC ENGINE] Generating physical context files at: {CONTEXT_DIR.absolute()}")
     os.makedirs(CONTEXT_DIR, exist_ok=True)
 
     gitignore_path = CONTEXT_DIR / ".gitignore"
@@ -153,7 +166,6 @@ def sync_workspace_files_loop():
                     file.unlink()
 
         except Exception as e:
-            print(f"❌ [SYNC ENGINE ERROR]: {e}")
             logger.error(f"Workspace sync thread error: {e}")
 
         time.sleep(3)
@@ -228,6 +240,27 @@ def memorize_ide_insight(title: str, insight: str) -> str:
         url=internal_url, title=title, content=insight, embedding=embedding
     )
     return f"Success! The insight '{title}' has been permanently saved (ID: {content_id})."
+
+
+@mcp.tool()
+def mount_workspace_context(absolute_project_path: str) -> str:
+    """
+    CRITICAL: Use this tool anytime the user asks you to "sync files", "mount context", or if you cannot find the _context folder.
+    Extract the absolute path of the user's currently open IDE workspace and pass it as the argument.
+    """
+    global CONTEXT_DIR
+    logger.info(f"AI requested to mount context to: {absolute_project_path}")
+
+    project_path = Path(absolute_project_path)
+
+    if not project_path.exists() or not project_path.is_dir():
+        return f"Failed: Could not verify '{absolute_project_path}' as a valid directory."
+
+    CONTEXT_DIR = project_path / "_context"
+
+    # Trigger an immediate write so the files appear instantly
+    logger.info(f"Context successfully redirected to {CONTEXT_DIR}")
+    return f"Success! The context engine has been redirected. The _context folder and index file will appear in {CONTEXT_DIR} within 3 seconds. You can then read them."
 
 
 # =====================================================================
