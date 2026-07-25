@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264.89 79.83">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        stroke-width: 3.22px;
+      }
+
+      .cls-3, .cls-4, .cls-5 {
+        fill: none;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-6 {
+        letter-spacing: -.04em;
+      }
+
+      .cls-6, .cls-7, .cls-8 {
+        font-size: 63px;
+      }
+
+      .cls-4 {
+        stroke-width: 3.54px;
+      }
+
+      .cls-2 {
+        font-family: Garet-Book, Garet;
+      }
+
+      .cls-7 {
+        letter-spacing: -.06em;
+      }
+
+      .cls-8 {
+        letter-spacing: -.06em;
+      }
+
+      .cls-9 {
+        font-size: 68px;
+        letter-spacing: -.03em;
+      }
+
+      .cls-5 {
+        stroke-width: 3.31px;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g>
+      <g>
+        <circle class="cls-4" cx="11.5" cy="51.7" r="9.73"/>
+        <circle class="cls-4" cx="31.06" cy="28.01" r="9.73"/>
+        <rect class="cls-1" x="19.56" y="27.67" width="3.54" height="45.79"/>
+      </g>
+      <g>
+        <g>
+          <g>
+            <rect class="cls-1" x="127.38" y="22.85" width="3.17" height="34.05"/>
+            <circle class="cls-3" cx="113.32" cy="40.02" r="15.5"/>
+          </g>
+          <g>
+            <circle class="cls-5" cx="73.42" cy="39.87" r="15.92"/>
+            <rect class="cls-1" x="55.87" y="39.79" width="3.25" height="32.89"/>
+          </g>
+        </g>
+        <text class="cls-2" transform="translate(84.94 57.8)"><tspan class="cls-9" x="0" y="0" xml:space="preserve">   </tspan><tspan class="cls-7" x="47.53" y="0">t</tspan><tspan class="cls-6" x="71.34" y="0">en</tspan><tspan class="cls-8" x="148.96" y="0">s</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>
