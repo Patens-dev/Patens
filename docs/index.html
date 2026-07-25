@@ -6,16 +6,19 @@
     <title>Patens | The Local Memory Layer for AI Coding Assistants</title>
     <style>
         :root {
-            --bg-base: #0c0d10;
-            --bg-card: #16181d;
-            --bg-card-hover: #1c1f26;
-            --border-color: #2d313a;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            /* Modern sleek dark theme (Linear/Vercel inspired) */
+            --bg-base: #000000;
+            --bg-card: #0a0a0a;
+            --bg-card-hover: #121212;
+            --border-color: #27272a;
+            --text-main: #ededed;
+            --text-muted: #a1a1aa;
             --accent-blue: #3b82f6;
             --accent-blue-hover: #2563eb;
-            --accent-glow: rgba(59, 130, 246, 0.15);
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --error-red: #ef4444;
+            --success-green: #10b981;
+
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
         }
 
@@ -31,8 +34,12 @@
             color: var(--text-main);
             line-height: 1.6;
             overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% -10%, var(--accent-glow) 0%, transparent 50%),
-            linear-gradient(to bottom, transparent, var(--bg-base));
+            /* Subtle grid background */
+            background-image:
+                linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center top;
         }
 
         /* Navigation */
@@ -44,6 +51,7 @@
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
+            border-bottom: 1px solid transparent;
         }
 
         .logo {
@@ -51,7 +59,8 @@
             font-size: 18px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            letter-spacing: -0.5px;
         }
 
         .nav-links a {
@@ -70,237 +79,156 @@
         /* Hero Section */
         .hero {
             text-align: center;
-            padding: 60px 24px 40px;
+            padding: 100px 24px 60px;
             max-width: 800px;
             margin: 0 auto;
         }
 
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(59, 130, 246, 0.1);
-            color: #60a5fa;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
+        .hero h1 {
+            font-size: clamp(40px, 6vw, 64px);
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1.05;
             margin-bottom: 24px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #ffffff;
         }
 
-        .hero h1 {
-            font-size: clamp(40px, 5vw, 56px);
-            font-weight: 800;
-            letter-spacing: -1.5px;
-            line-height: 1.1;
-            margin-bottom: 24px;
-            background: linear-gradient(to right, #fff, #94a3b8);
+        .hero h1 span {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .hero p {
-            font-size: 18px;
+            font-size: 20px;
             color: var(--text-muted);
             max-width: 600px;
-            margin: 0 auto 40px;
+            margin: 0 auto;
+            line-height: 1.5;
+            letter-spacing: -0.2px;
         }
 
-        /* Component Requirement Banner */
-        .architecture-box {
-            max-width: 800px;
-            margin: 0 auto 60px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 32px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .architecture-box h3 {
-            font-size: 16px;
-            color: #fff;
-            margin-bottom: 24px;
-            font-weight: 600;
-        }
-
-        .arch-diagram {
+        /* Hero CTA Buttons */
+        .hero-cta {
             display: flex;
-            align-items: center;
-            justify-content: center;
             gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .arch-node {
-            background: #0d1117;
-            border: 1px solid #334155;
-            padding: 16px 24px;
-            border-radius: 12px;
-            flex: 1;
-            min-width: 200px;
-            position: relative;
-        }
-
-        .arch-node.highlight {
-            border-color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.05);
-        }
-
-        .arch-node strong {
-            display: block;
-            color: #fff;
-            font-size: 15px;
-            margin-bottom: 4px;
-        }
-
-        .arch-node span {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .arch-arrow {
-            color: #475569;
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .btn-group-arch {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            flex-direction: column;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            width: 100%;
+            margin-top: 40px;
+            margin-bottom: 16px;
         }
 
-        .btn-primary {
-            background: var(--accent-blue);
-            color: white;
-            border: 1px solid var(--accent-blue-hover);
+        .hero-subtext {
+            font-size: 14px !important;
+            color: #52525b !important;
+            margin-bottom: 0 !important;
         }
 
-        .btn-primary:hover {
-            background: var(--accent-blue-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: #64748b;
-        }
-
-        /* Split Demo Section */
-        .demo-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            max-width: 1200px;
+        /* Emotion Hook (Problem vs Solution) */
+        .story-section {
+            max-width: 1000px;
             margin: 0 auto 100px;
             padding: 0 24px;
         }
 
-        @media (max-width: 900px) {
-            .demo-section {
-                grid-template-columns: 1fr;
-            }
+        .story-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px; /* For the 1px border effect */
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .story-card {
+            background: var(--bg-card);
+            padding: 40px;
+        }
+
+        .story-card h3 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .story-card.bad h3 { color: var(--error-red); }
+        .story-card.good h3 { color: var(--success-green); }
+
+        .story-card p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        .story-card strong {
+            color: var(--text-main);
+        }
+
+        /* Interactive Demo Section */
+        .demo-section {
+            max-width: 1000px;
+            margin: 0 auto 100px;
+            padding: 0 24px;
         }
 
         .demo-panel {
-            background: #0d1117;
+            background: #000;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            min-height: 500px;
         }
 
         .demo-header {
-            background: #161b22;
+            background: #0a0a0a;
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
-            justify-content: space-between;
+            gap: 8px;
             align-items: center;
+        }
+
+        .window-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3f3f46;
         }
 
         .demo-title {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
             color: var(--text-muted);
+            margin-left: 12px;
+            font-family: var(--font-mono);
         }
 
-        /* 1. GIF Container */
-        .gif-container {
-            flex: 1;
-            position: relative;
-            background: #000;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .gif-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .gif-placeholder {
-            position: absolute;
-            text-align: center;
-            color: #475569;
-            font-size: 14px;
-            border: 2px dashed #334155;
-            padding: 20px 40px;
-            border-radius: 8px;
-        }
-
-        /* 2. IDE Live Mockup */
         .ide-mockup {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: #0d1117;
+            background: #000;
             position: relative;
         }
 
         .chat-history {
             flex: 1;
-            padding: 20px;
+            padding: 24px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 20px;
         }
 
         .chat-bubble {
             max-width: 85%;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.6;
             opacity: 0;
             transform: translateY(10px);
             transition: all 0.3s ease;
@@ -313,9 +241,10 @@
 
         .chat-user {
             align-self: flex-end;
-            background: #1e293b;
+            background: #18181b;
+            border: 1px solid #27272a;
             padding: 12px 16px;
-            border-radius: 12px 12px 0 12px;
+            border-radius: 8px;
             color: #f8fafc;
         }
 
@@ -325,37 +254,47 @@
             color: #cbd5e1;
         }
 
+        .chat-ai code {
+            background: #18181b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            border: 1px solid #27272a;
+        }
+
         .file-chip {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(59, 130, 246, 0.15);
+            background: rgba(59, 130, 246, 0.1);
             color: #60a5fa;
             padding: 2px 8px;
             border-radius: 4px;
             font-family: var(--font-mono);
             font-size: 12px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.2);
             margin: 0 4px;
         }
 
         .chat-input-area {
-            padding: 16px;
-            border-top: 1px solid var(--border-color);
+            padding: 16px 24px 24px;
+            background: #000;
             position: relative;
         }
 
         .chat-input-box {
-            background: #161b22;
-            border: 1px solid #334155;
+            background: #0a0a0a;
+            border: 1px solid #27272a;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 16px;
             font-size: 14px;
             color: #fff;
-            min-height: 48px;
+            min-height: 52px;
             display: flex;
             align-items: center;
             position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
 
         .cursor-blink {
@@ -369,24 +308,20 @@
         }
 
         @keyframes blink {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         /* The @ Dropdown Menu */
         .at-dropdown {
             position: absolute;
             bottom: calc(100% + 8px);
-            left: 16px;
-            background: #1e293b;
-            border: 1px solid #334155;
+            left: 24px;
+            background: #0a0a0a;
+            border: 1px solid #27272a;
             border-radius: 8px;
-            width: 280px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
             opacity: 0;
             pointer-events: none;
             transform: translateY(10px);
@@ -400,13 +335,14 @@
         }
 
         .dropdown-item {
-            padding: 10px 12px;
+            padding: 12px 16px;
             font-size: 13px;
-            color: #cbd5e1;
-            border-bottom: 1px solid #334155;
+            color: #a1a1aa;
+            border-bottom: 1px solid #18181b;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-family: var(--font-mono);
         }
 
         .dropdown-item:last-child {
@@ -414,25 +350,28 @@
         }
 
         .dropdown-item.selected {
-            background: rgba(59, 130, 246, 0.2);
+            background: #18181b;
             color: #fff;
+            border-left: 2px solid var(--accent-blue);
         }
 
         .token-badge {
             font-size: 10px;
-            background: #3b82f6;
-            color: #fff;
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
             padding: 2px 6px;
             border-radius: 4px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            border: 1px solid rgba(59, 130, 246, 0.2);
         }
 
-        /* Features Grid */
+        /* Bento Box Features Grid */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 24px;
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto 100px;
             padding: 0 24px;
         }
@@ -442,37 +381,90 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 32px;
-            transition: all 0.2s ease;
+            transition: border-color 0.2s ease;
         }
 
         .feature-card:hover {
-            border-color: #475569;
-            background: var(--bg-card-hover);
+            border-color: #3f3f46;
         }
 
         .feature-icon {
-            width: 48px;
-            height: 48px;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
-            color: var(--accent-blue);
+            color: #fff;
         }
 
         .feature-card h3 {
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 12px;
             color: #fff;
+            font-weight: 600;
         }
 
         .feature-card p {
             color: var(--text-muted);
-            font-size: 15px;
+            font-size: 14px;
             line-height: 1.6;
+        }
+
+        /* Buttons & Footer CTA */
+        .cta-section {
+            max-width: 800px;
+            margin: 0 auto 100px;
+            text-align: center;
+            padding: 0 24px;
+        }
+
+        .architecture-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #e5e5e5;
+        }
+
+        .btn-secondary {
+            background: #18181b;
+            color: #fff;
+            border: 1px solid #27272a;
+        }
+
+        .btn-secondary:hover {
+            background: #27272a;
         }
 
         footer {
@@ -483,9 +475,11 @@
             font-size: 14px;
         }
 
-        svg.icon {
-            width: 20px;
-            height: 20px;
+        @media (max-width: 768px) {
+            .story-grid { grid-template-columns: 1fr; }
+            .architecture-box { flex-direction: column; }
+            .hero-cta { flex-direction: column; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
@@ -493,7 +487,7 @@
 
 <nav>
     <div class="logo">
-        <svg class="icon" style="color: var(--accent-blue)" viewBox="0 0 24 24" fill="currentColor">
+        <svg style="width: 20px; height: 20px; color: #fff;" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
         </svg>
         Patens.dev
@@ -505,62 +499,59 @@
 </nav>
 
 <header class="hero">
-    <div class="hero-badge">
-        <span style="width: 8px; height: 8px; background: #60a5fa; border-radius: 50%; display: inline-block;"></span>
-        v1.0 is now live
+    <h1>Stop losing hours to <span>context switching.</span></h1>
+    <p>Bridge the gap between Chrome and your IDE. No more messy copy-pasting, bloated prompts, or AI hallucinations.</p>
+
+    <!-- Primary CTA moved Above the Fold -->
+    <div class="hero-cta">
+        <a href="#" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            1. Get Chrome Extension
+        </a>
+        <a href="#" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            2. Download Patens.exe
+        </a>
     </div>
-    <h1>Zero-Friction Memory for AI Assistants</h1>
-    <p>Highlight docs in Chrome, hit a hotkey, and instantly query them natively inside Cursor, VS Code, or
-        JetBrains.</p>
+    <p class="hero-subtext">Free & Open Source. Setup takes less than 3 minutes.</p>
 </header>
 
-<!-- The Architecture Dual-Component Banner -->
-<div class="architecture-box">
-    <h3>Two components. One seamless workflow.</h3>
-    <div class="arch-diagram">
-        <div class="arch-node">
-            <strong>1. Chrome Extension</strong>
-            <span>Captures Web Context</span>
-            <div class="btn-group-arch">
-                <a href="#" class="btn btn-secondary">Get Extension</a>
-            </div>
+<!-- Problem vs Solution (Emotional Hook) -->
+<section class="story-section">
+    <div class="story-grid">
+        <!-- The Bad Way -->
+        <div class="story-card bad">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                This is your life right now
+            </h3>
+            <p>It's 2 PM. You're stuck on an authentication bug.</p>
+            <p>You Google "Next.js App Router auth". You find a great answer on StackOverflow. You copy it.</p>
+            <p>You switch to Cursor, paste it into the prompt. The AI's response is generic. You switch back to Chrome, copy the API docs, paste again.</p>
+            <p><strong>Your context window is blown.</strong> You've lost your train of thought. Tomorrow, you'll have to Google it all over again.</p>
         </div>
-        <div class="arch-arrow">→</div>
-        <div class="arch-node highlight">
-            <strong>2. Patens Server</strong>
-            <span>Vectorizes & Mounts to IDE</span>
-            <div class="btn-group-arch">
-                <a href="#" class="btn btn-primary">Download Patens.exe</a>
-            </div>
+        <!-- The Good Way -->
+        <div class="story-card good">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg>
+                The Patens workflow
+            </h3>
+            <p>It's 2 PM. You're stuck on an authentication bug.</p>
+            <p>You find the answer in Chrome. You highlight it and press <strong>Ctrl+Shift+C</strong>.</p>
+            <p>You switch to your IDE. You type: <em>"Fix this using @00_Context_Index.md"</em>.</p>
+            <p>Cursor reads your exact physical files, processes your custom research natively, and generates perfect code instantly.</p>
         </div>
     </div>
-</div>
+</section>
 
 <!-- The Split Demo Section -->
 <section class="demo-section">
-
-    <!-- Part 1: The Browser Capture (GIF Placeholder) -->
     <div class="demo-panel">
         <div class="demo-header">
-            <div class="demo-title">1. Capture (Browser)</div>
-        </div>
-        <div class="gif-container">
-            <!-- Replace src with your actual capture.gif -->
-            <!-- <img src="assets/capture.gif" alt="Highlighting text in browser"> -->
-            <div class="gif-placeholder">
-                <svg class="icon" style="width: 32px; height: 32px; margin-bottom: 12px; opacity: 0.5"
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                </svg>
-                <br>Place your <strong>capture.gif</strong> here
-            </div>
-        </div>
-    </div>
-
-    <!-- Part 2: The IDE Live Mockup -->
-    <div class="demo-panel">
-        <div class="demo-header">
-            <div class="demo-title">2. Retrieve (IDE Chat)</div>
+            <div class="window-dot" style="background:#ef4444"></div>
+            <div class="window-dot" style="background:#f59e0b"></div>
+            <div class="window-dot" style="background:#10b981"></div>
+            <div class="demo-title">cursor-ai-chat</div>
         </div>
         <div class="ide-mockup">
 
@@ -588,40 +579,48 @@
 <section id="features" class="features-grid">
     <div class="feature-card">
         <div class="feature-icon">
-            <svg class="icon" style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
         </div>
         <h3>Zero-Friction Capture</h3>
-        <p>No more messy copy-pasting. Highlight text on StackOverflow, API docs, or GitHub issues, press <code
-                style="color: #60a5fa; font-family: var(--font-mono)">Ctrl+Shift+C</code>, and it instantly vectorizes
-            into your local database.</p>
+        <p>Highlight text on StackOverflow, API docs, or GitHub issues, press <code style="color: #60a5fa; font-family: var(--font-mono)">Ctrl+Shift+C</code>, and it instantly vectorizes into your local database. No tab switching.</p>
     </div>
 
     <div class="feature-card">
         <div class="feature-icon">
-            <svg class="icon" style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
             </svg>
         </div>
-        <h3>Dynamic Workspace Mounting</h3>
-        <p>Your web research automatically synchronizes to a local <code
-                style="color: #60a5fa; font-family: var(--font-mono)">_context</code> folder. Tell your AI to "Mount Patens context," and it dynamically targets your active project. Just tag the master <code style="color: #60a5fa; font-family: var(--font-mono)">00_Context_Index.md</code> map to give it total recall.</p>
+        <h3>Dynamic IDE Mounting</h3>
+        <p>Tell your AI to "Mount Patens context," and it dynamically targets your active project. Just tag the master <code style="color: #60a5fa; font-family: var(--font-mono)">00_Context_Index.md</code> map to give it total recall.</p>
     </div>
 
     <div class="feature-card">
         <div class="feature-icon">
-            <svg class="icon" style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0110 0v4"/>
             </svg>
         </div>
-        <h3>100% Local & Private</h3>
-        <p>Powered by local SQLite-vec and FastEmbed. Your browsing history and API research never leave your machine until
-            you explicitly query them with your AI assistant.</p>
+        <h3>100% Local Execution</h3>
+        <p>Powered by local SQLite-vec and FastEmbed. Your browsing history and API research never leave your machine. No telemetry. No cloud.</p>
+    </div>
+</section>
+
+<!-- Bottom Reminder CTA -->
+<section class="cta-section">
+    <div class="architecture-box">
+        <div style="text-align: left;">
+            <h3 style="color: #fff; font-size: 20px; margin-bottom: 8px;">Ready to stop copying and pasting?</h3>
+            <p style="color: var(--text-muted); font-size: 15px;">Setup takes just a few minutes. Open source and completely local.</p>
+        </div>
+        <div style="display: flex; gap: 12px; margin-left: auto;">
+            <a href="#" class="btn btn-primary" onclick="window.scrollTo({ top: 0, behavior: 'smooth' }); return false;">
+                Get Patens Free
+            </a>
+        </div>
     </div>
 </section>
 
@@ -638,7 +637,17 @@
     const dropdown = document.getElementById('demo-dropdown');
     const chatBox = document.getElementById('demo-chat');
 
-    async function typeText(text, speed = 40) {
+    function createBubble(type, htmlContent) {
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${type} visible`;
+        bubble.innerHTML = htmlContent;
+        chatBox.appendChild(bubble);
+        // Auto-scroll
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return bubble;
+    }
+
+    async function typeText(text, speed = 30) {
         for (let char of text) {
             inputText.innerHTML += char;
             await sleep(speed);
@@ -647,17 +656,40 @@
 
     async function runDemoLoop() {
         while (true) {
-            // 1. Reset
+            // --- Reset ---
             chatBox.innerHTML = '';
             inputText.innerHTML = '';
             dropdown.classList.remove('active');
             await sleep(1000);
 
-            // 2. Type initial prompt
-            await typeText("Mount Patens context and refactor auth using ");
+            // ==========================================
+            // COMMAND 1: MOUNT THE CONTEXT
+            // ==========================================
+            await typeText("Mount Patens context");
             await sleep(400);
 
-            // 3. Type '@00' and trigger dropdown
+            // User Submits Mount Command
+            createBubble('chat-user', inputText.innerHTML);
+            inputText.innerHTML = '';
+            cursor.style.display = 'none';
+            await sleep(600);
+
+            // AI "Thinking"
+            const aiBubble1 = createBubble('chat-ai', "<span style='color:#71717a'>Running `mount_workspace_context` tool...</span>");
+            await sleep(1200);
+
+            // AI Confirms Mount
+            aiBubble1.innerHTML = "✅ Context successfully mounted. The <code>_context</code> folder and <code>00_Context_Index.md</code> map are now active in your sidebar.";
+            cursor.style.display = 'inline-block';
+            await sleep(1500);
+
+            // ==========================================
+            // COMMAND 2: USE THE CONTEXT
+            // ==========================================
+            await typeText("Refactor auth flow using ");
+            await sleep(300);
+
+            // Trigger Dropdown (@00)
             inputText.innerHTML += "<span style='color:#60a5fa'>@00</span>";
             dropdown.innerHTML = `
                 <div class="dropdown-item selected">
@@ -669,34 +701,28 @@
                 </div>
             `;
             dropdown.classList.add('active');
-            await sleep(1500); // User "thinking"
+            await sleep(1200);
 
-            // 4. Select the file
+            // User Selects File
             dropdown.classList.remove('active');
-            inputText.innerHTML = "Mount Patens context and refactor auth using <span class='file-chip'>📄 00_Context_Index.md</span> ";
-            await sleep(1000);
-
-            // 5. Submit Message
-            const userBubble = document.createElement('div');
-            userBubble.className = 'chat-bubble chat-user visible';
-            userBubble.innerHTML = inputText.innerHTML;
-            chatBox.appendChild(userBubble);
-            inputText.innerHTML = '';
-            cursor.style.display = 'none'; // hide cursor while AI "thinks"
+            inputText.innerHTML = "Refactor auth flow using <span class='file-chip'>📄 00_Context_Index.md</span> ";
             await sleep(800);
 
-            // 6. AI Loading
-            const aiBubble = document.createElement('div');
-            aiBubble.className = 'chat-bubble chat-ai visible';
-            aiBubble.innerHTML = "<span style='color:#64748b'>Thinking...</span>";
-            chatBox.appendChild(aiBubble);
+            // User Submits Task
+            createBubble('chat-user', inputText.innerHTML);
+            inputText.innerHTML = '';
+            cursor.style.display = 'none';
+            await sleep(600);
+
+            // AI "Thinking"
+            const aiBubble2 = createBubble('chat-ai', "<span style='color:#71717a'>Reading physical files...</span>");
             await sleep(1500);
 
-            // 7. AI Replies showing the tool use and the index lookup
-            aiBubble.innerHTML = "I have successfully mounted your context to the active workspace. Reading the Master Index...<br><br>I will update the <code>layout.tsx</code> to use the new App Router conventions based on the Next.js documentation you saved. Here is the refactored code...";
+            // AI Final Output
+            aiBubble2.innerHTML = "I read your saved StackOverflow clips from the master index.<br><br>I will update <code>layout.tsx</code> to use the Next.js protected routes pattern you just researched. Here is the refactored code...";
             cursor.style.display = 'inline-block';
 
-            // 8. Wait before restarting loop
+            // Wait before restarting loop
             await sleep(6500);
         }
     }
