@@ -44,7 +44,8 @@
         }
 
         .container {
-            max-width: 760px;
+            /* UX FIX: Expanded the max-width to allow the video to be much larger and readable */
+            max-width: 860px;
             width: 100%;
             padding: 60px 24px;
             margin: 0 auto;
@@ -333,7 +334,7 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
         }
 
         .ide-card {
@@ -380,22 +381,23 @@
             display: block;
         }
 
-        .setup-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+        /* UX FIX: Switched from a side-by-side grid to a vertical flex stack */
+        .setup-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 24px;
         }
 
         .setup-steps ol {
             margin-left: 20px;
             color: #cbd5e1;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.6;
         }
 
         .setup-steps li {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .setup-steps li strong {
@@ -407,21 +409,17 @@
             border-radius: 8px;
             border: 1px solid #334155;
             background: #0c0d10;
-            aspect-ratio: 16/9;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #475569;
-            font-size: 12px;
             overflow: hidden;
             position: relative;
+            /* Added a premium shadow to make the video pop */
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         }
 
-        .setup-gif img {
+        /* Ensure videos fill their large container seamlessly */
+        .setup-gif video {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            display: block;
             background-color: #1a1e27;
         }
 
@@ -431,7 +429,7 @@
             padding: 16px;
             border-radius: 8px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 13px;
             color: #a5b4fc;
             overflow-x: auto;
             position: relative;
@@ -443,12 +441,13 @@
             top: -10px;
             left: 12px;
             background: var(--bg-card-active);
-            padding: 0 6px;
-            font-size: 10px;
+            padding: 0 8px;
+            font-size: 11px;
             color: var(--text-muted);
             font-family: sans-serif;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-weight: 600;
         }
 
         .dynamic-python-path {
@@ -519,10 +518,6 @@
         }
 
         @media (max-width: 650px) {
-            .setup-grid {
-                grid-template-columns: 1fr;
-            }
-
             .ide-cards {
                 grid-template-columns: 1fr;
             }
@@ -676,23 +671,25 @@
 
                 <!-- Cursor Panel -->
                 <div id="panel-cursor" class="ide-content-panel active">
-                    <div class="setup-grid">
+                    <div class="setup-layout">
+                        <!-- Instructions above video -->
                         <div class="setup-steps">
                             <ol>
                                 <li>Open Cursor <strong>Settings</strong>.</li>
                                 <li>Navigate to <strong>Features &gt; MCP Servers</strong>.</li>
                                 <li>Click <strong>+ Add New MCP Server</strong>.</li>
                                 <li>Set Type to <strong>command</strong>.</li>
-                                <li>Copy the JSON below or set Command to your Python/Executable path and Args to <code>--mcp</code>.
-                                </li>
+                                <li>Copy the JSON below or set Command to your Python/Executable path and Args to <code>--mcp</code>.</li>
                             </ol>
                         </div>
+
+                        <!-- Full-width video container -->
                         <div class="setup-gif">
-                            <img src="assets/cursor-setup.gif" alt="Cursor Setup Demo"
-                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<span style=\'padding:20px;text-align:center;\'>Replace with cursor-setup.gif</span>'">
+                            <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/cursor_demo.mp4" autoplay loop muted playsinline></video>
                         </div>
-                    </div>
-                    <div class="code-block">
+
+                        <!-- Code below video -->
+                        <div class="code-block">
 <pre>{
   "mcpServers": {
     "patens": {
@@ -704,28 +701,27 @@
     }
   }
 }</pre>
+                        </div>
                     </div>
                 </div>
 
                 <!-- VS Code Panel -->
                 <div id="panel-vscode" class="ide-content-panel">
-                    <div class="setup-grid">
+                    <div class="setup-layout">
                         <div class="setup-steps">
                             <ol>
                                 <li>Open VS Code with an MCP extension (like <strong>Cline</strong> or Copilot).</li>
-                                <li>Open the extension's MCP Settings (often a button saying <strong>MCP
-                                    Servers</strong>).
-                                </li>
+                                <li>Open the extension's MCP Settings (often a button saying <strong>MCP Servers</strong>).</li>
                                 <li>Edit the configuration JSON file.</li>
                                 <li>Paste the exact configuration below.</li>
                             </ol>
                         </div>
+
                         <div class="setup-gif">
-                            <img src="assets/vscode-setup.gif" alt="VS Code Setup Demo"
-                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<span style=\'padding:20px;text-align:center;\'>Replace with vscode-setup.gif</span>'">
+                            <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/vsc_demo.mp4" autoplay loop muted playsinline></video>
                         </div>
-                    </div>
-                    <div class="code-block">
+
+                        <div class="code-block">
 <pre>{
   "servers": {
     "patens": {
@@ -737,12 +733,13 @@
     }
   }
 }</pre>
+                        </div>
                     </div>
                 </div>
 
                 <!-- JetBrains Panel -->
                 <div id="panel-jetbrains" class="ide-content-panel">
-                    <div class="setup-grid">
+                    <div class="setup-layout">
                         <div class="setup-steps">
                             <ol>
                                 <li>Open your JetBrains IDE.</li>
@@ -751,12 +748,12 @@
                                 <li>Add a new server using the exact absolute path to your executable.</li>
                             </ol>
                         </div>
+
                         <div class="setup-gif">
-                            <img src="assets/jetbrains-setup.gif" alt="JetBrains Setup Demo"
-                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<span style=\'padding:20px;text-align:center;\'>Replace with jetbrains-setup.gif</span>'">
+                            <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/jetbrains_demo.mp4" autoplay loop muted playsinline></video>
                         </div>
-                    </div>
-                    <div class="code-block">
+
+                        <div class="code-block">
 <pre>{
   "servers": {
     "patens": {
@@ -768,6 +765,7 @@
     }
   }
 }</pre>
+                        </div>
                     </div>
                 </div>
 
@@ -825,7 +823,7 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = 6; // Updated to 6 steps
+    const totalSteps = 6;
     let mcpPollingInterval = null;
 
     function updateProgress() {
