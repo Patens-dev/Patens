@@ -1,8 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Context Clipboard",
+  "name": "patens",
   "version": "1.1",
   "description": "Sends web context to your local AI database.",
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
   "permissions": [
     "contextMenus",
     "activeTab",
@@ -15,14 +29,11 @@
         "default": "Ctrl+Shift+Space",
         "mac": "Command+Shift+Space"
       },
-      "description": "Search and paste from Context Clipboard"
+      "description": "Search and paste from patens"
     }
   },
   "background": {
-    "service_worker": "background.js",
-    "scripts": [
-      "background.js"
-    ]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
