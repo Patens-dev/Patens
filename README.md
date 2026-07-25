@@ -1,6 +1,6 @@
 <div align="center">
   
-  <img src="https://via.placeholder.com/150x150/0c0d10/3b82f6?text=Patens" alt="Patens.dev Logo" width="120" />
+  <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.svg" alt="Patens.dev Logo" width="120" />
 
   <h1>Patens.dev</h1>
   <p><strong>The Local Memory Layer for AI Coding Assistants</strong></p>
