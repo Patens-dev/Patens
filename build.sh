@@ -80,6 +80,7 @@ echo "🚀 Building executable with PyInstaller..."
   --add-data "src/patens/server/templates;patens/server/templates" \
   --collect-all sqlite_vec \
   --version-file="version_info.txt" \
+  --icon="assets/patens.ico" \
   src/patens/main.py
 
 echo "🎉 Build complete! Your version-stamped .exe is waiting in the /dist folder."
