@@ -19,11 +19,19 @@ if (!window._ccCartLoaded) {
                     btn.className = 'cc-cart-btn';
                     btn.style.position = 'fixed';
                     btn.style.zIndex = '2147483647';
-                    btn.innerHTML = `📦<div class="cc-cart-badge" id="cc-badge"></div>`;
+
+                    // Create content natively to avoid innerHTML
+                    const iconText = document.createTextNode('📦');
+                    const badge = document.createElement('div');
+                    badge.className = 'cc-cart-badge';
+                    badge.id = 'cc-badge';
+
+                    btn.appendChild(iconText);
+                    btn.appendChild(badge);
                     btn.onclick = window.toggleModal;
                     document.body.appendChild(btn);
                 }
-                document.getElementById('cc-badge').innerText = cart.length;
+                document.getElementById('cc-badge').textContent = cart.length;
             } else {
                 if (btn) btn.remove();
                 if (window.cartOpen) window.toggleModal();
@@ -54,25 +62,29 @@ if (!window._ccCartLoaded) {
         const modal = document.getElementById('cc-cart-modal');
         if (!modal) return;
 
-        let itemsHTML = cart.map(item => `
-            <div class="cc-cart-item" data-id="${item.id}">
-                <div class="cc-item-remove" data-id="${item.id}">✕</div>
-                <div class="cc-item-source">${item.title}</div>
-                <div class="cc-item-text">${item.content.replace(/</g, '&lt;')}</div>
-            </div>
-        `).join('');
+        // Clear previous contents
+        modal.textContent = '';
 
-        modal.innerHTML = `
-            <div class="cc-cart-header">
-                <span>Context Cart</span>
-                <span style="cursor:pointer" onclick="document.getElementById('cc-cart-btn').click()">_</span>
-            </div>
-            <div class="cc-cart-items">${itemsHTML}</div>
-            <div class="cc-cart-footer">
-                <button class="cc-send-btn" id="cc-send-all">✨ Send All to Local Memory</button>
-            </div>
-        `;
+        // --- 1. Header ---
+        const header = document.createElement('div');
+        header.className = 'cc-cart-header';
 
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = 'Context Cart';
+
+        const closeSpan = document.createElement('span');
+        closeSpan.style.cursor = 'pointer';
+        closeSpan.textContent = '_';
+        closeSpan.onclick = () => {
+            const btn = document.getElementById('cc-cart-btn');
+            if (btn) btn.click();
+        };
+
+        header.appendChild(titleSpan);
+        header.appendChild(closeSpan);
+        modal.appendChild(header);
+
+        // --- Tooltip Setup ---
         let tooltip = document.getElementById('cc-cart-tooltip');
         if (!tooltip) {
             tooltip = document.createElement('div');
@@ -82,19 +94,65 @@ if (!window._ccCartLoaded) {
             document.body.appendChild(tooltip);
         }
 
-        modal.querySelectorAll('.cc-cart-item').forEach(itemEl => {
-            const itemId = itemEl.getAttribute('data-id');
-            const itemData = cart.find(i => i.id === itemId);
+        // --- 2. Items List ---
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'cc-cart-items';
 
+        cart.forEach(itemData => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'cc-cart-item';
+            itemEl.setAttribute('data-id', itemData.id);
+
+            // Remove Button
+            const removeBtn = document.createElement('div');
+            removeBtn.className = 'cc-item-remove';
+            removeBtn.textContent = '✕';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                const updatedCart = cart.filter(i => i.id !== itemData.id);
+                tooltip.classList.remove('cc-tooltip-visible');
+                chrome.storage.local.set({contextCart: updatedCart});
+            };
+
+            // Source Title
+            const sourceEl = document.createElement('div');
+            sourceEl.className = 'cc-item-source';
+            sourceEl.textContent = itemData.title; // Safe from XSS
+
+            // Item Text
+            const textEl = document.createElement('div');
+            textEl.className = 'cc-item-text';
+            textEl.textContent = itemData.content; // Safe from XSS
+
+            itemEl.appendChild(removeBtn);
+            itemEl.appendChild(sourceEl);
+            itemEl.appendChild(textEl);
+
+            // Tooltip Interactions
             itemEl.addEventListener('mouseenter', () => {
-                if (itemData.type === 'image') tooltip.innerHTML = `<img src="${itemData.media}" alt="Preview" />`;
-                else {
-                    const safeText = itemData.content.replace(/</g, '&lt;');
-                    tooltip.innerHTML = safeText.length > 256 ? `${safeText.substring(0, 256)}<span style="color:#8ab4f8">...</span>` : safeText;
+                tooltip.textContent = ''; // clear previous tooltip
+
+                if (itemData.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = itemData.media;
+                    img.alt = 'Preview';
+                    tooltip.appendChild(img);
+                } else {
+                    if (itemData.content.length > 256) {
+                        tooltip.textContent = itemData.content.substring(0, 256);
+                        const dots = document.createElement('span');
+                        dots.style.color = '#8ab4f8';
+                        dots.textContent = '...';
+                        tooltip.appendChild(dots);
+                    } else {
+                        tooltip.textContent = itemData.content;
+                    }
                 }
+
                 const modalRect = modal.getBoundingClientRect();
                 const itemRect = itemEl.getBoundingClientRect();
                 tooltip.style.right = `${window.innerWidth - modalRect.left + 15}px`;
+
                 let topPosition = itemRect.top;
                 if (topPosition + 250 > window.innerHeight) topPosition = window.innerHeight - 260;
                 tooltip.style.top = `${topPosition}px`;
@@ -102,26 +160,29 @@ if (!window._ccCartLoaded) {
             });
 
             itemEl.addEventListener('mouseleave', () => tooltip.classList.remove('cc-tooltip-visible'));
+
+            itemsContainer.appendChild(itemEl);
         });
 
-        modal.querySelectorAll('.cc-item-remove').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const idToRemove = btn.getAttribute('data-id');
-                const updatedCart = cart.filter(item => item.id !== idToRemove);
-                tooltip.classList.remove('cc-tooltip-visible');
-                chrome.storage.local.set({contextCart: updatedCart});
-            };
-        });
+        modal.appendChild(itemsContainer);
 
-        modal.querySelector('#cc-send-all').onclick = (e) => {
+        // --- 3. Footer ---
+        const footer = document.createElement('div');
+        footer.className = 'cc-cart-footer';
+
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'cc-send-btn';
+        sendBtn.id = 'cc-send-all';
+        sendBtn.textContent = '✨ Send All to Local Memory';
+
+        sendBtn.onclick = (e) => {
             const btn = e.target;
-            btn.innerText = "Sending...";
+            btn.textContent = "Sending...";
             btn.disabled = true;
 
             chrome.runtime.sendMessage({action: "ingest_batch", payload: cart}, async (response) => {
                 if (response?.success) {
-                    btn.innerText = "✓ Saved!";
+                    btn.textContent = "✓ Saved!";
                     btn.style.background = "#006400";
                     tooltip.classList.remove('cc-tooltip-visible');
 
@@ -136,6 +197,7 @@ if (!window._ccCartLoaded) {
 
                     clipText += `> 📏 **Total Size:** ~${totalTokens} tokens\n`;
                     clipText += `> 📂 Available instantly in your IDE via \`@\` or \`#\` in the \`_context/\` folder.`;
+
                     try {
                         await navigator.clipboard.writeText(clipText);
                     } catch (err) {
@@ -144,17 +206,19 @@ if (!window._ccCartLoaded) {
 
                     setTimeout(() => chrome.storage.local.set({contextCart: []}), 1000);
                 } else {
-                    btn.innerText = "❌ Failed to send";
+                    btn.textContent = "❌ Failed to send";
                     btn.style.background = "#8B0000";
                     btn.disabled = false;
                 }
             });
         };
-    };
 
-    // ==========================================
-    // "FAST-FORWARD" KEYBOARD SHORTCUT
-    // ==========================================
+        footer.appendChild(sendBtn);
+        modal.appendChild(footer);
+    };
+// ==========================================
+// "FAST-FORWARD" KEYBOARD SHORTCUT
+// ==========================================
     window.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
             chrome.storage.local.get(['contextCart'], (result) => {

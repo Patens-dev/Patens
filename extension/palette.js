@@ -6,23 +6,41 @@ let blockHover = false;
 let hoverTimeout = null;
 
 function previewPaletteItem(index) {
-    if (index < 0 || index >= currentResults.length) return;
+    if (index < 0 || index>= currentResults.length) return;
     const previewPanel = document.getElementById('cc-preview-panel');
     if (!previewPanel) return;
 
     const data = currentResults[index];
-    let domain = ""; try { domain = new URL(data.url).hostname; } catch(e){}
+    let domain = "";
+    try { domain = new URL(data.url).hostname; } catch(e){}
     const displayDate = formatDateTime(data.created_at || data.timestamp);
 
-    previewPanel.innerHTML = `
-        <div style="font-size: 11px; color: #8ab4f8; margin-bottom: 8px;">
-            <a href="${data.url}" target="_blank" style="color:inherit; text-decoration:none;">🔗 ${domain}</a> • ${displayDate}
-        </div>
-        <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #fff; line-height: 1.3;">${data.title}</h3>
-        <div style="white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #ccc; line-height: 1.5;">
-            ${(data.content || '').replace(/</g, '&lt;')}
-        </div>
-    `;
+    // Clear panel safely
+    previewPanel.textContent = '';
+
+    const metaDiv = document.createElement('div');
+    metaDiv.style.cssText = "font-size: 11px; color: #8ab4f8; margin-bottom: 8px;";
+
+    const link = document.createElement('a');
+    link.href = data.url;
+    link.target = "_blank";
+    link.style.cssText = "color:inherit; text-decoration:none;";
+    link.textContent = `🔗 ${domain}`;
+
+    metaDiv.appendChild(link);
+    metaDiv.appendChild(document.createTextNode(` • ${displayDate}`));
+
+    const h3 = document.createElement('h3');
+    h3.style.cssText = "margin: 0 0 16px 0; font-size: 16px; color: #fff; line-height: 1.3;";
+    h3.textContent = data.title; // Automatically sanitizes
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = "white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #ccc; line-height: 1.5;";
+    contentDiv.textContent = data.content || ''; // Automatically sanitizes
+
+    previewPanel.appendChild(metaDiv);
+    previewPanel.appendChild(h3);
+    previewPanel.appendChild(contentDiv);
 }
 
 function applySelectionStyles() {
@@ -101,57 +119,94 @@ function togglePalette() {
         }
     }
 
+    // Safely Construct the entire DOM tree without innerHTML
     palette = document.createElement('div');
     palette.id = 'cc-palette';
     palette.className = 'cc-palette-overlay';
+    palette.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2147483647; background-color: rgba(0, 0, 0, 0.6);';
 
-    // 1. Overlay
-    palette.style.position = 'fixed';
-    palette.style.top = '0';
-    palette.style.left = '0';
-    palette.style.right = '0';
-    palette.style.bottom = '0';
-    palette.style.display = 'flex';
-    palette.style.alignItems = 'center';
-    palette.style.justifyContent = 'center';
-    palette.style.zIndex = '2147483647';
-    palette.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    const container = document.createElement('div');
+    container.className = 'cc-palette-container';
+    container.style.cssText = 'position: relative; width: 850px; max-width: 90vw; height: 75vh; max-height: 700px; background: #222; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-family: sans-serif; box-sizing: border-box;';
 
-    // 2. ABSOLUTE POSITIONING FIX: Bypasses Flexbox blowout entirely
-    palette.innerHTML = `
-        <div class="cc-palette-container" style="position: relative; width: 850px; max-width: 90vw; height: 75vh; max-height: 700px; background: #222; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-family: sans-serif; box-sizing: border-box;">
-            
-            <input type="text" id="cc-palette-input" placeholder="Search memory... (try 'github, yesterday' or 'from:docs.com')" autocomplete="off" style="position: absolute; top: 0; left: 0; width: 100%; height: 55px; padding: 0 20px; border: none; background: transparent; color: white; font-size: 16px; outline: none; border-bottom: 1px solid #333; box-sizing: border-box; z-index: 5;" />
-            
-            <div id="cc-palette-results" style="position: absolute; top: 55px; bottom: 45px; left: 0; width: 100%; display: flex; background: #222; z-index: 1;">
-                <div id="cc-results-list" style="width: 40%; height: 100%; overflow-y: auto; overflow-x: hidden; padding: 8px; border-right: 1px solid #333; box-sizing: border-box;"></div>
-                <div id="cc-preview-panel" style="width: 60%; height: 100%; overflow-y: auto; overflow-x: hidden; padding: 20px; background: #1a1a1a; word-wrap: break-word; box-sizing: border-box;">
-                    <div style="color: #666; text-align: center; margin-top: 80px;">Select an item to preview</div>
-                </div>
-            </div>
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'cc-palette-input';
+    input.placeholder = "Search memory... (try 'github, yesterday' or 'from:docs.com')";
+    input.autocomplete = 'off';
+    input.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 55px; padding: 0 20px; border: none; background: transparent; color: white; font-size: 16px; outline: none; border-bottom: 1px solid #333; box-sizing: border-box; z-index: 5;';
 
-            <!-- Staging Overlay slides up over the results -->
-            <div id="cc-staging-container" style="display: none; position: absolute; bottom: 45px; left: 0; width: 100%; height: 200px; border-top: 1px solid #444; padding: 12px 20px; box-sizing: border-box; background: #222; flex-direction: column; z-index: 10;">
-                <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; flex-shrink: 0;">Staged for Injection</div>
-                <div id="cc-staging-list" style="flex-grow: 1; overflow-y: auto; padding-right: 5px;"></div>
-                <button id="cc-inject-all-btn" style="flex-shrink: 0; margin-top: 10px; padding: 10px; background: #8ab4f8; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Paste Items</button>
-            </div>
-            
-            <div id="cc-palette-hint" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 45px; padding: 0 20px; font-size: 12px; color: #888; border-top: 1px solid #333; display: flex; gap: 16px; align-items: center; background: #1e1e1e; box-sizing: border-box; z-index: 5;">
-                <span><span style="border: 1px solid #444; padding: 2px 6px; border-radius: 4px; background: #333; color: #ccc; margin-right: 4px;">↑↓</span> Navigate</span>
-                <span><span style="border: 1px solid #444; padding: 2px 6px; border-radius: 4px; background: #333; color: #ccc; margin-right: 4px;">Shift + ↑↓</span> Multi-Select</span>
-                <span><span style="border: 1px solid #444; padding: 2px 6px; border-radius: 4px; background: #333; color: #ccc; margin-right: 4px;">Enter</span> Paste</span>
-                <span><span style="border: 1px solid #444; padding: 2px 6px; border-radius: 4px; background: #333; color: #ccc; margin-right: 4px;">Tab</span> Stage</span>
-            </div>
-        </div>
-    `;
+    const resultsWrapper = document.createElement('div');
+    resultsWrapper.id = 'cc-palette-results';
+    resultsWrapper.style.cssText = 'position: absolute; top: 55px; bottom: 45px; left: 0; width: 100%; display: flex; background: #222; z-index: 1;';
+
+    const listContainer = document.createElement('div');
+    listContainer.id = 'cc-results-list';
+    listContainer.style.cssText = 'width: 40%; height: 100%; overflow-y: auto; overflow-x: hidden; padding: 8px; border-right: 1px solid #333; box-sizing: border-box;';
+
+    const previewPanel = document.createElement('div');
+    previewPanel.id = 'cc-preview-panel';
+    previewPanel.style.cssText = 'width: 60%; height: 100%; overflow-y: auto; overflow-x: hidden; padding: 20px; background: #1a1a1a; word-wrap: break-word; box-sizing: border-box;';
+
+    const previewPlaceholder = document.createElement('div');
+    previewPlaceholder.style.cssText = 'color: #666; text-align: center; margin-top: 80px;';
+    previewPlaceholder.textContent = 'Select an item to preview';
+    previewPanel.appendChild(previewPlaceholder);
+
+    resultsWrapper.appendChild(listContainer);
+    resultsWrapper.appendChild(previewPanel);
+
+    const stagingContainer = document.createElement('div');
+    stagingContainer.id = 'cc-staging-container';
+    stagingContainer.style.cssText = 'display: none; position: absolute; bottom: 45px; left: 0; width: 100%; height: 200px; border-top: 1px solid #444; padding: 12px 20px; box-sizing: border-box; background: #222; flex-direction: column; z-index: 10;';
+
+    const stagingLabel = document.createElement('div');
+    stagingLabel.style.cssText = 'font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; flex-shrink: 0;';
+    stagingLabel.textContent = 'Staged for Injection';
+
+    const stagingList = document.createElement('div');
+    stagingList.id = 'cc-staging-list';
+    stagingList.style.cssText = 'flex-grow: 1; overflow-y: auto; padding-right: 5px;';
+
+    const injectBtn = document.createElement('button');
+    injectBtn.id = 'cc-inject-all-btn';
+    injectBtn.style.cssText = 'flex-shrink: 0; margin-top: 10px; padding: 10px; background: #8ab4f8; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;';
+    injectBtn.textContent = 'Paste Items';
+
+    stagingContainer.appendChild(stagingLabel);
+    stagingContainer.appendChild(stagingList);
+    stagingContainer.appendChild(injectBtn);
+
+    const hintContainer = document.createElement('div');
+    hintContainer.id = 'cc-palette-hint';
+    hintContainer.style.cssText = 'position: absolute; bottom: 0; left: 0; width: 100%; height: 45px; padding: 0 20px; font-size: 12px; color: #888; border-top: 1px solid #333; display: flex; gap: 16px; align-items: center; background: #1e1e1e; box-sizing: border-box; z-index: 5;';
+
+    const hints = [
+        { key: '↑↓', text: 'Navigate' },
+        { key: 'Shift + ↑↓', text: 'Multi-Select' },
+        { key: 'Enter', text: 'Paste' },
+        { key: 'Tab', text: 'Stage' }
+    ];
+
+    hints.forEach(h => {
+        const span = document.createElement('span');
+        const keySpan = document.createElement('span');
+        keySpan.style.cssText = 'border: 1px solid #444; padding: 2px 6px; border-radius: 4px; background: #333; color: #ccc; margin-right: 4px;';
+        keySpan.textContent = h.key;
+        span.appendChild(keySpan);
+        span.appendChild(document.createTextNode(' ' + h.text));
+        hintContainer.appendChild(span);
+    });
+
+    container.appendChild(input);
+    container.appendChild(resultsWrapper);
+    container.appendChild(stagingContainer);
+    container.appendChild(hintContainer);
+    palette.appendChild(container);
 
     document.body.appendChild(palette);
     paletteOpen = true;
 
-    const input = document.getElementById('cc-palette-input');
-    const listContainer = document.getElementById('cc-results-list');
-    const previewPanel = document.getElementById('cc-preview-panel');
     let timeout = null;
     input.focus();
 
@@ -162,8 +217,16 @@ function togglePalette() {
         timeout = setTimeout(() => {
             currentOffset = 0; hasMore = true; currentResults = [];
             selectedIndex = 0; selectionAnchor = 0; selectedIndices = new Set([0]);
-            if (listContainer) listContainer.innerHTML = '';
-            if (previewPanel) previewPanel.innerHTML = '<div style="color: #666; text-align: center; margin-top: 80px;">Select an item to preview</div>';
+
+            if (listContainer) listContainer.textContent = '';
+            if (previewPanel) {
+                previewPanel.textContent = '';
+                const pText = document.createElement('div');
+                pText.style.cssText = 'color: #666; text-align: center; margin-top: 80px;';
+                pText.textContent = 'Select an item to preview';
+                previewPanel.appendChild(pText);
+            }
+
             fetchBatch();
         }, 200);
     });
@@ -201,10 +264,25 @@ function togglePalette() {
             if (currentResults.length > 0) {
                 bulkAddToStage(currentResults);
                 input.value = '';
+
+                // Safe UI swap
                 const hint = document.getElementById('cc-palette-hint');
-                const origHint = hint.innerHTML;
-                hint.innerHTML = `<span style="color:#10b981; font-weight:bold;">✨ Staged ${currentResults.length} items!</span>`;
-                setTimeout(() => { if(hint) hint.innerHTML = origHint; }, 2000);
+                if (hint) {
+                    const children = Array.from(hint.children);
+                    children.forEach(c => c.style.display = 'none');
+
+                    const msgSpan = document.createElement('span');
+                    msgSpan.style.cssText = 'color:#10b981; font-weight:bold;';
+                    msgSpan.textContent = `✨ Staged ${currentResults.length} items!`;
+                    hint.appendChild(msgSpan);
+
+                    setTimeout(() => {
+                        if (hint) {
+                            msgSpan.remove();
+                            children.forEach(c => c.style.display = '');
+                        }
+                    }, 2000);
+                }
             }
             return;
         }
@@ -259,7 +337,7 @@ async function fetchBatch() {
         spinner = document.createElement('div');
         spinner.className = 'cc-loading-spinner';
         spinner.id = 'cc-search-spinner';
-        spinner.innerText = 'Loading...';
+        spinner.textContent = 'Loading...';
         spinner.style.color = '#888';
         spinner.style.padding = '10px';
         spinner.style.textAlign = 'center';
@@ -308,7 +386,12 @@ async function fetchBatch() {
 
         if (currentResults.length === 0 && uniqueNewResults.length === 0) {
             if (document.getElementById('cc-results-list')) {
-                listContainer.innerHTML = '<div class="cc-palette-empty" style="color:#666; text-align:center; padding: 20px;">No matching memories found.</div>';
+                listContainer.textContent = '';
+                const emptyMsg = document.createElement('div');
+                emptyMsg.className = 'cc-palette-empty';
+                emptyMsg.style.cssText = 'color:#666; text-align:center; padding: 20px;';
+                emptyMsg.textContent = 'No matching memories found.';
+                listContainer.appendChild(emptyMsg);
             }
         } else if (uniqueNewResults.length > 0) {
             const startIndex = currentResults.length;
@@ -318,7 +401,10 @@ async function fetchBatch() {
 
         if (!hasMore && currentResults.length > 0 && !document.querySelector('.cc-end-of-results')) {
             if (document.getElementById('cc-results-list')) {
-                const endMsg = document.createElement('div'); endMsg.className = 'cc-end-of-results'; endMsg.innerText = 'End of results'; endMsg.style.textAlign = 'center'; endMsg.style.color = '#666'; endMsg.style.padding = '10px';
+                const endMsg = document.createElement('div');
+                endMsg.className = 'cc-end-of-results';
+                endMsg.textContent = 'End of results';
+                endMsg.style.cssText = 'text-align: center; color: #666; padding: 10px;';
                 listContainer.appendChild(endMsg);
             }
         }
@@ -326,7 +412,12 @@ async function fetchBatch() {
         console.error(err);
         document.getElementById('cc-search-spinner')?.remove();
         if (currentResults.length === 0 && document.getElementById('cc-results-list')) {
-            listContainer.innerHTML = '<div class="cc-palette-error" style="color:#ef4444; text-align:center; padding: 20px;">Local server disconnected.</div>';
+            listContainer.textContent = '';
+            const errMsg = document.createElement('div');
+            errMsg.className = 'cc-palette-error';
+            errMsg.style.cssText = 'color:#ef4444; text-align:center; padding: 20px;';
+            errMsg.textContent = 'Local server disconnected.';
+            listContainer.appendChild(errMsg);
         }
     }
     isFetching = false;
@@ -334,27 +425,58 @@ async function fetchBatch() {
 
 function appendResultsToDOM(newResults, startIndex) {
     const listContainer = document.getElementById('cc-results-list');
+    const fragment = document.createDocumentFragment();
 
-    const html = newResults.map((r, i) => {
+    newResults.forEach((r, i) => {
         let domain = "";
         try { domain = new URL(r.url).hostname.replace('www.', ''); } catch(e){}
         const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
         const displayTitle = truncateTitle(r.title);
         const displayDate = formatDateTime(r.created_at || r.timestamp);
 
-        return `
-            <div class="cc-palette-item" data-index="${startIndex + i}" style="padding: 8px 12px; margin-bottom: 2px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 10px; transition: background 0.1s; background: transparent;">
-                ${faviconUrl ? `<img src="${faviconUrl}" style="width:16px;height:16px;border-radius:3px;flex-shrink:0;" />` : `<span style="font-size:16px;">📄</span>`}
-                <div style="flex-grow: 1; overflow: hidden; display: flex; flex-direction: column;">
-                    <div style="font-size: 13px; color: #e5e5e5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>
-                    <div style="font-size: 11px; color: #8ab4f8; margin-top: 2px;">${displayDate}</div>
-                </div>
-                <button class="cc-add-to-stage-btn" style="background:transparent; border:none; color:#8ab4f8; cursor:pointer; font-weight:bold; opacity:0; transition:opacity 0.2s; padding:0 4px;" title="Add to bundle">+</button>
-            </div>
-        `;
-    }).join('');
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'cc-palette-item';
+        itemDiv.setAttribute('data-index', startIndex + i);
+        itemDiv.style.cssText = 'padding: 8px 12px; margin-bottom: 2px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 10px; transition: background 0.1s; background: transparent;';
 
-    listContainer.insertAdjacentHTML('beforeend', html);
+        if (faviconUrl) {
+            const img = document.createElement('img');
+            img.src = faviconUrl;
+            img.style.cssText = 'width:16px;height:16px;border-radius:3px;flex-shrink:0;';
+            itemDiv.appendChild(img);
+        } else {
+            const iconSpan = document.createElement('span');
+            iconSpan.style.cssText = 'font-size:16px;';
+            iconSpan.textContent = '📄';
+            itemDiv.appendChild(iconSpan);
+        }
+
+        const textContainer = document.createElement('div');
+        textContainer.style.cssText = 'flex-grow: 1; overflow: hidden; display: flex; flex-direction: column;';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.style.cssText = 'font-size: 13px; color: #e5e5e5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+        titleDiv.textContent = displayTitle;
+
+        const dateDiv = document.createElement('div');
+        dateDiv.style.cssText = 'font-size: 11px; color: #8ab4f8; margin-top: 2px;';
+        dateDiv.textContent = displayDate;
+
+        textContainer.appendChild(titleDiv);
+        textContainer.appendChild(dateDiv);
+        itemDiv.appendChild(textContainer);
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'cc-add-to-stage-btn';
+        addBtn.style.cssText = 'background:transparent; border:none; color:#8ab4f8; cursor:pointer; font-weight:bold; opacity:0; transition:opacity 0.2s; padding:0 4px;';
+        addBtn.title = 'Add to bundle';
+        addBtn.textContent = '+';
+
+        itemDiv.appendChild(addBtn);
+        fragment.appendChild(itemDiv);
+    });
+
+    listContainer.appendChild(fragment);
 
     const allItems = listContainer.querySelectorAll('.cc-palette-item');
     for (let i = startIndex; i < allItems.length; i++) {
@@ -415,22 +537,58 @@ function renderStagingArea() {
     }
 
     container.style.display = 'flex';
-    btn.innerText = `✨ Paste ${stagedItems.length} Item${stagedItems.length > 1 ? 's' : ''} (Enter)`;
+    btn.textContent = `✨ Paste ${stagedItems.length} Item${stagedItems.length > 1 ? 's' : ''} (Enter)`;
 
-    list.innerHTML = stagedItems.map((item, index) => {
+    list.textContent = ''; // Clear previous items safely
+    const fragment = document.createDocumentFragment();
+
+    stagedItems.forEach((item, index) => {
         let cleanText = item.content.replace(/\[Local Image Path:.*?\]/g, '').trim();
         if (cleanText.length > 60) cleanText = `${cleanText.substring(0, 60)}...`;
-        return `
-            <div class="cc-staged-item" draggable="true" data-index="${index}" style="display:flex; align-items:center; gap:8px; padding:6px; background:#1e1e1e; border-radius:6px; margin-bottom:4px;">
-                <div class="cc-staged-drag-handle" style="cursor:grab; color:#666;">⠿</div>
-                <div class="cc-staged-text" style="pointer-events:none; flex-grow:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                    <span class="cc-staged-title" style="color:#e5e5e5; font-size:13px; font-weight:bold;">${truncateTitle(item.title)}</span>
-                    <span class="cc-staged-preview" style="color:#888; font-size:12px;"> — ${cleanText}</span>
-                </div>
-                <span class="cc-staged-remove" data-index="${index}" style="cursor:pointer; color:#ef4444; font-weight:bold; padding:0 5px;" title="Remove">✕</span>
-            </div>
-        `;
-    }).join('');
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'cc-staged-item';
+        itemDiv.draggable = true;
+        itemDiv.setAttribute('data-index', index);
+        itemDiv.style.cssText = 'display:flex; align-items:center; gap:8px; padding:6px; background:#1e1e1e; border-radius:6px; margin-bottom:4px;';
+
+        const handleDiv = document.createElement('div');
+        handleDiv.className = 'cc-staged-drag-handle';
+        handleDiv.style.cssText = 'cursor:grab; color:#666;';
+        handleDiv.textContent = '⠿';
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'cc-staged-text';
+        textDiv.style.cssText = 'pointer-events:none; flex-grow:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'cc-staged-title';
+        titleSpan.style.cssText = 'color:#e5e5e5; font-size:13px; font-weight:bold;';
+        titleSpan.textContent = truncateTitle(item.title);
+
+        const previewSpan = document.createElement('span');
+        previewSpan.className = 'cc-staged-preview';
+        previewSpan.style.cssText = 'color:#888; font-size:12px;';
+        previewSpan.textContent = ` — ${cleanText}`;
+
+        textDiv.appendChild(titleSpan);
+        textDiv.appendChild(previewSpan);
+
+        const removeSpan = document.createElement('span');
+        removeSpan.className = 'cc-staged-remove';
+        removeSpan.setAttribute('data-index', index);
+        removeSpan.style.cssText = 'cursor:pointer; color:#ef4444; font-weight:bold; padding:0 5px;';
+        removeSpan.title = 'Remove';
+        removeSpan.textContent = '✕';
+
+        itemDiv.appendChild(handleDiv);
+        itemDiv.appendChild(textDiv);
+        itemDiv.appendChild(removeSpan);
+
+        fragment.appendChild(itemDiv);
+    });
+
+    list.appendChild(fragment);
 
     list.querySelectorAll('.cc-staged-remove').forEach(rm => {
         rm.addEventListener('click', (e) => {
