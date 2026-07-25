@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import time
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 logger.info("=== Unified Server Starting Up ===")
 os.makedirs(IMAGE_DIR, exist_ok=True)
+
+# Global event for waking the sync thread instantly
+workspace_sync_event = threading.Event()
 
 # Initialize Core Services (Database & AI)
 db_manager = DatabaseManager(str(DB_PATH))
@@ -66,23 +70,44 @@ def is_valid_workspace(path: Path) -> bool:
 
 def sync_workspace_files_loop():
     """Background daemon that automatically mirrors recent DB clips to the local workspace."""
-
-    if not is_valid_workspace(WORKSPACE_ROOT):
-        logger.warning(f"Server is running globally ({WORKSPACE_ROOT}). Physical _context files disabled.")
-        return
-
-    logger.info(f"[SYNC ENGINE] Generating physical context files at: {CONTEXT_DIR.absolute()}")
-    os.makedirs(CONTEXT_DIR, exist_ok=True)
-
-    gitignore_path = CONTEXT_DIR / ".gitignore"
-    if not gitignore_path.exists():
-        gitignore_path.write_text("*\n", encoding='utf-8')
+    last_db_state = None
+    has_warned_invalid = False
 
     while True:
+        # 1. Dynamically check the CURRENT parent directory of CONTEXT_DIR
+        current_workspace = CONTEXT_DIR.parent
+
+        if not is_valid_workspace(current_workspace):
+            if not has_warned_invalid:
+                logger.warning(
+                    f"Server workspace is currently invalid or global ({current_workspace}). Physical _context files paused."
+                )
+                has_warned_invalid = True
+
+            # PAUSE execution, but DO NOT RETURN! Keep the thread alive.
+            workspace_sync_event.wait(timeout=3)
+            workspace_sync_event.clear()
+            continue
+
+        # Reset the warning flag once a valid workspace is mounted
+        has_warned_invalid = False
+
         try:
-            # 1. Fetch raw clips (returns newest first from the DB)
+            os.makedirs(CONTEXT_DIR, exist_ok=True)
+
+            gitignore_path = CONTEXT_DIR / ".gitignore"
+            if not gitignore_path.exists():
+                gitignore_path.write_text("*\n", encoding="utf-8")
+
             recent_clips = db_manager.get_recent_snippets(hours=24)
 
+            # Include CONTEXT_DIR in state check so changing workspace forces a redraw
+            current_db_state = f"{CONTEXT_DIR}:" + "".join(
+                str(c.get("id", "")) for c in recent_clips
+            )
+
+            if current_db_state != last_db_state:
+                last_db_state = current_db_state
             # --- THE INTELLIGENT MERGE ENGINE ---
             grouped_clips = {}
 
@@ -165,24 +190,27 @@ def sync_workspace_files_loop():
                 if file.is_file() and file.name not in active_filenames:
                     file.unlink()
 
+
+
         except Exception as e:
             logger.error(f"Workspace sync thread error: {e}")
 
-        time.sleep(3)
+        workspace_sync_event.wait(timeout=3)
+
+        workspace_sync_event.clear()
 
 
 # =====================================================================
 # MCP TOOLS (Letting the AI manage its own memory)
 # =====================================================================
 
-def notify_ide_activity():
-    """Silently pings the FastAPI server to confirm the AI actually used a tool."""
-
+def notify_ide_activity(event: str = "tool_call", **meta):
     def _ping():
         try:
+            payload = json.dumps({"event": event, "ts": time.time(), **meta}).encode()
             req = urllib.request.Request(
-                f"http://{API_HOST}:{API_PORT}/api/internal/ide-connected",
-                method="POST"
+                f"http://{API_HOST}:{API_PORT}/api/internal/activity",
+                data=payload, headers={"Content-Type": "application/json"}, method="POST",
             )
             urllib.request.urlopen(req, timeout=1.0)
         except Exception:
@@ -198,7 +226,6 @@ def query_browser_context(search_query: str, limit: int = 3) -> str:
     Searches the user's global SQLite memory for older clips not in the active workspace.
     """
     logger.info(f"Semantic search requested for: '{search_query}'")
-    notify_ide_activity()
     query_vector = list(embedder.embed([search_query]))[0].tolist()
     results = db_manager.search_similar(search_query, query_vector, limit)
 
@@ -208,6 +235,12 @@ def query_browser_context(search_query: str, limit: int = 3) -> str:
     output = "Found relevant web context:\n\n"
     for r in results:
         output += f"### [ID: {r.get('id', 'unknown')}] Source: {r['title']}\nURL: {r['url']}\n\n```text\n{r['content']}\n```\n\n"
+    notify_ide_activity(
+        tool="query_browser_context",
+        query=search_query,
+        result_count=len(results),
+        approx_tokens=sum(len(r['content']) for r in results) // 4
+    )
     return output
 
 
@@ -221,8 +254,9 @@ def forget_memory(memory_id: int) -> str:
     notify_ide_activity()
     success = db_manager.delete_snippet(memory_id)
     if success:
-        return f"Successfully deleted memory ID {memory_id}. The background engine will wipe the physical file."
-    return f"Failed to delete memory ID {memory_id}. It may not exist."
+        workspace_sync_event.set()  # Wakes the thread instantly
+        return f"Successfully deleted memory ID {memory_id}..."
+    return f"Failed to delete memory ID {memory_id}."
 
 
 @mcp.tool()
@@ -239,7 +273,8 @@ def memorize_ide_insight(title: str, insight: str) -> str:
     content_id = db_manager.insert_snippet(
         url=internal_url, title=title, content=insight, embedding=embedding
     )
-    return f"Success! The insight '{title}' has been permanently saved (ID: {content_id})."
+    workspace_sync_event.set()
+    return f"Success! The insight '{title}' has been permanently saved..."
 
 
 @mcp.tool()
@@ -260,6 +295,7 @@ def mount_workspace_context(absolute_project_path: str) -> str:
 
     # Trigger an immediate write so the files appear instantly
     logger.info(f"Context successfully redirected to {CONTEXT_DIR}")
+    workspace_sync_event.set()
     return f"Success! The context engine has been redirected. The _context folder and index file will appear in {CONTEXT_DIR} within 3 seconds. You can then read them."
 
 

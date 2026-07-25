@@ -27,12 +27,41 @@ def get_ide_paths():
     }
 
 
-def clean_json_comments(json_str: str) -> str:
-    """Strips // and /* */ comments to prevent parsing crashes."""
-    json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
-    json_str = re.sub(r'//.*', '', json_str)
-    return json_str
-
+def strip_json_comments(json_str: str) -> str:
+    """Removes // and /* */ comments while respecting string literals and escapes."""
+    out = []
+    i, n = 0, len(json_str)
+    in_string, escape = False, False
+    while i < n:
+        c = json_str[i]
+        if in_string:
+            out.append(c)
+            if escape:
+                escape = False
+            elif c == '\\':
+                escape = True
+            elif c == '"':
+                in_string = False
+            i += 1
+            continue
+        if c == '"':
+            in_string = True
+            out.append(c)
+            i += 1
+            continue
+        if c == '/' and i + 1 < n and json_str[i + 1] == '/':
+            while i < n and json_str[i] != '\n':
+                i += 1
+            continue
+        if c == '/' and i + 1 < n and json_str[i + 1] == '*':
+            i += 2
+            while i + 1 < n and not (json_str[i] == '*' and json_str[i + 1] == '/'):
+                i += 1
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    return ''.join(out)
 
 def install_to_ides(is_debug: bool = False):
     """Dynamically injects the execution path into IDE configs with smart schema routing."""
@@ -68,7 +97,7 @@ def install_to_ides(is_debug: bool = False):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     raw_content = f.read()
-                    clean_content = clean_json_comments(raw_content)
+                    clean_content = strip_json_comments(raw_content)
                     data = json.loads(clean_content) if clean_content.strip() else {}
             except json.JSONDecodeError:
                 print(f"⚠️  Skipped [ {ide_name} ] - File contains complex formatting.")

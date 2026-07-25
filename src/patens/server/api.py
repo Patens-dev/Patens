@@ -5,6 +5,7 @@ import time
 import logging
 import math
 import sys
+from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import threading
@@ -16,6 +17,7 @@ from patens.server.models import IngestResponse, IngestPayload, SearchResponse, 
 from patens.server.state import app_state
 
 logger = logging.getLogger(__name__)
+recent_activity = deque(maxlen=200)
 
 
 # --- Utility Functions ---
@@ -179,6 +181,20 @@ def create_router(db_manager, embedder_model, image_dir: str) -> APIRouter:
         except Exception as e:
             logger.error(f"Search error: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error during search")
+
+    @router.post("/api/internal/activity")
+    async def record_activity(request: Request):
+        recent_activity.appendleft(await request.json())
+        return {"ok": True}
+
+    @router.get("/dashboard", response_class=HTMLResponse)
+    async def dashboard():
+        rows = "".join(
+            f"<tr><td>{a.get('ts', '')}</td><td>{a.get('tool', '')}</td>"
+            f"<td>{a.get('query', '')[:80]}</td><td>{a.get('approx_tokens', '?')}</td></tr>"
+            for a in recent_activity
+        )
+        return f"<table border=1><tr><th>Time</th><th>Tool</th><th>Query</th><th>~Tokens</th></tr>{rows}</table>"
 
     @router.get("/latest", response_model=SearchResponse)
     async def latest_context(limit: int = 1):
