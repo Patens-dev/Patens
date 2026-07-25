@@ -2,7 +2,7 @@
   
   <img src="https://via.placeholder.com/150x150/0c0d10/3b82f6?text=Patens" alt="Patens.dev Logo" width="120" />
 
-  <h1>🧠 Patens.dev</h1>
+  <h1>Patens.dev</h1>
   <p><strong>The Local Memory Layer for AI Coding Assistants</strong></p>
 
   <p>
@@ -18,7 +18,7 @@
 
 ---
 
-## 😫 The Problem: This Is Your Life Right Now
+## The Problem: This Is Your Life Right Now
 
 **It's 2 PM. You're stuck on an authentication bug.**
 
@@ -37,7 +37,7 @@ You Google it again. You copy-paste again. Because there's no way to connect wha
 
 ---
 
-## ✨ The Solution: Patens Makes It Instant
+## The Solution: Patens Makes It Instant
 
 **Same scenario. Different ending.**
 
@@ -55,7 +55,7 @@ You ask: "Apply the same auth pattern." Cursor remembers. No re-googling. No re-
 
 ---
 
-## 🎯 Why This Matters
+## Why This Matters
 
 - **You own your research.** It's stored locally. Searchable. Reusable across projects.
 - **Context limits become irrelevant.** Instead of pasting sprawling docs into your prompt, the AI reads one indexed file.
@@ -64,19 +64,19 @@ You ask: "Apply the same auth pattern." Cursor remembers. No re-googling. No re-
 
 ---
 
-## 🚀 How It Works
+## How It Works
 
 **Patens** is a zero-friction toolchain that bridges your web research and your IDE using two lightweight components:
 
-### **Component 1: Chrome Extension** 🔍
+### **Component 1: Chrome Extension**
 Captures Web Context from any page you visit. Highlight docs, press the hotkey, and it's saved locally.
 
-### **Component 2: Desktop Server** 💻
+### **Component 2: Desktop Server**
 Vectorizes the data, acts as an MCP Server, and syncs the physical `.md` files to your IDE workspace.
 
 ---
 
-## 🎯 Core Features
+## Core Features
 
 - ⚡ **Zero-Friction Capture:** Highlight text on any webpage and press `Ctrl+Shift+C`. It instantly vectorizes and saves to your local database without switching tabs.
 - 🔄 **Native IDE Syncing:** Your web research automatically synchronizes to a local `_context` folder right inside your project workspace.
@@ -85,7 +85,7 @@ Vectorizes the data, acts as an MCP Server, and syncs the physical `.md` files t
 
 ---
 
-## 🚀 How It Works (The Workflow)
+##  How It Works (The Workflow)
 
 Patens consists of two lightweight components that work seamlessly together:
 
@@ -171,7 +171,7 @@ The `_context` folder will instantly materialize in your file explorer.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Patens is built for absolute speed and privacy with these core technologies:
 
