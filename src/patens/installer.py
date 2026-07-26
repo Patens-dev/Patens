@@ -1,7 +1,6 @@
 import sys
 import json
 import platform
-import re
 from pathlib import Path
 
 
@@ -65,7 +64,7 @@ def strip_json_comments(json_str: str) -> str:
 
 def install_to_ides(is_debug: bool = False):
     """Dynamically injects the execution path into IDE configs with smart schema routing."""
-    print("\n🚀 Auto-configuring IDEs for Patens...\n")
+    print("\n[Info] Auto-configuring IDEs for Patens...\n")
 
     is_frozen = getattr(sys, 'frozen', False)
     mode = "Compiled EXE" if is_frozen else "Python Source"
@@ -100,7 +99,7 @@ def install_to_ides(is_debug: bool = False):
                     clean_content = strip_json_comments(raw_content)
                     data = json.loads(clean_content) if clean_content.strip() else {}
             except json.JSONDecodeError:
-                print(f"⚠️  Skipped [ {ide_name} ] - File contains complex formatting.")
+                print(f"[Warning] Skipped [ {ide_name} ] - File contains complex formatting.")
                 continue
 
         # --- THE FIX: ROUTING LOGIC based on IDE NAME instead of filename ---
@@ -123,18 +122,18 @@ def install_to_ides(is_debug: bool = False):
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
-            print(f"✅ Configured [ {ide_name} ] -> {file_path}")
+            print(f"[Success] Configured [ {ide_name} ] -> {file_path}")
             configured_count += 1
         except Exception as e:
-            print(f"❌ Failed to write to [ {ide_name} ]: {e}")
+            print(f"[Error] Failed to write to [ {ide_name} ]: {e}")
 
     # 3. User Feedback Summary
     print("\n" + "=" * 50)
     if configured_count > 0:
-        print(f"🎉 Success! Configured {configured_count} IDE(s) using {mode}.")
-        print("🔄 Please restart your IDE completely for the changes to take effect.")
+        print(f"[Success] Configured {configured_count} IDE(s) using {mode}.")
+        print("[Info] Please restart your IDE completely for the changes to take effect.")
     else:
-        print("⚠️  No supported IDE configurations were found or modified.")
+        print("[Warning] No supported IDE configurations were found or modified.")
     print("=" * 50 + "\n")
 
 
