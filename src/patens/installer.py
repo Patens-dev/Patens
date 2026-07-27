@@ -1,6 +1,9 @@
+import os
 import sys
 import json
+import shutil
 import platform
+import tempfile
 from pathlib import Path
 
 
@@ -10,8 +13,8 @@ def get_ide_paths():
     home = Path.home()
 
     if system == "Windows":
-        roaming = home / "AppData" / "Roaming"
-        local = home / "AppData" / "Local"
+        roaming = Path(os.getenv("APPDATA", home / "AppData" / "Roaming"))
+        local = Path(os.getenv("LOCALAPPDATA", home / "AppData" / "Local"))
     elif system == "Darwin":
         roaming = home / "Library" / "Application Support"
         local = roaming
@@ -20,9 +23,10 @@ def get_ide_paths():
         local = home / ".local" / "share"
 
     return {
-        "VS Code (Native)": roaming / "Code" / "User" / "mcp.json",
-        "Cursor (Native)": home / ".cursor" / "mcp.json",
-        "JetBrains (Copilot)": local / "github-copilot" / "intellij" / "mcp.json"
+        "VS Code": roaming / "Code" / "User" / "mcp.json",
+        "Cursor": home / ".cursor" / "mcp.json",
+        "JetBrains": local / "github-copilot" / "intellij" / "mcp.json",
+        "Claude Desktop": roaming / "Claude" / "claude_desktop_config.json"
     }
 
 
@@ -49,8 +53,7 @@ def strip_json_comments(json_str: str) -> str:
             i += 1
             continue
         if c == '/' and i + 1 < n and json_str[i + 1] == '/':
-            while i < n and json_str[i] != '\n':
-                i += 1
+            while i < n and json_str[i] != '\n': i += 1
             continue
         if c == '/' and i + 1 < n and json_str[i + 1] == '*':
             i += 2
@@ -62,8 +65,9 @@ def strip_json_comments(json_str: str) -> str:
         i += 1
     return ''.join(out)
 
+
 def install_to_ides(is_debug: bool = False):
-    """Dynamically injects the execution path into IDE configs with smart schema routing."""
+    """Dynamically injects the execution path into IDE configs safely using atomic writes."""
     print("\n[Info] Auto-configuring IDEs for Patens...\n")
 
     is_frozen = getattr(sys, 'frozen', False)
@@ -75,7 +79,7 @@ def install_to_ides(is_debug: bool = False):
         args = ["--mcp"]
     else:
         command = str(Path(sys.executable).absolute())
-        script_path = str(Path(sys.modules['__main__'].__file__).absolute())
+        script_path = str(Path(sys.argv[0]).absolute())
         args = [script_path, "--mcp"]
 
     if is_debug:
@@ -88,46 +92,65 @@ def install_to_ides(is_debug: bool = False):
     for ide_name, file_path in ide_paths.items():
         data = {}
 
-        # Check if IDE is even installed
+        # Skip if the target IDE directory doesn't exist
         if not file_path.parent.exists():
             continue
 
+        # Safely parse existing config
         if file_path.exists():
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     raw_content = f.read()
                     clean_content = strip_json_comments(raw_content)
                     data = json.loads(clean_content) if clean_content.strip() else {}
-            except json.JSONDecodeError:
-                print(f"[Warning] Skipped [ {ide_name} ] - File contains complex formatting.")
+            except Exception as e:
+                print(f"[Warning] Skipped [ {ide_name} ] - Could not read or parse file: {e}")
                 continue
 
-        # --- THE FIX: ROUTING LOGIC based on IDE NAME instead of filename ---
-        if "VS Code" in ide_name or "JetBrains" in ide_name:
-            root_key = "servers"
-        else:
-            root_key = "mcpServers"
+        # Determine correct schema key based on the client
+        root_key = "servers" if "VS Code" in ide_name or "JetBrains" in ide_name else "mcpServers"
 
         if root_key not in data:
             data[root_key] = {}
+        elif not isinstance(data[root_key], dict):
+            print(f"[Warning] Skipped [ {ide_name} ] - '{root_key}' exists but is not a standard dictionary.")
+            continue
 
-        # Changed from "context-clipboard" to "patens"
+        # Inject Patens configuration
         data[root_key]["patens"] = {
             "type": "stdio",
             "command": command,
             "args": args
         }
 
-        # Write data back safely
+        # 3. Safe / Atomic Write Phase
         try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4)
+            # Create a user backup just in case we stripped valuable comments
+            backup_path = None
+            if file_path.exists():
+                backup_path = file_path.with_suffix(".json.bak")
+                shutil.copy2(file_path, backup_path)
+
+            # Write to a temporary file first
+            with tempfile.NamedTemporaryFile("w", dir=file_path.parent, delete=False, encoding="utf-8") as tmp_file:
+                json.dump(data, tmp_file, indent=4)
+                temp_name = tmp_file.name
+
+            # Swap the temporary file with the real file atomically
+            os.replace(temp_name, file_path)
+
             print(f"[Success] Configured [ {ide_name} ] -> {file_path}")
+            if backup_path:
+                print(f"          (Original backup saved to {backup_path.name})")
+
             configured_count += 1
+
         except Exception as e:
             print(f"[Error] Failed to write to [ {ide_name} ]: {e}")
+            if 'temp_name' in locals() and os.path.exists(temp_name):
+                os.remove(temp_name)
 
-    # 3. User Feedback Summary
+    # 4. User Feedback Summary
     print("\n" + "=" * 50)
     if configured_count > 0:
         print(f"[Success] Configured {configured_count} IDE(s) using {mode}.")

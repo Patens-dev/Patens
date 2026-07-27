@@ -1,50 +1,71 @@
-# src/patens/main.py
 import sys
-import webbrowser
-import threading
+import io
+import socket
 import time
 import ctypes
+import threading
+import webbrowser
+
+# Force UTF-8 encoding for Windows stdout/stderr
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 from patens.server import unified_server
 from patens import installer
 
-def main():
-    is_debug = "--debug" in sys.argv
+# Global variable to hold the socket open
+_instance_lock = None
 
-    if "--mcp" in sys.argv:
-        # Run the MCP server layer directly
-        unified_server.run_mcp()
-    else:
-        # Automatically detect environment and inject correct paths into IDEs
-        installer.install_to_ides(is_debug=is_debug)
 
-        # Launch the FastAPI app thread
-        api_thread = threading.Thread(target=unified_server.run_fastapi, daemon=True)
-        api_thread.start()
-
-        print("\n🎉 Patens Initialized!")
-        time.sleep(1.5)
-        webbrowser.open("http://localhost:8000/welcome")
-
-        input("\nPress ENTER to stop the background server.")
+def enforce_single_api_instance():
+    """Binds to a hidden local port. If it fails, another Patens API is already running."""
+    global _instance_lock
+    _instance_lock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Port 61234 is arbitrary. It just acts as a system-wide lock.
+        _instance_lock.bind(('127.0.0.1', 61234))
+    except OSError:
+        print("[Patens] Another API instance is already running. Exiting cleanly.")
+        sys.exit(0)
 
 
 def hide_console_window():
-    """
-    Hides the terminal window on Windows to prevent intimidating users,
-    while keeping the stdio pipes alive so MCP can still talk to the IDE.
-    """
     if sys.platform == "win32":
-        # Get the internal Windows handle for the current console window
         hwnd = ctypes.windll.kernel32.GetConsoleWindow()
         if hwnd:
-            # 0 corresponds to SW_HIDE in the Windows API
             ctypes.windll.user32.ShowWindow(hwnd, 0)
 
 
-# --- Add this near the very beginning of your main block ---
+def main():
+    is_debug = "--debug" in sys.argv
+
+    if "--mcp-mode" in sys.argv:
+        # IDEs handle MCP instance lifecycles natively
+        unified_server.run_mcp()
+    else:
+        # 🛠️ THE FIX: Guarantee only ONE background API server exists
+        enforce_single_api_instance()
+
+        installer.install_to_ides(is_debug=is_debug)
+
+        api_thread = threading.Thread(target=unified_server.run_fastapi, daemon=True)
+        api_thread.start()
+
+        print("\n[Patens] Server running successfully!")
+
+
+        try:
+            if sys.stdin and sys.stdin.isatty():
+                input("\nPress ENTER to stop the server.\n")
+            else:
+                while api_thread.is_alive():
+                    api_thread.join(timeout=2.0)
+        except (KeyboardInterrupt, EOFError):
+            pass
+
+
 if __name__ == "__main__":
-    # Hide the console immediately, UNLESS we are debugging
     if "--debug" not in sys.argv:
         hide_console_window()
     main()

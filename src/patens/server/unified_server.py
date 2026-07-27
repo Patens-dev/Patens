@@ -1,3 +1,4 @@
+import re
 import json
 import os
 import sys
@@ -7,6 +8,7 @@ import logging
 import urllib.request
 import urllib.error
 from pathlib import Path
+from typing import Optional, Dict, Any, List
 
 import uvicorn
 from fastmcp import FastMCP
@@ -18,153 +20,204 @@ from patens.server.config import (
 from patens.server.database import DatabaseManager
 from patens.server.api import create_app
 
+# Initialize global logging configuration
 setup_logging()
 logger = logging.getLogger(__name__)
 
-logger.info("=== Unified Server Starting Up ===")
-os.makedirs(IMAGE_DIR, exist_ok=True)
+logger.info("=== Unified Server Initializing ===")
 
-# Global event for waking the sync thread instantly
+try:
+    IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    logger.debug("Ensured image directory exists at: %s", IMAGE_DIR)
+except Exception as e:
+    logger.error("Failed to create image directory %s: %s", IMAGE_DIR, e, exc_info=True)
+
+# Global event and thread lock for dynamic workspace context synchronization
 workspace_sync_event = threading.Event()
+_context_lock = threading.Lock()
+_sync_thread_started = False
 
-# Initialize Core Services (Database & AI)
+# Initialize Core Database
+logger.debug("Initializing database manager at: %s", DB_PATH)
 db_manager = DatabaseManager(str(DB_PATH))
 
-logger.info("Loading FastEmbed model...")
-embedder = TextEmbedding(model_name=MODEL_NAME)
-logger.info("Model loaded successfully.")
+# Lazy-loaded FastEmbed Singleton
+_embedder_instance: Optional[TextEmbedding] = None
 
-# Initialize the API and MCP Server instances
-fastapi_app = create_app(db_manager, embedder, str(IMAGE_DIR))
+
+def get_embedder() -> TextEmbedding:
+    """Lazy-loads the FastEmbed model only when vector operations are requested."""
+    global _embedder_instance
+    if _embedder_instance is None:
+        logger.info("Loading FastEmbed model (%s)...", MODEL_NAME)
+        start_time = time.perf_counter()
+        _embedder_instance = TextEmbedding(model_name=MODEL_NAME)
+        elapsed = time.perf_counter() - start_time
+        logger.info("FastEmbed model loaded successfully in %.2f seconds.", elapsed)
+    else:
+        logger.debug("Reusing existing FastEmbed model instance.")
+    return _embedder_instance
+
+
+# Initialize API and MCP Server instances
+fastapi_app = create_app(db_manager, get_embedder, str(IMAGE_DIR))
 mcp = FastMCP("Patens")
 
 # =====================================================================
-# ZERO-FRICTION WORKSPACE SYNC ENGINE
+# THREAD-SAFE WORKSPACE CONTEXT ENGINE
 # =====================================================================
 
-# When an IDE launches an MCP server, it sets the Working Directory to the project root
-WORKSPACE_ROOT = Path(os.getcwd())
-CONTEXT_DIR = WORKSPACE_ROOT / "_context"
+# Default initial workspace root
+_WORKSPACE_ROOT = Path.cwd().resolve()
+_CONTEXT_DIR = _WORKSPACE_ROOT / "_context"
+
+
+def get_context_dir() -> Path:
+    """Thread-safe getter for the active _context folder."""
+    with _context_lock:
+        return _CONTEXT_DIR
+
+
+def set_context_dir(new_context_dir: Path) -> None:
+    """Thread-safe setter for redirecting the _context folder."""
+    global _CONTEXT_DIR
+    with _context_lock:
+        old_dir = _CONTEXT_DIR
+        _CONTEXT_DIR = new_context_dir
+        logger.info("Active context directory changed from '%s' to '%s'", old_dir, new_context_dir)
 
 
 def is_valid_workspace(path: Path) -> bool:
-    """Safeguard: Prevents polluting System32, Home, Root, or the EXE directory."""
-    abs_str = str(path.absolute()).lower()
+    """Safeguard: Prevents polluting System32, Home, Root, or the binary EXE directory."""
+    try:
+        abs_path = path.resolve()
+        abs_str = str(abs_path).lower()
+        home_path = Path.home().resolve()
+        home_str = str(home_path).lower()
 
-    # 1. Block Home directory and Root drive
-    if path == Path.home() or abs_str in [os.path.abspath(os.sep).lower(), "c:\\", "c:/"]:
+        # 1. Block Home directory and Root drive
+        if abs_str == home_str or abs_path.parent == abs_path:
+            logger.debug("Workspace path '%s' rejected: Is home or root directory.", abs_path)
+            return False
+
+        # 2. Block system directories
+        system_dirs = ["system32", "windows", "program files", "program files (x86)", "appdata"]
+        if any(sys_dir in abs_str for sys_dir in system_dirs):
+            logger.debug("Workspace path '%s' rejected: Contains system directory.", abs_path)
+            return False
+
+        # 3. Block directory where executable/python lives
+        exe_dir = str(Path(sys.executable).parent.resolve()).lower()
+        if abs_str == exe_dir:
+            logger.debug("Workspace path '%s' rejected: Matches Python/Executable directory.", abs_path)
+            return False
+
+        return True
+    except Exception as e:
+        logger.warning("Error validating workspace path '%s': %s", path, e)
         return False
-
-    # 2. Block system directories
-    system_dirs = ["system32", "windows", "program files", "program files (x86)", "appdata"]
-    if any(sys_dir in abs_str for sys_dir in system_dirs):
-        return False
-
-    # 3. CRITICAL FIX: Block the directory where the .exe actually lives!
-    exe_dir = str(Path(sys.executable).parent.absolute()).lower()
-    if abs_str == exe_dir:
-        return False
-
-    return True
 
 
 def sync_workspace_files_loop():
-    """Background daemon that automatically mirrors recent DB clips to the local workspace."""
-    last_db_state = None
+    """Background daemon that mirrors recent DB clips into local workspace .md files."""
+    logger.info("Starting workspace sync daemon loop...")
+    last_db_state: Optional[str] = None
     has_warned_invalid = False
 
     while True:
-        # 1. Dynamically check the CURRENT parent directory of CONTEXT_DIR
-        current_workspace = CONTEXT_DIR.parent
+        context_dir = get_context_dir()
+        current_workspace = context_dir.parent
 
+        # 1. Validate Target Workspace
         if not is_valid_workspace(current_workspace):
             if not has_warned_invalid:
                 logger.warning(
-                    f"Server workspace is currently invalid or global ({current_workspace}). Physical _context files paused."
+                    "Target workspace '%s' is invalid or unsafe. Physical context sync paused.",
+                    current_workspace
                 )
                 has_warned_invalid = True
 
-            # PAUSE execution, but DO NOT RETURN! Keep the thread alive.
             workspace_sync_event.wait(timeout=3)
             workspace_sync_event.clear()
             continue
 
-        # Reset the warning flag once a valid workspace is mounted
         has_warned_invalid = False
 
         try:
-            os.makedirs(CONTEXT_DIR, exist_ok=True)
+            context_dir.mkdir(parents=True, exist_ok=True)
 
-            gitignore_path = CONTEXT_DIR / ".gitignore"
+            gitignore_path = context_dir / ".gitignore"
             if not gitignore_path.exists():
+                logger.debug("Creating .gitignore in context directory: %s", gitignore_path)
                 gitignore_path.write_text("*\n", encoding="utf-8")
 
             recent_clips = db_manager.get_recent_snippets(hours=24)
+            logger.debug("Fetched %d recent snippets from DB for workspace sync", len(recent_clips))
 
-            # Include CONTEXT_DIR in state check so changing workspace forces a redraw
-            current_db_state = f"{CONTEXT_DIR}:" + "".join(
-                str(c.get("id", "")) for c in recent_clips
-            )
+            # 2. State Check: Skip computation and I/O if state hasn't changed
+            current_db_state = f"{context_dir}:" + "".join(str(c.get("id", "")) for c in recent_clips)
 
-            if current_db_state != last_db_state:
-                last_db_state = current_db_state
-            # --- THE INTELLIGENT MERGE ENGINE ---
-            grouped_clips = {}
+            if current_db_state == last_db_state:
+                logger.debug("No state change detected in workspace sync. Sleeping.")
+                workspace_sync_event.wait(timeout=3)
+                workspace_sync_event.clear()
+                continue
 
-            # Process in reverse (oldest first) so the markdown file reads chronologically
+            logger.info("Workspace state changed. Synchronizing context files in: %s", context_dir)
+            last_db_state = current_db_state
+
+            # 3. Group and Merge Clips Chronologically
+            grouped_clips: Dict[str, Dict[str, Any]] = {}
+
             for clip in reversed(recent_clips):
-                # Group by URL (or title if URL is missing)
-                key = clip.get('url') or clip.get('title') or str(clip.get('id'))
+                key = clip.get("url") or clip.get("title") or str(clip.get("id"))
 
                 if key not in grouped_clips:
                     grouped_clips[key] = {
-                        'title': clip.get('title') or f"Saved_Snippet_{clip.get('id', 'Unknown')}",
-                        'url': clip.get('url', 'Unknown'),
-                        'created_at': clip.get('created_at', 'Unknown'),
-                        'content': clip.get('content', ''),
-                        'clip_count': 1
+                        "title": clip.get("title") or f"Saved_Snippet_{clip.get('id', 'Unknown')}",
+                        "url": clip.get("url", "Unknown"),
+                        "created_at": clip.get("created_at", "Unknown"),
+                        "content": clip.get("content", ""),
+                        "clip_count": 1,
                     }
                 else:
-                    # Append the new highlight to the existing context document
-                    grouped_clips[key][
-                        'content'] += f"\n\n---\n> **➕ Added on:** {clip.get('created_at', 'Unknown')}\n\n" + clip.get(
-                        'content', '')
-                    # Update the master timestamp to reflect the most recent addition
-                    grouped_clips[key]['created_at'] = clip.get('created_at', 'Unknown')
-                    grouped_clips[key]['clip_count'] += 1
-            # ------------------------------------
+                    grouped_clips[key]["content"] += (
+                        f"\n\n---\n> **➕ Added on:** {clip.get('created_at', 'Unknown')}\n\n"
+                        + clip.get("content", "")
+                    )
+                    grouped_clips[key]["created_at"] = clip.get("created_at", "Unknown")
+                    grouped_clips[key]["clip_count"] += 1
 
+            # 4. Generate Master Index and Markdown Documents
             active_filenames = {".gitignore"}
 
             index_content = "# 🧠 Patens Master Index\n\n"
             index_content += "> **⚠️ SYSTEM PROMPT FOR AI:**\n"
-            index_content += "> **DO NOT guess or hallucinate.** You MUST use your file-reading tool to open and read the specific `.md` files linked below to get the actual context.\n"
+            index_content += "> **DO NOT guess or hallucinate.** You MUST use your file-reading tool to open and read the specific `.md` files linked below.\n"
             index_content += "> **DO NOT rely on your training data.** Read the physical file.\n\n"
 
-            # Iterate through the MERGED clips
-            for idx, (key, g_clip) in enumerate(grouped_clips.items(), 1):
-                raw_title = str(g_clip['title'])
-                tokens = len(g_clip['content']) // 4
+            for idx, (_, g_clip) in enumerate(grouped_clips.items(), 1):
+                raw_title = str(g_clip["title"])
+                tokens = len(g_clip["content"]) // 4
 
-                clean_title = __import__('re').sub(r'[^a-zA-Z0-9]', '_', raw_title).strip('_')
-                clean_title = __import__('re').sub(r'_+', '_', clean_title)[:35]
+                clean_title = re.sub(r"[^a-zA-Z0-9]", "_", raw_title).strip("_")
+                clean_title = re.sub(r"_+", "_", clean_title)[:35]
                 if not clean_title:
                     clean_title = f"Snippet_{idx}"
 
-                # Filename automatically updates as token count grows
                 filename = f"{clean_title}_{tokens}t.md"
-                filepath = CONTEXT_DIR / filename
+                filepath = context_dir / filename
                 active_filenames.add(filename)
 
                 index_content += f"{idx}. **[{filename}]({filename})**\n"
                 index_content += f"   - **Source:** {g_clip['url']}\n"
                 index_content += f"   - **Size:** ~{tokens} tokens\n"
-                if g_clip['clip_count'] > 1:
+                if g_clip["clip_count"] > 1:
                     index_content += f"   - **Merged:** {g_clip['clip_count']} separate clips\n"
                 index_content += "\n"
 
                 content_md = (
-                    f"<!-- Auto-synced by Patens.dev -->\n"
+                    f"<!-- Auto-synced by Patens -->\n"
                     f"# {raw_title}\n"
                     f"**Source:** {g_clip['url']}\n"
                     f"**Last Updated:** {g_clip['created_at']}\n"
@@ -173,48 +226,53 @@ def sync_workspace_files_loop():
                     f"{g_clip['content']}"
                 )
 
-                if not filepath.exists() or filepath.read_text(encoding='utf-8') != content_md:
-                    filepath.write_text(content_md, encoding='utf-8')
+                if not filepath.exists() or filepath.read_text(encoding="utf-8") != content_md:
+                    logger.debug("Writing/Updating synced file: %s", filepath)
+                    filepath.write_text(content_md, encoding="utf-8")
 
-            # Save the Master Index file
+            # Write Master Index
             index_filename = "00_Context_Index.md"
-            index_filepath = CONTEXT_DIR / index_filename
+            index_filepath = context_dir / index_filename
             active_filenames.add(index_filename)
 
-            if not index_filepath.exists() or index_filepath.read_text(encoding='utf-8') != index_content:
-                index_filepath.write_text(index_content, encoding='utf-8')
+            if not index_filepath.exists() or index_filepath.read_text(encoding="utf-8") != index_content:
+                logger.debug("Updating context index file: %s", index_filepath)
+                index_filepath.write_text(index_content, encoding="utf-8")
 
-            # Prune engine: If a file grows (e.g., _50t.md becomes _120t.md),
-            # the old smaller file is automatically deleted here because it's no longer in active_filenames.
-            for file in CONTEXT_DIR.iterdir():
+            # 5. Prune Stale Files
+            for file in context_dir.iterdir():
                 if file.is_file() and file.name not in active_filenames:
-                    file.unlink()
-
-
+                    logger.info("Pruning stale context file: %s", file.name)
+                    file.unlink(missing_ok=True)
 
         except Exception as e:
-            logger.error(f"Workspace sync thread error: {e}")
+            logger.error("Workspace sync thread encountered an error: %s", e, exc_info=True)
 
         workspace_sync_event.wait(timeout=3)
-
         workspace_sync_event.clear()
 
 
 # =====================================================================
-# MCP TOOLS (Letting the AI manage its own memory)
+# MCP TOOLS
 # =====================================================================
 
 def notify_ide_activity(event: str = "tool_call", **meta):
+    """Pings backend telemetry asynchronously when an IDE executes a tool."""
+
     def _ping():
+        url = f"http://{API_HOST}:{API_PORT}/api/internal/activity"
         try:
-            payload = json.dumps({"event": event, "ts": time.time(), **meta}).encode()
+            payload = json.dumps({"event": event, "ts": time.time(), **meta}).encode("utf-8")
             req = urllib.request.Request(
-                f"http://{API_HOST}:{API_PORT}/api/internal/activity",
-                data=payload, headers={"Content-Type": "application/json"}, method="POST",
+                url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
             )
-            urllib.request.urlopen(req, timeout=1.0)
-        except Exception:
-            pass
+            with urllib.request.urlopen(req, timeout=1.0) as resp:
+                logger.debug("IDE activity ping sent successfully (status: %d)", resp.status)
+        except Exception as e:
+            logger.debug("Failed sending activity telemetry ping to %s: %s", url, e)
 
     threading.Thread(target=_ping, daemon=True).start()
 
@@ -222,104 +280,137 @@ def notify_ide_activity(event: str = "tool_call", **meta):
 @mcp.tool()
 def query_browser_context(search_query: str, limit: int = 3) -> str:
     """
-    CRITICAL: Use this tool ANYTIME the user mentions "saved context", "memory", "clips", "clipboard".
-    Searches the user's global SQLite memory for older clips not in the active workspace.
+    CRITICAL: Use this tool ANYTIME the user mentions "saved context", "memory", "clips", or "clipboard".
+    Searches the global SQLite vector memory for saved web snippets.
     """
-    logger.info(f"Semantic search requested for: '{search_query}'")
-    query_vector = list(embedder.embed([search_query]))[0].tolist()
-    results = db_manager.search_similar(search_query, query_vector, limit)
+    logger.info("MCP Tool Called: query_browser_context (query='%s', limit=%d)", search_query, limit)
+    try:
+        embedder = get_embedder()
+        query_vector = list(embedder.embed([search_query]))[0].tolist()
+        results = db_manager.search_similar(search_query, query_vector, limit)
 
-    if not results:
-        return "No matching browser context found."
+        if not results:
+            logger.info("No matching browser context found for query: '%s'", search_query)
+            return "No matching browser context found."
 
-    output = "Found relevant web context:\n\n"
-    for r in results:
-        output += f"### [ID: {r.get('id', 'unknown')}] Source: {r['title']}\nURL: {r['url']}\n\n```text\n{r['content']}\n```\n\n"
-    notify_ide_activity(
-        tool="query_browser_context",
-        query=search_query,
-        result_count=len(results),
-        approx_tokens=sum(len(r['content']) for r in results) // 4
-    )
-    return output
+        logger.info("Found %d relevant web context entries", len(results))
+
+        output = "Found relevant web context:\n\n"
+        for r in results:
+            output += f"### [ID: {r.get('id', 'unknown')}] Source: {r.get('title', 'Untitled')}\nURL: {r.get('url', '')}\n\n```text\n{r.get('content', '')}\n```\n\n"
+
+        notify_ide_activity(
+            tool="query_browser_context",
+            query=search_query,
+            result_count=len(results),
+            approx_tokens=sum(len(r.get("content", "")) for r in results) // 4,
+        )
+        return output
+    except Exception as e:
+        logger.error("Error executing query_browser_context: %s", e, exc_info=True)
+        return f"Error querying browser context: {e}"
 
 
 @mcp.tool()
 def forget_memory(memory_id: int) -> str:
-    """
-    CRITICAL: Use this tool to delete outdated, incorrect, or deprecated context from the user's memory.
-    The background sync engine will automatically delete the local .md file from the IDE.
-    """
-    logger.info(f"Forget memory requested for ID: {memory_id}")
-    notify_ide_activity()
-    success = db_manager.delete_snippet(memory_id)
-    if success:
-        workspace_sync_event.set()  # Wakes the thread instantly
-        return f"Successfully deleted memory ID {memory_id}..."
-    return f"Failed to delete memory ID {memory_id}."
+    """Deletes outdated or deprecated context from memory and purges synced local files."""
+    logger.info("MCP Tool Called: forget_memory (ID=%d)", memory_id)
+    notify_ide_activity(tool="forget_memory", memory_id=memory_id)
+
+    try:
+        success = db_manager.delete_snippet(memory_id)
+        if success:
+            logger.info("Memory ID %d deleted successfully.", memory_id)
+            workspace_sync_event.set()
+            return f"Successfully deleted memory ID {memory_id}."
+
+        logger.warning("Failed to delete memory ID %d (Not found or DB error)", memory_id)
+        return f"Failed to delete memory ID {memory_id}."
+    except Exception as e:
+        logger.error("Error executing forget_memory for ID %d: %s", memory_id, e, exc_info=True)
+        return f"Error executing delete request: {e}"
 
 
 @mcp.tool()
 def memorize_ide_insight(title: str, insight: str) -> str:
-    """
-    Saves an important conclusion, bug fix, or architectural decision from this IDE conversation
-    into the user's permanent vector memory database.
-    """
-    logger.info(f"Saving IDE insight to memory: '{title}'")
-    notify_ide_activity()
-    embedding = list(embedder.embed([insight]))[0].tolist()
-    internal_url = f"ide://chat-resolution/{int(time.time())}"
+    """Saves an important conclusion or architectural decision into permanent vector memory."""
+    logger.info("MCP Tool Called: memorize_ide_insight (title='%s')", title)
+    notify_ide_activity(tool="memorize_ide_insight", title=title)
 
-    content_id = db_manager.insert_snippet(
-        url=internal_url, title=title, content=insight, embedding=embedding
-    )
-    workspace_sync_event.set()
-    return f"Success! The insight '{title}' has been permanently saved..."
+    try:
+        embedder = get_embedder()
+        embedding = list(embedder.embed([insight]))[0].tolist()
+        internal_url = f"ide://chat-resolution/{int(time.time())}"
+
+        snippet_id = db_manager.insert_snippet(
+            url=internal_url, title=title, content=insight, embedding=embedding
+        )
+        logger.info("Insight successfully saved to DB with ID: %s", snippet_id)
+
+        workspace_sync_event.set()
+        return f"Success! The insight '{title}' has been permanently saved."
+    except Exception as e:
+        logger.error("Error executing memorize_ide_insight: %s", e, exc_info=True)
+        return f"Error saving insight: {e}"
 
 
 @mcp.tool()
 def mount_workspace_context(absolute_project_path: str) -> str:
-    """
-    CRITICAL: Use this tool anytime the user asks you to "sync files", "mount context", or if you cannot find the _context folder.
-    Extract the absolute path of the user's currently open IDE workspace and pass it as the argument.
-    """
-    global CONTEXT_DIR
-    logger.info(f"AI requested to mount context to: {absolute_project_path}")
+    """Redirects the context sync engine to write the _context folder into a specific workspace path."""
+    logger.info("MCP Tool Called: mount_workspace_context (path='%s')", absolute_project_path)
+    notify_ide_activity(tool="mount_workspace_context", path=absolute_project_path)
 
-    project_path = Path(absolute_project_path)
+    project_path = Path(absolute_project_path).resolve()
 
     if not project_path.exists() or not project_path.is_dir():
+        logger.warning("Mount failed: Path '%s' is not a valid directory", absolute_project_path)
         return f"Failed: Could not verify '{absolute_project_path}' as a valid directory."
 
-    CONTEXT_DIR = project_path / "_context"
+    target_context_dir = project_path / "_context"
+    set_context_dir(target_context_dir)
 
-    # Trigger an immediate write so the files appear instantly
-    logger.info(f"Context successfully redirected to {CONTEXT_DIR}")
     workspace_sync_event.set()
-    return f"Success! The context engine has been redirected. The _context folder and index file will appear in {CONTEXT_DIR} within 3 seconds. You can then read them."
+    return f"Success! Context redirected to {target_context_dir}. Context files will update shortly."
 
 
 # =====================================================================
-# RUNNERS
+# INITIALIZATION RUNNERS
 # =====================================================================
+
+def start_sync_daemon():
+    """Ensures the background workspace sync thread is only started once per process."""
+    global _sync_thread_started
+    if not _sync_thread_started:
+        _sync_thread_started = True
+        logger.info("Initializing background workspace sync thread...")
+        sync_thread = threading.Thread(target=sync_workspace_files_loop, daemon=True)
+        sync_thread.start()
+    else:
+        logger.debug("Sync daemon thread already running.")
+
 
 def run_mcp():
     """Runs the MCP server over stdio for IDE integration."""
-    logger.info("Initializing stdio MCP server for the IDE...")
-
-    # Auto-start the sync engine. The `is_valid_workspace` check keeps it safe!
-    sync_thread = threading.Thread(target=sync_workspace_files_loop, daemon=True)
-    sync_thread.start()
-
-    mcp.run()
+    logger.info("Starting stdio MCP server runner...")
+    start_sync_daemon()
+    try:
+        mcp.run()
+    except Exception as e:
+        logger.critical("Fatal error in MCP server execution: %s", e, exc_info=True)
 
 
 def run_fastapi():
-    """Launches the background API server for the Chrome extension."""
-    logger.info(f"Starting FastAPI server on {API_HOST}:{API_PORT}")
+    """Launches the background FastAPI server for browser integration."""
+    logger.info("Starting FastAPI Uvicorn runner on %s:%s", API_HOST, API_PORT)
+    start_sync_daemon()
 
-    # Start the sync engine in the active terminal so the user can see logs!
-    sync_thread = threading.Thread(target=sync_workspace_files_loop, daemon=True)
-    sync_thread.start()
-
-    uvicorn.run(fastapi_app, host=API_HOST, port=API_PORT, log_level="warning")
+    try:
+        uvicorn.run(
+            fastapi_app,
+            host=API_HOST,
+            port=API_PORT,
+            log_level="error",  # Silence non-critical logs on standard output
+            access_log=False,   # Prevents console/I/O congestion
+        )
+    except Exception as e:
+        logger.critical("Fatal error running Uvicorn FastAPI server: %s", e, exc_info=True)
