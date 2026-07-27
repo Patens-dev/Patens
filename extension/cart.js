@@ -1,261 +1,230 @@
-// ==========================================
-// INJECTION GUARD
-// Prevents "Identifier has already been declared" errors
-// if Chrome injects this script multiple times.
-// ==========================================
-if (!window._ccCartLoaded) {
-    window._ccCartLoaded = true;
-    window.cartOpen = false;
+(() => {
+    window.Patens = window.Patens || {};
+    const Logger = Patens.LoggerFactory ? Patens.LoggerFactory("[Patens CartUI]") : console;
+    const h = Patens.h; // ✨ FIX: Brought the UI Builder alias into the local scope
 
-    window.renderUI = function () {
-        chrome.storage.local.get(['contextCart'], (result) => {
-            const cart = result.contextCart || [];
-            let btn = document.getElementById('cc-cart-btn');
+    if (!window._patensCartLoaded) {
+        window._patensCartLoaded = true;
 
-            if (cart.length > 0) {
-                if (!btn) {
-                    btn = document.createElement('div');
-                    btn.id = 'cc-cart-btn';
-                    btn.className = 'cc-cart-btn';
-                    btn.style.position = 'fixed';
-                    btn.style.zIndex = '2147483647';
+        Logger.info("Cart UI module loaded and initialized.");
 
-                    // Create content natively to avoid innerHTML
-                    const iconText = document.createTextNode('📦');
-                    const badge = document.createElement('div');
-                    badge.className = 'cc-cart-badge';
-                    badge.id = 'cc-badge';
+        // ==========================================
+        // 2. CART COMPONENT
+        // ==========================================
+        Patens.Cart = {
+            renderUI: () => {
+                Logger.debug("Fetching 'contextCart' from storage to render UI...");
+                
+                try {
+                    chrome.storage.local.get(['contextCart'], (result) => {
+                        if (chrome.runtime.lastError) {
+                            Logger.error("Failed to read 'contextCart' from storage:", chrome.runtime.lastError);
+                            return;
+                        }
 
-                    btn.appendChild(iconText);
-                    btn.appendChild(badge);
-                    btn.onclick = window.toggleModal;
-                    document.body.appendChild(btn);
-                }
-                document.getElementById('cc-badge').textContent = cart.length;
-            } else {
-                if (btn) btn.remove();
-                if (window.cartOpen) window.toggleModal();
-            }
+                        const cart = result.contextCart || [];
+                        Logger.debug(`Read ${cart.length} items from cart storage.`);
+                        
+                        let btn = document.getElementById('cc-cart-btn');
 
-            if (window.cartOpen) window.renderModalContents(cart);
-        });
-    };
+                        if (cart.length > 0) {
+                            if (!btn) {
+                                Logger.debug("Creating cart trigger button widget in DOM.");
+                                btn = h('div', {
+                                        id: 'cc-cart-btn',
+                                        class: 'cc-cart-btn',
+                                        style: 'position: fixed; z-index: 2147483647;',
+                                        onclick: Patens.Cart.toggleModal
+                                    },
+                                    '📦',
+                                    h('div', { class: 'cc-cart-badge', id: 'cc-badge' }, cart.length)
+                                );
+                                document.body.appendChild(btn);
+                            } else {
+                                const badge = document.getElementById('cc-badge');
+                                if (badge) badge.textContent = cart.length;
+                            }
+                        } else {
+                            if (btn) btn.remove();
+                            if (Patens.State?.ui?.cartOpen) Patens.Cart.toggleModal();
+                        }
 
-    window.toggleModal = function () {
-        let modal = document.getElementById('cc-cart-modal');
-        if (window.cartOpen && modal) {
-            modal.remove();
-            window.cartOpen = false;
-        } else {
-            modal = document.createElement('div');
-            modal.id = 'cc-cart-modal';
-            modal.className = 'cc-cart-modal';
-            modal.style.position = 'fixed';
-            modal.style.zIndex = '2147483647';
-            document.body.appendChild(modal);
-            window.cartOpen = true;
-            window.renderUI();
-        }
-    };
-
-    window.renderModalContents = function (cart) {
-        const modal = document.getElementById('cc-cart-modal');
-        if (!modal) return;
-
-        // Clear previous contents
-        modal.textContent = '';
-
-        // --- 1. Header ---
-        const header = document.createElement('div');
-        header.className = 'cc-cart-header';
-
-        const titleSpan = document.createElement('span');
-        titleSpan.textContent = 'Context Cart';
-
-        const closeSpan = document.createElement('span');
-        closeSpan.style.cursor = 'pointer';
-        closeSpan.textContent = '_';
-        closeSpan.onclick = () => {
-            const btn = document.getElementById('cc-cart-btn');
-            if (btn) btn.click();
-        };
-
-        header.appendChild(titleSpan);
-        header.appendChild(closeSpan);
-        modal.appendChild(header);
-
-        // --- Tooltip Setup ---
-        let tooltip = document.getElementById('cc-cart-tooltip');
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'cc-cart-tooltip';
-            tooltip.className = 'cc-cart-tooltip';
-            tooltip.style.zIndex = '2147483647';
-            document.body.appendChild(tooltip);
-        }
-
-        // --- 2. Items List ---
-        const itemsContainer = document.createElement('div');
-        itemsContainer.className = 'cc-cart-items';
-
-        cart.forEach(itemData => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'cc-cart-item';
-            itemEl.setAttribute('data-id', itemData.id);
-
-            // Remove Button
-            const removeBtn = document.createElement('div');
-            removeBtn.className = 'cc-item-remove';
-            removeBtn.textContent = '✕';
-            removeBtn.onclick = (e) => {
-                e.stopPropagation();
-                const updatedCart = cart.filter(i => i.id !== itemData.id);
-                tooltip.classList.remove('cc-tooltip-visible');
-                chrome.storage.local.set({contextCart: updatedCart});
-            };
-
-            // Source Title
-            const sourceEl = document.createElement('div');
-            sourceEl.className = 'cc-item-source';
-            sourceEl.textContent = itemData.title; // Safe from XSS
-
-            // Item Text
-            const textEl = document.createElement('div');
-            textEl.className = 'cc-item-text';
-            textEl.textContent = itemData.content; // Safe from XSS
-
-            itemEl.appendChild(removeBtn);
-            itemEl.appendChild(sourceEl);
-            itemEl.appendChild(textEl);
-
-            // Tooltip Interactions
-            itemEl.addEventListener('mouseenter', () => {
-                tooltip.textContent = ''; // clear previous tooltip
-
-                if (itemData.type === 'image') {
-                    const img = document.createElement('img');
-                    img.src = itemData.media;
-                    img.alt = 'Preview';
-                    tooltip.appendChild(img);
-                } else {
-                    if (itemData.content.length > 256) {
-                        tooltip.textContent = itemData.content.substring(0, 256);
-                        const dots = document.createElement('span');
-                        dots.style.color = '#8ab4f8';
-                        dots.textContent = '...';
-                        tooltip.appendChild(dots);
-                    } else {
-                        tooltip.textContent = itemData.content;
-                    }
-                }
-
-                const modalRect = modal.getBoundingClientRect();
-                const itemRect = itemEl.getBoundingClientRect();
-                tooltip.style.right = `${window.innerWidth - modalRect.left + 15}px`;
-
-                let topPosition = itemRect.top;
-                if (topPosition + 250 > window.innerHeight) topPosition = window.innerHeight - 260;
-                tooltip.style.top = `${topPosition}px`;
-                tooltip.classList.add('cc-tooltip-visible');
-            });
-
-            itemEl.addEventListener('mouseleave', () => tooltip.classList.remove('cc-tooltip-visible'));
-
-            itemsContainer.appendChild(itemEl);
-        });
-
-        modal.appendChild(itemsContainer);
-
-        // --- 3. Footer ---
-        const footer = document.createElement('div');
-        footer.className = 'cc-cart-footer';
-
-        const sendBtn = document.createElement('button');
-        sendBtn.className = 'cc-send-btn';
-        sendBtn.id = 'cc-send-all';
-        sendBtn.textContent = '✨ Send All to Local Memory';
-
-        sendBtn.onclick = (e) => {
-            const btn = e.target;
-            btn.textContent = "Sending...";
-            btn.disabled = true;
-
-            chrome.runtime.sendMessage({action: "ingest_batch", payload: cart}, async (response) => {
-                if (response?.success) {
-                    btn.textContent = "✓ Saved!";
-                    btn.style.background = "#006400";
-                    tooltip.classList.remove('cc-tooltip-visible');
-
-                    let totalTokens = 0;
-                    let clipText = "> 📎 **Context Batch Saved**\n";
-
-                    cart.forEach(item => {
-                        const tokens = Math.floor(item.content.length / 4);
-                        totalTokens += tokens;
-                        clipText += `> - ${item.title} (~${tokens}t)\n`;
+                        if (Patens.State?.ui?.cartOpen) Patens.Cart.renderModalContents(cart);
                     });
+                } catch (err) {
+                    Logger.error("Uncaught exception in renderUI:", err);
+                }
+            },
 
-                    clipText += `> 📏 **Total Size:** ~${totalTokens} tokens\n`;
-                    clipText += `> 📂 Available instantly in your IDE via \`@\` or \`#\` in the \`_context/\` folder.`;
+            toggleModal: () => {
+                let modal = document.getElementById('cc-cart-modal');
+                Patens.State = Patens.State || { ui: {} };
+                Patens.State.ui = Patens.State.ui || {};
 
-                    try {
-                        await navigator.clipboard.writeText(clipText);
-                    } catch (err) {
-                        console.warn("Could not write to clipboard:", err);
-                    }
-
-                    setTimeout(() => chrome.storage.local.set({contextCart: []}), 1000);
+                if (Patens.State.ui.cartOpen && modal) {
+                    modal.remove();
+                    Patens.State.ui.cartOpen = false;
                 } else {
+                    modal = h('div', {
+                        id: 'cc-cart-modal',
+                        class: 'cc-cart-modal',
+                        style: 'position: fixed; z-index: 2147483647;'
+                    });
+                    document.body.appendChild(modal);
+                    Patens.State.ui.cartOpen = true;
+                    Patens.Cart.renderUI();
+                }
+            },
+
+            renderModalContents: (cart) => {
+                const modal = document.getElementById('cc-cart-modal');
+                if (!modal) return;
+                
+                modal.textContent = ''; 
+
+                let tooltip = document.getElementById('cc-cart-tooltip') || (() => {
+                    const tt = h('div', { id: 'cc-cart-tooltip', class: 'cc-cart-tooltip', style: 'z-index: 2147483647;' });
+                    document.body.appendChild(tt);
+                    return tt;
+                })();
+
+                const header = h('div', { class: 'cc-cart-header' },
+                    h('span', {}, 'Context Cart'),
+                    h('span', {
+                        style: 'cursor: pointer;',
+                        onclick: () => document.getElementById('cc-cart-btn')?.click()
+                    }, '_')
+                );
+
+                const itemsContainer = h('div', { class: 'cc-cart-items' },
+                    ...cart.map(itemData => h('div', {
+                            class: 'cc-cart-item',
+                            onmouseenter: (e) => Patens.Cart.showTooltip(itemData, e.currentTarget, tooltip, modal),
+                            onmouseleave: () => tooltip.classList.remove('cc-tooltip-visible')
+                        },
+                        h('div', {
+                            class: 'cc-item-remove',
+                            onclick: (e) => {
+                                e.stopPropagation();
+                                tooltip.classList.remove('cc-tooltip-visible');
+                                const updatedCart = cart.filter(i => i.id !== itemData.id);
+                                chrome.storage.local.set({ contextCart: updatedCart }, () => Patens.Cart.renderUI());
+                            }
+                        }, '✕'),
+                        h('div', { class: 'cc-item-source' }, itemData.title),
+                        h('div', { class: 'cc-item-text' }, itemData.content)
+                    ))
+                );
+
+                const footer = h('div', { class: 'cc-cart-footer' },
+                    h('button', {
+                        class: 'cc-send-btn',
+                        onclick: async (e) => Patens.Cart.handleCheckout(e.target, cart, tooltip)
+                    }, '✨ Send All to Local Memory')
+                );
+
+                modal.appendChild(header);
+                modal.appendChild(itemsContainer);
+                modal.appendChild(footer);
+            },
+
+            showTooltip: (itemData, itemEl, tooltip, modal) => {
+                tooltip.textContent = ''; 
+                if (itemData.type === 'image') {
+                    tooltip.appendChild(h('img', { src: itemData.media }));
+                } else {
+                    tooltip.textContent = itemData.content.length > 256
+                        ? itemData.content.substring(0, 256) + '...'
+                        : itemData.content;
+                }
+                const rect = itemEl.getBoundingClientRect();
+                tooltip.style.right = `${window.innerWidth - modal.getBoundingClientRect().left + 15}px`;
+                tooltip.style.top = `${Math.min(rect.top, window.innerHeight - 260)}px`;
+                tooltip.classList.add('cc-tooltip-visible');
+            },
+
+            handleCheckout: async (btn, cart, tooltip) => {
+                btn.textContent = "Sending...";
+                btn.disabled = true;
+
+                try {
+                    const response = await Patens.API?.ingestBatch(cart);
+
+                    if (response?.success) {
+                        btn.textContent = "✓ Saved!";
+                        btn.style.background = "#006400";
+                        tooltip.classList.remove('cc-tooltip-visible');
+
+                        let totalTokens = 0;
+                        let clipText = "> 📎 **Context Batch Saved**\n";
+                        cart.forEach(item => {
+                            const tokens = Math.floor(item.content.length / 4);
+                            totalTokens += tokens;
+                            clipText += `> - ${item.title} (~${tokens}t)\n`;
+                        });
+                        clipText += `> 📏 **Total Size:** ~${totalTokens} tokens\n> 📂 Available instantly in your IDE via \`@\` or \`#\` in the \`_context/\` folder.`;
+
+                        try { await navigator.clipboard.writeText(clipText); } catch (e) {}
+                        setTimeout(() => chrome.storage.local.set({ contextCart: [] }, () => Patens.Cart.renderUI()), 1000);
+                    } else {
+                        btn.textContent = "❌ Failed to send";
+                        btn.style.background = "#8B0000";
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    Logger.error("Error during checkout:", err);
                     btn.textContent = "❌ Failed to send";
                     btn.style.background = "#8B0000";
                     btn.disabled = false;
                 }
-            });
-        };
+            },
 
-        footer.appendChild(sendBtn);
-        modal.appendChild(footer);
-    };
-// ==========================================
-// "FAST-FORWARD" KEYBOARD SHORTCUT
-// ==========================================
-    window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
-            chrome.storage.local.get(['contextCart'], (result) => {
-                const cart = result.contextCart || [];
-                if (cart.length > 0) {
-                    const toast = document.createElement('div');
-                    toast.style.cssText = `
-                        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-                        background: #006400; color: white; padding: 8px 16px; border-radius: 20px;
-                        font-family: sans-serif; font-size: 14px; z-index: 2147483647;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-weight: bold;
-                    `;
-                    toast.innerText = "✨ Context Committed!";
-                    document.body.appendChild(toast);
+            saveBulkToCartDirectly: async (itemsToSave, eventX, eventY) => {
+                if (!Array.isArray(itemsToSave) || itemsToSave.length === 0) return;
 
-                    chrome.runtime.sendMessage({action: "ingest_batch", payload: cart}, async (response) => {
-                        if (response?.success) {
-                            let totalTokens = 0;
-                            let clipText = "> 📎 **Context Batch Saved**\n";
-                            cart.forEach(item => {
-                                const tokens = Math.floor(item.content.length / 4);
-                                totalTokens += tokens;
-                                clipText += `> - ${item.title} (~${tokens}t)\n`;
+                try {
+                    const result = await chrome.storage.local.get(['contextCart']);
+                    let cart = result.contextCart || [];
+                    let addedCount = 0;
+                    let duplicateCount = 0;
+
+                    itemsToSave.forEach(item => {
+                        const contentToHash = item.isImage ? item.base64Data : item.text;
+                        const itemHash = Patens.Utils?.fastHash(contentToHash).toString();
+
+                        if (!cart.some(cartItem => cartItem.hash === itemHash)) {
+                            cart.push({
+                                id: Date.now().toString() + Math.random().toString().slice(2, 6),
+                                hash: itemHash,
+                                type: item.isImage ? 'image' : 'text',
+                                url: window.location.href,
+                                title: item.title,
+                                content: item.text,
+                                media: item.base64Data
                             });
-                            clipText += `> 📏 **Total Size:** ~${totalTokens} tokens\n`;
-                            clipText += `> 📂 Available instantly in your IDE via \`@\` in the \`.context/\` folder.`;
-
-                            try {
-                                await navigator.clipboard.writeText(clipText);
-                            } catch (err) {
+                            addedCount++;
+                            if (item.element) {
+                                item.element.classList.add('cc-added-flash');
+                                setTimeout(() => item.element.classList.remove('cc-added-flash'), 600);
                             }
-                            chrome.storage.local.set({contextCart: []});
+                        } else {
+                            duplicateCount++;
                         }
-                        setTimeout(() => toast.remove(), 2000);
                     });
+
+                    if (addedCount > 0) {
+                        await chrome.storage.local.set({ contextCart: cart });
+                        Patens.Cart.renderUI();
+                    }
+
+                    if (addedCount > 0 && duplicateCount === 0) Patens.Utils?.showNotification(`✨ Saved ${addedCount} items`, '#10b981', eventX, eventY);
+                    else if (addedCount > 0 && duplicateCount > 0) Patens.Utils?.showNotification(`✨ Saved ${addedCount} items (${duplicateCount} duplicates)`, '#f59e0b', eventX, eventY);
+                    else if (addedCount === 0) Patens.Utils?.showNotification(`Already in cart`, '#ff5252', eventX, eventY);
+
+                } catch (e) {
+                    Logger.error("Failed bulk save to cart:", e);
                 }
-            });
-        }
-    });
-}
+            }
+        };
+    }
+})();
