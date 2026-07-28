@@ -10,21 +10,17 @@
         }
 
         :root {
-            /* Synchronized with index.html theme */
             --bg-base: #09090b;
             --bg-card: #121214;
             --bg-card-active: #18181b;
             --border-color: #27272a;
             --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
-
             --accent-blue: #3b82f6;
             --accent-blue-hover: #2563eb;
             --accent-glow: rgba(59, 130, 246, 0.15);
-
             --success-color: #10b981;
             --warning-color: #f59e0b;
-
             --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
         }
@@ -44,11 +40,9 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            /* Restored the subtle blue glow + minimalist grid */
-            background-image:
-                radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
-                linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-image: radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
             background-size: 100% 100%, 40px 40px, 40px 40px;
             background-position: center top;
             padding-bottom: 60px;
@@ -61,7 +55,6 @@
             margin: 0 auto;
         }
 
-        /* Hero & Progress */
         .hero {
             text-align: center;
             margin-bottom: 40px;
@@ -129,7 +122,6 @@
             margin-bottom: 30px;
         }
 
-        /* Setup Flow Cards */
         .setup-flow {
             display: flex;
             flex-direction: column;
@@ -213,7 +205,6 @@
             font-weight: 400;
         }
 
-        /* Interactive Elements */
         .status-pill {
             font-size: 12px;
             padding: 4px 10px;
@@ -307,7 +298,6 @@
             background: var(--accent-blue-hover);
         }
 
-        /* Radar Box */
         .radar-box {
             display: flex;
             align-items: center;
@@ -338,12 +328,20 @@
         }
 
         @keyframes pulse-radar {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
         }
 
-        /* Step 5 Instructions */
         .activation-instructions {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
@@ -364,7 +362,6 @@
             font-weight: 600;
         }
 
-        /* Manual Setup Fallback Area */
         .manual-setup-section {
             margin-top: 40px;
             padding-top: 32px;
@@ -384,7 +381,6 @@
             margin-bottom: 24px;
         }
 
-        /* IDE Selector & Cards */
         .ide-cards {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -426,7 +422,6 @@
             fill: currentColor;
         }
 
-        /* IDE Specific Content Panels */
         .ide-content-panel {
             display: none;
             animation: fadeIn 0.3s ease;
@@ -577,19 +572,32 @@
         }
 
         @media (max-width: 650px) {
-            .ide-cards { grid-template-columns: 1fr; }
+            .ide-cards {
+                grid-template-columns: 1fr;
+            }
         }
 
         @keyframes popIn {
-            0% { transform: scale(0.9); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(-5px); }
-            100% { opacity: 1; transform: translateY(0); }
+            0% {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-
     </style>
 </head>
 <body>
@@ -597,7 +605,8 @@
 <div class="container">
     <header class="hero">
         <div class="hero-logo">
-            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.svg" alt="patens logo">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.svg"
+                 alt="patens logo">
         </div>
         <h1>Welcome to patens</h1>
         <p>Let's configure your memory layer and get your IDE connected.</p>
@@ -621,7 +630,7 @@
                 <p>Verifying your background connections.</p>
                 <div style="display: flex; gap: 12px; margin-top: 12px;">
                     <span class="status-pill success">🟢 Extension Active</span>
-                    <span class="status-pill warning" id="server-status">🟡 Checking Server (localhost:8000)...</span>
+                    <span class="status-pill warning" id="server-status">🟡 Checking Server...</span>
                 </div>
             </div>
         </div>
@@ -633,10 +642,13 @@
                 <h2>Capture Context
                     <button class="btn-manual" onclick="advanceStep(3)">Skip</button>
                 </h2>
-                <p>Now I will show you how to use this. Hold <strong style="color:var(--accent-blue)">Ctrl + Shift</strong> and click with your mouse anywhere on the text block below. <em>(Don't worry, you can change the keys later)</em>.</p>
+                <p>Now I will show you how to use this. Hold <strong style="color:var(--accent-blue)">Ctrl +
+                    Shift</strong> and click with your mouse anywhere on the text block below. <em>(Don't worry, you can
+                    change the keys later)</em>.</p>
 
                 <div class="interactive-target" id="capture-target">
-                    "Use this text as a tutorial! You can add information from various tabs without your progress being deleted. patens handles deduplication and automatic title resolution behind the scenes."
+                    "Use this text as a tutorial! You can add information from various tabs without your progress being
+                    deleted. patens handles deduplication and automatic title resolution behind the scenes."
                 </div>
             </div>
         </div>
@@ -648,8 +660,10 @@
                 <h2>Commit to Memory
                     <button class="btn-manual" onclick="advanceStep(4)">Skip</button>
                 </h2>
-                <p>Look at the bottom corner of your screen—the context cart icon (📦) is showing what you just read, but haven't committed yet.</p>
-                <p><strong>Open the cart and click "Send All to Local Memory"</strong> to permanently save it to your local database.</p>
+                <p>Look at the bottom corner of your screen—the context cart icon (📦) is showing what you just read, but
+                    haven't committed yet.</p>
+                <p><strong>Open the cart and click "Send All to Local Memory"</strong> to permanently save it to your
+                    local database.</p>
             </div>
         </div>
 
@@ -660,8 +674,10 @@
                 <h2>Retrieve Context
                     <button class="btn-manual" onclick="advanceStep(5)">Skip</button>
                 </h2>
-                <p>Step 4 is to read from your memory layer. Press <strong style="color:var(--accent-blue)">Ctrl + Shift + Space</strong> to open your Command Palette right here.</p>
-                <p>Use your arrow keys to select the text you just saved, and press <strong>Enter</strong> to paste it into the chat box below.</p>
+                <p>Step 4 is to read from your memory layer. Press <strong style="color:var(--accent-blue)">Ctrl + Shift
+                    + Space</strong> to open your Command Palette right here.</p>
+                <p>Use your arrow keys to select the text you just saved, and press <strong>Enter</strong> to paste it
+                    into the chat box below.</p>
                 <textarea class="mock-chat-box" id="mock-chat-box" placeholder="Message AI..."></textarea>
             </div>
         </div>
@@ -679,7 +695,9 @@
                     <ol>
                         <li><strong>Restart</strong> your IDE completely so it loads any new configurations.</li>
                         <li>Open your AI Chat panel (Cursor, Copilot, or Cline).</li>
-                        <li>Click the <strong>Tools (📎)</strong> or <strong>MCP</strong> icon and ensure <strong>patens</strong> is enabled.</li>
+                        <li>Click the <strong>Tools (📎)</strong> or <strong>MCP</strong> icon and ensure
+                            <strong>patens</strong> is enabled.
+                        </li>
                         <li>Send this exact prompt to the AI:</li>
                     </ol>
 
@@ -699,7 +717,8 @@
                 <!-- ================= MANUAL SETUP FALLBACK ================= -->
                 <div class="manual-setup-section">
                     <h3>Automatic installation failed?</h3>
-                    <p>If the AI says it doesn't recognize the tool, select your editor below for the 1-minute manual setup.</p>
+                    <p>If the AI says it doesn't recognize the tool, select your editor below for the 1-minute manual
+                        setup.</p>
 
                     <!-- IDE Selector -->
                     <div class="ide-cards">
@@ -741,15 +760,17 @@
                                     <li>Navigate to <strong>Features &gt; MCP Servers</strong>.</li>
                                     <li>Click <strong>+ Add New MCP Server</strong>.</li>
                                     <li>Set Type to <strong>command</strong>.</li>
-                                    <li>Copy the JSON below or set Command to your path and Args to <code>--mcp</code>.</li>
+                                    <li>Copy the JSON below or set Command to your path and Args to <code>--mcp</code>.
+                                    </li>
                                 </ol>
                             </div>
                             <div class="setup-gif">
-                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/cursor_demo.mp4" autoplay loop muted playsinline></video>
+                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/cursor_demo.mp4"
+                                       autoplay loop muted playsinline></video>
                             </div>
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyConfigJSON(this)">Copy</button>
-<pre>{
+                                <pre>{
   "mcpServers": {
     "patens": {
       "type": "stdio",
@@ -769,18 +790,22 @@
                         <div class="setup-layout">
                             <div class="setup-steps">
                                 <ol>
-                                    <li>Open VS Code with an MCP extension (like <strong>Cline</strong> or Copilot).</li>
-                                    <li>Open the extension's MCP Settings (often a button saying <strong>MCP Servers</strong>).</li>
+                                    <li>Open VS Code with an MCP extension (like <strong>Cline</strong> or Copilot).
+                                    </li>
+                                    <li>Open the extension's MCP Settings (often a button saying <strong>MCP
+                                        Servers</strong>).
+                                    </li>
                                     <li>Edit the configuration JSON file.</li>
                                     <li>Paste the exact configuration below.</li>
                                 </ol>
                             </div>
                             <div class="setup-gif">
-                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/vsc_demo.mp4" autoplay loop muted playsinline></video>
+                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/vsc_demo.mp4"
+                                       autoplay loop muted playsinline></video>
                             </div>
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyConfigJSON(this)">Copy</button>
-<pre>{
+                                <pre>{
   "servers": {
     "patens": {
       "type": "stdio",
@@ -807,11 +832,12 @@
                                 </ol>
                             </div>
                             <div class="setup-gif">
-                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/jetbrains_demo.mp4" autoplay loop muted playsinline></video>
+                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/jetbrains_demo.mp4"
+                                       autoplay loop muted playsinline></video>
                             </div>
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyConfigJSON(this)">Copy</button>
-<pre>{
+                                <pre>{
   "servers": {
     "patens": {
       "type": "stdio",
@@ -838,7 +864,8 @@
 
     <div class="celebration" id="celebration">
         <h2>🎉 You are all set!</h2>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">Your context is now seamlessly synced across your browser and IDE.</p>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Your context is now seamlessly synced across your
+            browser and IDE.</p>
     </div>
 </div>
 
@@ -847,7 +874,6 @@
     const totalSteps = 5;
     let mcpPollingInterval = null;
 
-    // --- JSON COPY FUNCTIONALITY ---
     function copyConfigJSON(btn) {
         const pre = btn.parentElement.querySelector('pre');
         const textToCopy = pre.innerText;
@@ -880,11 +906,7 @@
                 card.querySelector('.step-number').innerHTML = '✓';
             } else if (i === currentStep) {
                 card.className = 'step-card active';
-
-                // Start polling ONLY when we reach Step 5
-                if (i === 5 && !mcpPollingInterval) {
-                    startIDEPolling();
-                }
+                if (i === 5 && !mcpPollingInterval) startIDEPolling();
             } else {
                 card.className = 'step-card';
                 card.querySelector('.step-number').innerHTML = i;
@@ -908,7 +930,7 @@
 
     function finishSetup() {
         if (mcpPollingInterval) clearInterval(mcpPollingInterval);
-        currentStep = 6; // Force bar to 100%
+        currentStep = 6;
         document.getElementById('progress-bar').style.width = '100%';
         document.querySelectorAll('.step-card').forEach(c => {
             c.className = 'step-card done';
@@ -918,9 +940,6 @@
         window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
     }
 
-    // ==========================================
-    // IDE SELECTOR LOGIC
-    // ==========================================
     function selectIDE(ideName) {
         document.querySelectorAll('.ide-card').forEach(card => card.classList.remove('active'));
         document.querySelectorAll('.ide-content-panel').forEach(panel => panel.classList.remove('active'));
@@ -928,14 +947,11 @@
         document.getElementById(`panel-${ideName}`).classList.add('active');
     }
 
-    // ==========================================
-    // AUTO-ADVANCE DOM LISTENERS
-    // ==========================================
-
+    // ✨ FIX: Updated fetch path to /api/v1/config/system
     async function checkServer() {
         if (currentStep !== 1) return;
         try {
-            const res = await fetch("http://localhost:8000/api/config");
+            const res = await fetch("/api/v1/config/system");
             if (res.ok) {
                 const data = await res.json();
 
@@ -959,11 +975,11 @@
         }
     }
 
-    // Poll backend to see if IDE MCP connected
+    // ✨ FIX: Updated fetch path to /api/internal/mcp-status
     function startIDEPolling() {
         mcpPollingInterval = setInterval(async () => {
             try {
-                const res = await fetch("http://localhost:8000/api/mcp-status");
+                const res = await fetch("/api/internal/mcp-status");
                 if (res.ok) {
                     const data = await res.json();
                     if (data.connected === true) {
@@ -976,15 +992,12 @@
                     }
                 }
             } catch (e) {
-                // Silently fail and keep polling
             }
         }, 3000);
     }
 
-    // Step 2: Detect Ctrl+Shift+Click
     window.addEventListener('mousedown', (e) => {
         if (currentStep !== 2) return;
-
         const captureTarget = document.getElementById('capture-target');
         if (e.target === captureTarget || captureTarget.contains(e.target)) {
             if (e.ctrlKey && e.shiftKey) {
@@ -1006,14 +1019,10 @@
         }
     }, true);
 
-    // Step 3: Detect click on the Extension's "Send All" button
     document.body.addEventListener('click', (e) => {
-        if (currentStep === 3 && e.target && e.target.id === 'cc-send-all') {
-            setTimeout(() => advanceStep(4), 1200);
-        }
+        if (currentStep === 3 && e.target && e.target.id === 'cc-send-all') setTimeout(() => advanceStep(4), 1200);
     });
 
-    // Step 4: Detect Paste/Injection in Mock Editor
     document.getElementById('mock-chat-box').addEventListener('input', (e) => {
         if (currentStep === 4 && e.target.value.trim().length > 10) {
             e.target.style.borderColor = 'var(--success-color)';
@@ -1022,7 +1031,6 @@
         }
     });
 
-    // Init
     updateProgress();
     checkServer();
 </script>

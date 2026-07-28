@@ -8,8 +8,8 @@ from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import threading
-from typing import Callable, Union, Any, Dict, List, Optional
-
+from typing import Callable, Union, Any, Dict
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -424,6 +424,10 @@ def create_routers(
 # APP INSTANTIATION
 # =====================================================================
 
+# =====================================================================
+# APP INSTANTIATION
+# =====================================================================
+
 def create_app(
         db_manager: Any,
         embedder_model: Union[TextEmbedding, Callable[[], TextEmbedding]],
@@ -431,7 +435,31 @@ def create_app(
 ) -> FastAPI:
     """Factory function to create and configure the FastAPI application."""
     logger.info("Initializing Patens Unified API Server...")
-    app = FastAPI(title="Patens Unified API", version="1.0.0")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        try:
+            if not db_manager.get_latest(limit=1):
+                logger.info("Empty database detected (First Run). Opening welcome page in browser.")
+                import webbrowser
+
+                def delayed_open():
+                    time.sleep(1.5)  # Give Uvicorn time to bind to the port
+                    host = getattr(config, "API_HOST", "127.0.0.1")
+                    port = getattr(config, "API_PORT", 8000)
+                    webbrowser.open(f"http://{host}:{port}/welcome")
+
+                threading.Thread(target=delayed_open, daemon=True).start()
+        except Exception as e:
+            logger.error("Failed to auto-open welcome page: %s", e)
+
+        yield  # Application runs during this yield
+
+        # --- SHUTDOWN LOGIC ---
+        logger.info("Patens Unified API Server shutting down...")
+
+    # Attach the lifespan to the FastAPI instance
+    app = FastAPI(title="Patens Unified API", version="1.0.0", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,

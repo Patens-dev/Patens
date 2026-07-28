@@ -59,10 +59,26 @@ class DatabaseManager:
 
     def insert_snippet(self, url: str, title: str, content: str, embedding: List[float],
                        is_volatile: bool = False) -> int:
-        """Inserts text and its vector embedding into the database."""
+        """Inserts text/vector into the DB, or updates the timestamp if it already exists."""
         with closing(self._get_connection()) as db:
             with db:
                 cursor = db.cursor()
+
+                # 1. Check if this exact content already exists in the database
+                cursor.execute("SELECT id FROM snippets WHERE content = ? LIMIT 1", (content,))
+                existing_row = cursor.fetchone()
+
+                if existing_row:
+                    # 2a. DEDUPLICATION: It exists! Just update the timestamp to 'now'
+                    content_id = existing_row[0]
+                    cursor.execute(
+                        "UPDATE snippets SET created_at = CURRENT_TIMESTAMP, is_volatile = ? WHERE id = ?",
+                        (is_volatile, content_id)
+                    )
+                    logger.info("Duplicate context detected. Updated timestamp for snippet ID=%s", content_id)
+                    return content_id
+
+                # 2b. BRAND NEW: Insert the text and its vector embedding
                 cursor.execute(
                     "INSERT INTO snippets (url, title, content, is_volatile) VALUES (?, ?, ?, ?)",
                     (url, title, content, is_volatile)
@@ -116,7 +132,7 @@ class DatabaseManager:
                     SELECT id, title, url, content, created_at, is_volatile
                     FROM snippets
                     WHERE {" AND ".join(where_clauses)} {kw_extra_sql}
-                    ORDER BY id DESC LIMIT 50
+                    ORDER BY created_at DESC LIMIT 50
                 """
                 kw_results = db.execute(kw_sql, params + extra_params).fetchall()
 
@@ -199,7 +215,7 @@ class DatabaseManager:
                 sql += " AND url LIKE ?"
                 params.append(f"%{url_filter}%")
 
-            sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+            sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
             params.extend([limit, offset])
 
             results = db.execute(sql, params).fetchall()

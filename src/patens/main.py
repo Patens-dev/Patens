@@ -1,10 +1,9 @@
+import logging
 import sys
 import io
 import socket
-import time
 import ctypes
 import threading
-import webbrowser
 
 # Force UTF-8 encoding for Windows stdout/stderr
 if sys.platform == "win32":
@@ -13,7 +12,10 @@ if sys.platform == "win32":
 
 from patens.server import unified_server
 from patens import installer
+from patens.server.config import setup_logging
 
+setup_logging()
+logger = logging.getLogger(__name__)
 # Global variable to hold the socket open
 _instance_lock = None
 
@@ -26,7 +28,7 @@ def enforce_single_api_instance():
         # Port 61234 is arbitrary. It just acts as a system-wide lock.
         _instance_lock.bind(('127.0.0.1', 61234))
     except OSError:
-        print("[Patens] Another API instance is already running. Exiting cleanly.")
+        logger.info("[Patens] Another API instance is already running. Exiting cleanly.")
         sys.exit(0)
 
 
@@ -40,11 +42,11 @@ def hide_console_window():
 def main():
     is_debug = "--debug" in sys.argv
 
-    if "--mcp-mode" in sys.argv:
+    if "--mcp" in sys.argv:
         # IDEs handle MCP instance lifecycles natively
         unified_server.run_mcp()
     else:
-        # 🛠️ THE FIX: Guarantee only ONE background API server exists
+        # 🛠️ Guarantee only ONE background API server exists
         enforce_single_api_instance()
 
         installer.install_to_ides(is_debug=is_debug)
@@ -52,8 +54,7 @@ def main():
         api_thread = threading.Thread(target=unified_server.run_fastapi, daemon=True)
         api_thread.start()
 
-        print("\n[Patens] Server running successfully!")
-
+        logger.info("\n[Patens] Server running successfully!")
 
         try:
             if sys.stdin and sys.stdin.isatty():
