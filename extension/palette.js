@@ -71,6 +71,11 @@
                     style: 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 2147483647; background-color: rgba(0, 0, 0, 0.6);',
                     onclick: (e) => {
                         if (e.target.id === 'cc-palette') Patens.Palette.toggle();
+                    },
+                    onkeydown: (e) => {
+                        // Shield: Stop any keyboard event originating inside the Palette from escaping to Notion
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
                     }
                 },
                 h('div', {
@@ -115,6 +120,7 @@
                                 const staged = Patens.State.palette?.stagedItems || [];
                                 Logger.info(`Injecting ${staged.length} staged items...`);
                                 Patens.Injector?.injectContextsToAI([...staged]);
+                                Patens.Palette.toggle(); // Close Palette after injection
                             }
                         }, 'Paste Items')
                     ),
@@ -179,7 +185,12 @@
         },
 
         handleKeyboardNav: async (e) => {
+            // ALWAYS kill propagation so navigation keypresses never reach Notion or the host page
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
             if (e.key === 'Escape') {
+                e.preventDefault();
                 Logger.debug("Escape key pressed; closing palette.");
                 return Patens.Palette.toggle();
             }
@@ -196,13 +207,14 @@
                 return;
             }
 
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 const state = Patens.State.palette || {};
 
                 if (state.stagedItems && state.stagedItems.length > 0) {
                     Logger.info(`Enter pressed; injecting ${state.stagedItems.length} staged items.`);
                     Patens.Injector?.injectContextsToAI([...state.stagedItems]);
+                    Patens.Palette.toggle(); // Close Palette after injection
                     return;
                 }
 
@@ -217,6 +229,7 @@
                         if (data?.results?.length) {
                             Logger.info("Injecting latest context entry:", data.results[0]);
                             Patens.Injector?.injectContextsToAI([data.results[0]]);
+                            Patens.Palette.toggle(); // Close Palette after injection
                         } else {
                             Logger.warn("No latest context entry returned from server.");
                         }
@@ -232,6 +245,7 @@
 
                     Logger.info(`Enter pressed; injecting ${itemsToInject.length} selected items.`);
                     Patens.Injector?.injectContextsToAI(itemsToInject);
+                    Patens.Palette.toggle(); // Close Palette after injection
                 }
             }
         },
@@ -370,6 +384,7 @@
                             Patens.Palette.selectItem(absoluteIndex, e.shiftKey);
                             if (state.currentResults && state.currentResults[absoluteIndex]) {
                                 Patens.Injector?.injectContextsToAI([state.currentResults[absoluteIndex]]);
+                                Patens.Palette.toggle(); // Close Palette after clicking
                             }
                         }
                     },

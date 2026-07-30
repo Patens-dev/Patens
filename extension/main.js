@@ -1,10 +1,10 @@
 (() => {
     window.Patens = window.Patens || {};
-    
-    // Safely grab the factory, or fallback to console
-    const Logger = Patens.LoggerFactory 
-        ? Patens.LoggerFactory("[Patens Main Events]") 
-        : { debug: console.debug, info: console.info, warn: console.warn, error: console.error };
+
+    // 1. LOGGER INITIALIZATION
+    const Logger = Patens.LoggerFactory
+        ? Patens.LoggerFactory("[Patens Main Events]")
+        : {debug: console.debug, info: console.info, warn: console.warn, error: console.error};
 
     Logger.info("Initializing Content Script Event Listeners...");
 
@@ -12,7 +12,6 @@
     // 2. STORAGE & STATE INITIALIZATION
     // ==========================================
     try {
-        // Ensure State exists before we try to append hotkeys to it
         Patens.State = Patens.State || {};
         Patens.State.hotkeys = Patens.State.hotkeys || {};
 
@@ -22,7 +21,7 @@
                 return;
             }
             if (res.hotkeys) {
-                Patens.State.hotkeys = { ...Patens.State.hotkeys, ...res.hotkeys };
+                Patens.State.hotkeys = {...Patens.State.hotkeys, ...res.hotkeys};
                 Logger.debug("Hotkeys initialized from local storage.");
             }
         });
@@ -35,7 +34,7 @@
 
         if (changes.hotkeys) {
             Patens.State = Patens.State || {};
-            Patens.State.hotkeys = { ...(Patens.State.hotkeys || {}), ...changes.hotkeys.newValue };
+            Patens.State.hotkeys = {...(Patens.State.hotkeys || {}), ...changes.hotkeys.newValue};
             Logger.info("Hotkeys state updated via storage listener.");
         }
 
@@ -45,7 +44,23 @@
     });
 
     // ==========================================
-    // 3. MESSAGE LISTENER
+    // 3. HELPER FUNCTIONS & CLEANUP
+    // ==========================================
+    // Removes any orphaned hover states left behind when Notion/SPAs swap elements dynamically
+    const clearHoverHighlights = () => {
+        document.querySelectorAll('.cc-highlight-hover').forEach(el => {
+            el.classList.remove('cc-highlight-hover');
+        });
+    };
+
+    // Safety resets on tab switch, window blur, or keyup
+    window.addEventListener('blur', clearHoverHighlights);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) clearHoverHighlights();
+    });
+
+    // ==========================================
+    // 4. MESSAGE LISTENER
     // ==========================================
     chrome.runtime.onMessage.addListener((request) => {
         if (request.action === "open_palette") {
@@ -58,12 +73,38 @@
         }
     });
 
+// ==========================================
+    // 5. KEYBOARD & CONTENTEDITABLE LISTENERS
     // ==========================================
-    // 4. KEYBOARD LISTENERS
-    // ==========================================
+
+    // 1. Intercept 'beforeinput' to prevent contenteditable elements (like Notion AI)
+    // from processing Enter / LineBreak events when Patens hotkeys are pressed
+    window.addEventListener('beforeinput', (e) => {
+        const isCartShortcut = (e.ctrlKey || e.metaKey) && e.shiftKey;
+        if (isCartShortcut) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }
+    }, true);
+
+    // 2. Main Keydown Interceptor
     window.addEventListener('keydown', (e) => {
+        const isEnterKey = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+
         // Fast-Forward Cart Injection (Ctrl + Shift + Enter)
-        if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
+        if (e.ctrlKey && e.shiftKey && isEnterKey) {
+            // KILL NOTION / HOST PAGE LISTENERS INSTANTLY
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            // Force Notion's contenteditable chatbox to lose focus IMMEDIATELY
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.isContentEditable || typeof activeEl.blur === 'function')) {
+                activeEl.blur(); // Drops focus so Notion cannot process the line break or submit
+            }
+
             Logger.info("Hotkey triggered: Fast-Forward Cart Commit");
             chrome.storage.local.get(['contextCart'], async (result) => {
                 const cart = result.contextCart || [];
@@ -71,7 +112,7 @@
                     const response = await Patens.API?.ingestBatch(cart);
                     if (response?.success) {
                         Patens.Utils?.showNotification("✨ Context Committed!", '#006400', window.innerWidth / 2 - 50, window.innerHeight - 50);
-                        chrome.storage.local.set({ contextCart: [] });
+                        chrome.storage.local.set({contextCart: []});
                     }
                 }
             });
@@ -85,21 +126,34 @@
             if (configuredKey && e.key.toLowerCase() === configuredKey) {
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.isContentEditable || typeof activeEl.blur === 'function')) {
+                    activeEl.blur();
+                }
 
                 if (Patens.Palette?.toggle) {
                     Logger.info("Hotkey triggered: Toggle Palette");
                     Patens.Palette.toggle();
+
+                    setTimeout(() => {
+                        const paletteInput = document.querySelector('#patens-palette-input')
+                            || Patens.Palette.shadowRoot?.querySelector('input');
+                        paletteInput?.focus();
+                    }, 50);
                 } else {
                     Logger.warn("Palette toggle hotkey pressed, but Patens.Palette module is undefined.");
                 }
             }
         }
     }, true);
+    // ==========================================
+    // 6. MOUSE INTERACTION LISTENERS (CAPTURE PHASE)
+    // ==========================================
 
-    // ==========================================
-    // 5. MOUSE INTERACTION LISTENERS
-    // ==========================================
-    document.body.addEventListener('click', (e) => {
+    // Use 'document' instead of 'document.body' so listeners work even if script loads early
+    document.addEventListener('click', (e) => {
         const captureHotkey = Patens.State?.hotkeys?.capture;
         if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey)) {
             const validTags = Patens.Config?.VALID_TAGS || [];
@@ -111,29 +165,31 @@
                 e.stopPropagation();
             }
         }
-    }, true);
+    }, true); // Capture phase (true) intercepts clicks BEFORE Notion swallows them
 
-    document.body.addEventListener('mouseover', (e) => {
+    document.addEventListener('mouseover', (e) => {
         const captureHotkey = Patens.State?.hotkeys?.capture;
         const validTags = Patens.Config?.VALID_TAGS || [];
 
+        // Check modifiers natively on the MouseEvent directly (stateless)
         if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey) && e.target && validTags.includes(e.target.tagName)) {
             e.target.classList.add('cc-highlight-hover');
         }
-    });
+    }, true);
 
-    document.body.addEventListener('mouseout', (e) => {
-        if (e.target && e.target.classList.contains('cc-highlight-hover')) {
+    document.addEventListener('mouseout', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('cc-highlight-hover')) {
             e.target.classList.remove('cc-highlight-hover');
         }
-    });
+    }, true);
 
-    document.body.addEventListener('mousedown', async (e) => {
-        if (e.target.closest('.cc-cart-btn') || e.target.closest('.cc-cart-modal') || e.target.closest('.cc-palette-overlay')) return;
+    document.addEventListener('mousedown', async (e) => {
+        if (!e.target || e.target.closest('.cc-cart-btn') || e.target.closest('.cc-cart-modal') || e.target.closest('.cc-palette-overlay')) return;
 
         const captureHotkey = Patens.State?.hotkeys?.capture;
 
-        if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey) && e.target) {
+        // Native MouseEvent inspection stops Shift key state from getting stuck
+        if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey)) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -143,7 +199,12 @@
             let itemsToSave = [];
 
             if (textSelection) {
-                itemsToSave.push({ text: textSelection, title: Patens.Utils?.getSmartTitle(), isImage: false, element: e.target });
+                itemsToSave.push({
+                    text: textSelection,
+                    title: Patens.Utils?.getSmartTitle(),
+                    isImage: false,
+                    element: e.target
+                });
             } else if (targetImg) {
                 try {
                     const base64Data = await Patens.Utils?.getBase64Image(targetImg);
@@ -171,32 +232,49 @@
                     if (topLevel.length > 0) {
                         topLevel.forEach(child => {
                             const childText = child.innerText.trim();
-                            if (childText.length > minLength) itemsToSave.push({ text: childText, title: Patens.Utils?.getSmartTitle(), isImage: false, element: child });
+                            if (childText.length > minLength) itemsToSave.push({
+                                text: childText,
+                                title: Patens.Utils?.getSmartTitle(),
+                                isImage: false,
+                                element: child
+                            });
                         });
                     } else {
                         const text = e.target.innerText.trim();
-                        if (text.length > minLength) itemsToSave.push({ text, title: Patens.Utils?.getSmartTitle(), isImage: false, element: e.target });
+                        if (text.length > minLength) itemsToSave.push({
+                            text,
+                            title: Patens.Utils?.getSmartTitle(),
+                            isImage: false,
+                            element: e.target
+                        });
                     }
                 } else if (readableTags.includes(tagName) || tagName === 'SPAN') {
                     const text = e.target.innerText.trim();
-                    if (text.length > minLength) itemsToSave.push({ text, title: Patens.Utils?.getSmartTitle(), isImage: false, element: e.target });
+                    if (text.length > minLength) itemsToSave.push({
+                        text,
+                        title: Patens.Utils?.getSmartTitle(),
+                        isImage: false,
+                        element: e.target
+                    });
                 }
             }
 
             if (itemsToSave.length > 0) {
                 Logger.debug(`Saving ${itemsToSave.length} extracted items... (${(performance.now() - startTime).toFixed(2)}ms)`);
                 Patens.Cart?.saveBulkToCartDirectly?.(itemsToSave, e.clientX, e.clientY);
+                clearHoverHighlights(); // Clean up any lingering hover borders
             }
         }
     }, true);
 
     document.addEventListener('mouseup', (e) => {
-        if (e.target.closest('.cc-selection-tooltip') || e.target.closest('.cc-palette-overlay') || e.target.closest('.cc-cart-modal')) return;
+        if (!e.target || e.target.closest('.cc-selection-tooltip') || e.target.closest('.cc-palette-overlay') || e.target.closest('.cc-cart-modal')) return;
 
         const selection = window.getSelection();
         const text = selection.toString().trim();
         document.getElementById('cc-selection-tooltip')?.remove();
 
+        // Check e.ctrlKey and e.shiftKey straight off the MouseEvent
         if (text.length > 0 && !e.ctrlKey && !e.shiftKey) {
             const rect = selection.getRangeAt(0).getBoundingClientRect();
             const tooltip = document.createElement('div');
@@ -209,7 +287,12 @@
             tooltip.onmousedown = (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
-                Patens.Cart?.saveBulkToCartDirectly?.([{ text, title: Patens.Utils?.getSmartTitle(), isImage: false, element: null }], ev.clientX, ev.clientY);
+                Patens.Cart?.saveBulkToCartDirectly?.([{
+                    text,
+                    title: Patens.Utils?.getSmartTitle(),
+                    isImage: false,
+                    element: null
+                }], ev.clientX, ev.clientY);
 
                 tooltip.innerHTML = '✓ Saved';
                 tooltip.style.background = '#10b981';

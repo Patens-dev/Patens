@@ -30,7 +30,6 @@
   },
   "permissions": [
     "storage",
-    "alarms"
   ],
   "commands": {
     "toggle_search_palette": {
