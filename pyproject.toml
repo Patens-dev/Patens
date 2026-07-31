@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "Patens"
 version = "1.1.0"
 authors = [
-    {name = "Patens.dev"}
+    {name = "Patens"}
 ]
 description = "A fast and efficient MCP server for your applications."
 readme = "README.md"

@@ -1,7 +1,7 @@
 (() => {
     window.Patens = window.Patens || {};
     const Logger = Patens.LoggerFactory ? Patens.LoggerFactory("[Patens CartUI]") : console;
-    const h = Patens.h; // ✨ FIX: Brought the UI Builder alias into the local scope
+    const h = Patens.h; // Alias for UI builder
 
     if (!window._patensCartLoaded) {
         window._patensCartLoaded = true;
@@ -9,12 +9,12 @@
         Logger.info("Cart UI module loaded and initialized.");
 
         // ==========================================
-        // 2. CART COMPONENT
+        // CART COMPONENT
         // ==========================================
         Patens.Cart = {
             renderUI: () => {
                 Logger.debug("Fetching 'contextCart' from storage to render UI...");
-                
+
                 try {
                     chrome.storage.local.get(['contextCart'], (result) => {
                         if (chrome.runtime.lastError) {
@@ -24,7 +24,7 @@
 
                         const cart = result.contextCart || [];
                         Logger.debug(`Read ${cart.length} items from cart storage.`);
-                        
+
                         let btn = document.getElementById('cc-cart-btn');
 
                         if (cart.length > 0) {
@@ -79,8 +79,8 @@
             renderModalContents: (cart) => {
                 const modal = document.getElementById('cc-cart-modal');
                 if (!modal) return;
-                
-                modal.textContent = ''; 
+
+                modal.textContent = '';
 
                 let tooltip = document.getElementById('cc-cart-tooltip') || (() => {
                     const tt = h('div', { id: 'cc-cart-tooltip', class: 'cc-cart-tooltip', style: 'z-index: 2147483647;' });
@@ -88,10 +88,18 @@
                     return tt;
                 })();
 
+                // Header with Title + "Clear All" + Minimize
                 const header = h('div', { class: 'cc-cart-header' },
-                    h('span', {}, 'Context Cart'),
+                    h('div', { style: 'display: flex; align-items: center; gap: 10px;' },
+                        h('span', {}, 'Context Cart'),
+                        cart.length > 0 ? h('span', {
+                            class: 'cc-cart-clear-btn',
+                            style: 'font-size: 11px; color: #f28b82; cursor: pointer; opacity: 0.8; transition: all 0.2s; font-weight: 500;',
+                            onclick: (e) => Patens.Cart.handleClearAll(e.target, tooltip)
+                        }, 'Clear All') : null
+                    ),
                     h('span', {
-                        style: 'cursor: pointer;',
+                        style: 'cursor: pointer; padding: 0 4px;',
                         onclick: () => document.getElementById('cc-cart-btn')?.click()
                     }, '_')
                 );
@@ -129,7 +137,7 @@
             },
 
             showTooltip: (itemData, itemEl, tooltip, modal) => {
-                tooltip.textContent = ''; 
+                tooltip.textContent = '';
                 if (itemData.type === 'image') {
                     tooltip.appendChild(h('img', { src: itemData.media }));
                 } else {
@@ -141,6 +149,32 @@
                 tooltip.style.right = `${window.innerWidth - modal.getBoundingClientRect().left + 15}px`;
                 tooltip.style.top = `${Math.min(rect.top, window.innerHeight - 260)}px`;
                 tooltip.classList.add('cc-tooltip-visible');
+            },
+
+            // Inline 2-Step Safe Clear Handler
+            handleClearAll: (btnEl, tooltip) => {
+                if (btnEl.dataset.confirming === "true") {
+                    tooltip?.classList.remove('cc-tooltip-visible');
+                    chrome.storage.local.set({ contextCart: [] }, () => {
+                        Logger.info("Context cart cleared.");
+                        Patens.Cart.renderUI();
+                    });
+                } else {
+                    btnEl.dataset.confirming = "true";
+                    btnEl.textContent = "Confirm Clear?";
+                    btnEl.style.color = "#ff5252";
+                    btnEl.style.fontWeight = "bold";
+
+                    clearTimeout(btnEl._confirmTimeout);
+                    btnEl._confirmTimeout = setTimeout(() => {
+                        if (btnEl && document.contains(btnEl)) {
+                            btnEl.dataset.confirming = "false";
+                            btnEl.textContent = "Clear All";
+                            btnEl.style.color = "#f28b82";
+                            btnEl.style.fontWeight = "500";
+                        }
+                    }, 3000);
+                }
             },
 
             handleCheckout: async (btn, cart, tooltip) => {

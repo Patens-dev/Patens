@@ -45,17 +45,61 @@ db_manager = DatabaseManager(str(DB_PATH))
 _embedder_instance: Optional[TextEmbedding] = None
 
 
-def get_embedder() -> TextEmbedding:
-    """Lazy-loads the FastEmbed model only when vector operations are requested."""
-    global _embedder_instance
-    if _embedder_instance is None:
-        logger.info("Loading FastEmbed model (%s)...", MODEL_NAME)
-        start_time = time.perf_counter()
-        _embedder_instance = TextEmbedding(model_name=MODEL_NAME)
-        elapsed = time.perf_counter() - start_time
-        logger.info("FastEmbed model loaded successfully in %.2f seconds.", elapsed)
+def resolve_model_cache_dir() -> Optional[Path]:
+    """
+    Locates the FastEmbed model cache directory across execution environments.
+    Checks PyInstaller bundle directory (sys._MEIPASS) first, then local workspace.
+    """
+    if getattr(sys, "frozen", False):
+        # PyInstaller unpacks data to sys._MEIPASS at runtime
+        bundle_dir = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+        cached_dir = bundle_dir / "fastembed_cache"
+        if cached_dir.exists():
+            return cached_dir
     else:
+        # Development environment check
+        dev_cached_dir = Path.cwd().resolve() / "fastembed_cache"
+        if dev_cached_dir.exists():
+            return dev_cached_dir
+
+    return None
+
+
+def get_embedder() -> TextEmbedding:
+    """
+    Lazy-loads the FastEmbed model only when vector operations are requested.
+    Forces offline mode when local model cache files are detected.
+    """
+    global _embedder_instance
+    if _embedder_instance is not None:
         logger.debug("Reusing existing FastEmbed model instance.")
+        return _embedder_instance
+
+    start_time = time.perf_counter()
+    cache_dir = resolve_model_cache_dir()
+
+    if cache_dir:
+        logger.info("Found offline FastEmbed cache at: %s. Initializing in OFFLINE mode.", cache_dir)
+        try:
+            # local_files_only=True guarantees FastEmbed will not trigger HTTP requests to Hugging Face
+            _embedder_instance = TextEmbedding(
+                model_name=MODEL_NAME,
+                cache_dir=str(cache_dir),
+                local_files_only=True
+            )
+        except TypeError:
+            # Fallback for older FastEmbed versions that do not accept local_files_only kwarg
+            logger.warning("FastEmbed does not accept local_files_only flag; attempting fallback with cache_dir.")
+            _embedder_instance = TextEmbedding(
+                model_name=MODEL_NAME,
+                cache_dir=str(cache_dir)
+            )
+    else:
+        logger.info("No local cache found. Loading FastEmbed model (%s) online...", MODEL_NAME)
+        _embedder_instance = TextEmbedding(model_name=MODEL_NAME)
+
+    elapsed = time.perf_counter() - start_time
+    logger.info("FastEmbed model loaded successfully in %.2f seconds.", elapsed)
     return _embedder_instance
 
 

@@ -29,7 +29,7 @@
     }
   },
   "permissions": [
-    "storage",
+    "storage"
   ],
   "commands": {
     "toggle_search_palette": {
