@@ -27,7 +27,7 @@ get_size() {
     if [ -e "$1" ]; then du -sh "$1" 2>/dev/null | cut -f1; else echo "0B"; fi
 }
 
-TEMP_FILES=("version_info.txt" "msix_layout")
+TEMP_FILES=("version_info.txt" "msix_layout" "patens_setup.iss")
 cleanup() {
     log_info "Cleaning temporary build script artifacts..."
     for item in "${TEMP_FILES[@]}"; do [ -e "$item" ] && rm -rf "$item"; done
@@ -70,7 +70,23 @@ if [ -z "$MAKEAPPX_CMD" ]; then
     exit 1
 fi
 
+ISCC_CMD=""
+for iscc_candidate in \
+    "iscc" \
+    "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
+    "/c/Program Files/Inno Setup 6/ISCC.exe"; do
+    if command -v "$iscc_candidate" &> /dev/null || [ -f "$iscc_candidate" ]; then
+        ISCC_CMD="$iscc_candidate"
+        break
+    fi
+done
+
 log_info "Using Windows SDK tools from: $(dirname "$MAKEAPPX_CMD")"
+if [ -n "$ISCC_CMD" ]; then
+    log_info "Using Inno Setup Compiler: $ISCC_CMD"
+else
+    log_warn "Inno Setup (ISCC.exe) not found. Standard standalone binary will be used as the EXE installer target."
+fi
 
 log_info "Cleaning previous build outputs..."
 rm -rf build dist Patens.spec msix_layout
@@ -193,12 +209,8 @@ SIZE_PYINSTALLER_EXE=$(get_size "dist/Patens.exe")
 log_info "📦 Creating MSIX package layout..."
 start_timer
 
-# -------------------------------------------------------------------
-# MICROSOFT STORE PACKAGE IDENTITY CONFIGURATION
-# Replace these with your exact values from Partner Center -> App identity
-# -------------------------------------------------------------------
 PACKAGE_IDENTITY_NAME="Patens"                            # Package/Identity/Name
-PACKAGE_IDENTITY_PUBLISHER="CN=Patens"                   # Package/Identity/Publisher (e.g., CN=12345678-ABCD-...)
+PACKAGE_IDENTITY_PUBLISHER="CN=Patens"                   # Package/Identity/Publisher
 PUBLISHER_DISPLAY_NAME="Patens"                           # Package/Properties/PublisherDisplayName
 
 mkdir -p msix_layout/Assets
@@ -281,7 +293,54 @@ TIME_MSIX=$(stop_timer)
 SIZE_MSIX=$(get_size "$MSIX_OUTPUT")
 
 # ===================================================================
-# 5. BROWSER EXTENSION PACKAGING
+# 5. EXE INSTALLER GENERATION
+# ===================================================================
+log_info "⚙️ Generating standalone EXE installer..."
+start_timer
+EXE_INSTALLER_OUTPUT="dist/patens_installer_${APP_VERSION}.exe"
+
+if [ -n "$ISCC_CMD" ]; then
+    cat << EOF > patens_setup.iss
+[Setup]
+AppName=Patens
+AppVersion=${APP_VERSION}
+AppPublisher=${COMPANY}
+DefaultDirName={autopf}\Patens
+DefaultGroupName=Patens
+UninstallDisplayIcon={app}\Patens.exe
+Compression=lzma2/ultra64
+SolidCompression=yes
+OutputDir=dist
+OutputBaseFilename=patens_installer_${APP_VERSION}
+SetupIconFile=assets\patens.ico
+WizardStyle=modern
+
+[Files]
+Source: "dist\Patens.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{group}\Patens"; Filename: "{app}\Patens.exe"
+Name: "{autodesktop}\Patens"; Filename: "{app}\Patens.exe"; Tasks: desktopicon
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Run]
+Filename: "{app}\Patens.exe"; Description: "{cm:LaunchProgram,Patens}"; Flags: nowait postinstall skipifsilent
+EOF
+
+    log_info "🔨 Compiling Inno Setup EXE installer..."
+    MSYS_NO_PATHCONV=1 "$ISCC_CMD" patens_setup.iss > /dev/null
+else
+    log_info "📋 Copying PyInstaller portable executable as standalone setup target..."
+    cp "dist/Patens.exe" "$EXE_INSTALLER_OUTPUT"
+fi
+
+TIME_EXE_INSTALLER=$(stop_timer)
+SIZE_EXE_INSTALLER=$(get_size "$EXE_INSTALLER_OUTPUT")
+
+# ===================================================================
+# 6. BROWSER EXTENSION PACKAGING
 # ===================================================================
 start_timer
 python -c '
@@ -310,7 +369,8 @@ printf "%-35s | %-12s | %-15s\n" "1. Metadata Parsing" "${TIME_METADATA}s" "N/A"
 printf "%-35s | %-12s | %-15s\n" "2. FastEmbed Model Prune" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
 printf "%-35s | %-12s | %-15s\n" "3. PyInstaller Compilation" "${TIME_PYINSTALLER}s" "Exe: ${SIZE_PYINSTALLER_EXE}"
 printf "%-35s | %-12s | %-15s\n" "4. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
-printf "%-35s | %-12s | %-15s\n" "5. Extension Packaging" "${TIME_EXTENSION}s" "Zip: $(get_size "dist/extension_${EXT_VERSION}.zip")"
+printf "%-35s | %-12s | %-15s\n" "5. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
+printf "%-35s | %-12s | %-15s\n" "6. Extension Packaging" "${TIME_EXTENSION}s" "Zip: $(get_size "dist/extension_${EXT_VERSION}.zip")"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "TOTAL RUNTIME" "${TIME_TOTAL}s" ""
 echo -e "${CYAN}===================================================================${NC}"
