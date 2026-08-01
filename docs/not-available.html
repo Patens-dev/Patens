@@ -208,6 +208,7 @@
             cursor: pointer;
             border: none;
             width: 100%;
+            min-height: 44px; /* Touch target minimum */
         }
 
         .btn-primary {
@@ -301,7 +302,8 @@
             font-size: 13px;
             color: #60a5fa;
             border: 1px solid var(--border-color);
-            word-break: break-all;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         /* Large Video Container Styling */
@@ -371,11 +373,69 @@
             font-size: 14px;
         }
 
+        /* ========================================================= */
+        /* MOBILE RESPONSIVE OVERRIDES                               */
+        /* ========================================================= */
         @media (max-width: 860px) {
-            nav { padding: 16px 20px; }
-            .action-matrix { grid-template-columns: 1fr; }
-            .container { padding: 0 20px; }
-            .guide-section { padding: 20px; }
+            nav {
+                padding: 16px 20px;
+            }
+
+            .action-matrix {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                margin-bottom: 32px;
+            }
+
+            .container {
+                margin: 20px auto 40px;
+                padding: 0 16px;
+            }
+
+            .guide-section {
+                padding: 20px 16px;
+            }
+
+            .guide-header {
+                margin-bottom: 20px;
+                padding-bottom: 14px;
+            }
+
+            .guide-header h2 {
+                font-size: 20px;
+            }
+
+            .guide-grid {
+                gap: 32px;
+            }
+
+            .step-title {
+                font-size: 16px;
+            }
+
+            .step-list {
+                font-size: 13.5px;
+                padding-left: 18px;
+            }
+
+            .smartscreen-box {
+                padding: 16px;
+            }
+
+            .smartscreen-steps {
+                padding: 12px 14px;
+                font-size: 13px;
+            }
+
+            h1 {
+                font-size: 26px;
+                letter-spacing: -0.5px;
+            }
+
+            p.subtitle {
+                font-size: 14px;
+                margin-bottom: 28px;
+            }
         }
     </style>
 </head>

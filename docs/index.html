@@ -107,6 +107,7 @@
             border-radius: 30px;
             width: fit-content;
             margin-bottom: 24px;
+            max-width: 100%;
         }
 
         .mode-btn {
@@ -123,6 +124,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         }
 
         .mode-btn.active {
@@ -202,6 +204,7 @@
             transition: all 0.2s ease;
             cursor: pointer;
             border: none;
+            min-height: 44px; /* Touch target size */
         }
 
         .btn-primary {
@@ -232,6 +235,7 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-wrap: wrap;
         }
 
         .hero-subtext span {
@@ -263,6 +267,7 @@
             justify-content: space-between;
             align-items: center;
             z-index: 2;
+            gap: 12px;
         }
 
         /* Header Status Badge (Left) */
@@ -277,6 +282,8 @@
             font-size: 12px;
             font-weight: 500;
             color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .badge-step-num {
@@ -288,12 +295,14 @@
             font-weight: 700;
             font-family: var(--font-mono);
             box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            flex-shrink: 0;
         }
 
         .step-dots {
             display: flex;
             gap: 5px;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .step-dot {
@@ -315,6 +324,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .demo-title {
@@ -530,8 +540,10 @@
             font-weight: 500;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             transition: all 0.2s;
+            min-height: 44px;
         }
 
         .option-btn:hover {
@@ -552,13 +564,13 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: 20px;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s ease;
@@ -575,9 +587,11 @@
             border-radius: 16px;
             max-width: 700px;
             width: 100%;
-            padding: 36px;
+            padding: 32px;
             box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
             position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-close {
@@ -589,6 +603,8 @@
             color: var(--text-muted);
             font-size: 20px;
             cursor: pointer;
+            padding: 8px;
+            line-height: 1;
         }
 
         .modal-close:hover {
@@ -603,19 +619,21 @@
             font-size: 14px;
         }
 
-        /* Responsive Breakpoints */
+        /* ========================================================= */
+        /* COMPREHENSIVE MOBILE RESPONSIVE OVERRIDES                 */
+        /* ========================================================= */
         @media (max-width: 1024px) {
             nav {
                 padding: 16px 20px;
             }
 
             .hero {
-                padding: 30px 20px 60px;
+                padding: 24px 20px 50px;
             }
 
             .hero-grid {
                 grid-template-columns: 1fr;
-                gap: 40px;
+                gap: 32px;
             }
 
             .hero-left {
@@ -641,20 +659,108 @@
             }
         }
 
-        @media (max-width: 768px) {
+        /* Mobile Phones (< 640px) */
+        @media (max-width: 640px) {
+            nav {
+                padding: 16px;
+            }
+
+            .nav-links {
+                gap: 14px;
+            }
+
+            .nav-links a {
+                font-size: 13px;
+            }
+
+            .logo img {
+                height: 26px;
+            }
+
+            .hero {
+                padding: 16px 16px 40px;
+            }
+
+            /* Scrollable Pill Switcher on Phones */
+            .mode-switcher {
+                width: 100%;
+                justify-content: flex-start;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 3px;
+                border-radius: 24px;
+            }
+
+            .mode-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+                letter-spacing: -0.8px;
+                margin-bottom: 14px;
+            }
+
+            .hero-desc {
+                font-size: 14px;
+                margin-bottom: 24px;
+            }
+
             .hero-cta {
                 flex-direction: column;
                 width: 100%;
+                gap: 10px;
             }
 
             .btn {
                 width: 100%;
             }
 
+            .hero-subtext {
+                justify-content: center;
+                font-size: 12px;
+                gap: 10px;
+            }
+
+            /* DEMO HEADER SPACE OPTIMIZATION FOR MOBILE */
+            .demo-title {
+                display: none; /* Hide .mp4 filename string on mobile to prevent overflow */
+            }
+
+            #badge-text {
+                display: none; /* Hide full text on phone screens; keep "STEP X" + dots */
+            }
+
             .header-status-badge {
-                padding: 3px 8px;
+                padding: 4px 10px;
                 font-size: 11px;
-                gap: 6px;
+                gap: 8px;
+            }
+
+            .story-section, .features-grid, .setup-section {
+                margin: 50px auto;
+                padding: 0 16px;
+            }
+
+            .story-card, .feature-card, .setup-step-card {
+                padding: 24px 20px;
+            }
+
+            .section-header h2 {
+                font-size: 24px;
+            }
+
+            .section-header p {
+                font-size: 14px;
+            }
+
+            .option-grid {
+                grid-template-columns: 1fr; /* Full width option buttons on phone screens */
+            }
+
+            .modal-container {
+                padding: 24px 18px;
             }
         }
     </style>
