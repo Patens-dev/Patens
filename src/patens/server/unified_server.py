@@ -66,42 +66,32 @@ def resolve_model_cache_dir() -> Optional[Path]:
 
 
 def get_embedder() -> TextEmbedding:
-    """
-    Lazy-loads the FastEmbed model only when vector operations are requested.
-    Forces offline mode when local model cache files are detected.
-    """
     global _embedder_instance
     if _embedder_instance is not None:
-        logger.debug("Reusing existing FastEmbed model instance.")
         return _embedder_instance
 
     start_time = time.perf_counter()
     cache_dir = resolve_model_cache_dir()
 
     if cache_dir:
-        logger.info("Found offline FastEmbed cache at: %s. Initializing in OFFLINE mode.", cache_dir)
+        logger.info("Found local FastEmbed cache at: %s", cache_dir)
         try:
-            # local_files_only=True guarantees FastEmbed will not trigger HTTP requests to Hugging Face
             _embedder_instance = TextEmbedding(
                 model_name=MODEL_NAME,
                 cache_dir=str(cache_dir),
                 local_files_only=True
             )
-        except TypeError:
-            # Fallback for older FastEmbed versions that do not accept local_files_only kwarg
-            logger.warning("FastEmbed does not accept local_files_only flag; attempting fallback with cache_dir.")
-            _embedder_instance = TextEmbedding(
-                model_name=MODEL_NAME,
-                cache_dir=str(cache_dir)
-            )
+            logger.info("Successfully initialized FastEmbed in OFFLINE mode.")
+        except Exception as e:
+            logger.warning("Failed to load local FastEmbed cache (%s). Falling back to online load...", e)
+            _embedder_instance = TextEmbedding(model_name=MODEL_NAME)
     else:
-        logger.info("No local cache found. Loading FastEmbed model (%s) online...", MODEL_NAME)
+        logger.info("No local cache found. Loading FastEmbed model online...")
         _embedder_instance = TextEmbedding(model_name=MODEL_NAME)
 
     elapsed = time.perf_counter() - start_time
-    logger.info("FastEmbed model loaded successfully in %.2f seconds.", elapsed)
+    logger.info("FastEmbed model loaded in %.2f seconds.", elapsed)
     return _embedder_instance
-
 
 # Initialize API and MCP Server instances
 fastapi_app = create_app(db_manager, get_embedder, str(IMAGE_DIR))

@@ -4,7 +4,7 @@
     // Safely grab the factory, or fallback to console if load order is interrupted
     const Logger = Patens.LoggerFactory
         ? Patens.LoggerFactory("[Patens Injector]")
-        : { debug: console.debug, info: console.info, warn: console.warn, error: console.error };
+        : {debug: console.debug, info: console.info, warn: console.warn, error: console.error};
 
     // ==========================================
     // 2. INJECTOR COMPONENT
@@ -24,6 +24,7 @@
                 Patens.Palette.toggle();
             }
 
+
             // Target known Web AI Chat Selectors (Gemini, ChatGPT, Claude)
             const knownAIChatBox =
                 document.querySelector('rich-textarea div[contenteditable="true"]') || // Gemini (New)
@@ -31,13 +32,25 @@
                 document.querySelector('#prompt-textarea') ||                          // ChatGPT
                 document.querySelector('div[contenteditable="true"][role="textbox"]'); // Claude
 
-            let activeInput = knownAIChatBox || Patens.State?.editor?.activeInputElement || document.querySelector('textarea');
+            // Helper to check if an element is a valid text input target
+            const isEditable = (el) => el && (
+                el.tagName === 'TEXTAREA' ||
+                el.tagName === 'INPUT' ||
+                el.isContentEditable
+            );
+
+            const savedInput = Patens.State?.editor?.activeInputElement;
+
+            // Fallback chain: Known AI Box -> Saved Editable Input -> Fallback Page Textarea
+            let activeInput = knownAIChatBox ||
+                (isEditable(savedInput) ? savedInput : null) ||
+                document.querySelector('textarea') ||
+                document.querySelector('div[contenteditable="true"]');
 
             if (!activeInput) {
                 Logger.warn("No active AI input or standard textarea/contenteditable element found on page.");
                 return;
             }
-
             Logger.debug("Target input element resolved:", activeInput);
 
             const originalPlaceholder = activeInput.getAttribute('data-placeholder') || activeInput.placeholder || "";
@@ -45,7 +58,7 @@
             try {
                 activeInput.focus();
                 if ((activeInput.tagName === 'TEXTAREA' || activeInput.tagName === 'INPUT') && Patens.State?.editor?.savedInputState) {
-                    const { start, end } = Patens.State.editor.savedInputState;
+                    const {start, end} = Patens.State.editor.savedInputState;
                     activeInput.setSelectionRange(start, end);
                     Logger.debug(`Restored selection range [${start}:${end}] on active input.`);
                 }
@@ -73,7 +86,7 @@
                         const imgPromise = Patens.API?.fetchProxy(proxyUrl, 'blob')
                             .then(blob => {
                                 if (blob) {
-                                    const file = new File([blob], `context_img_${i}_${Date.now()}.png`, { type: blob.type });
+                                    const file = new File([blob], `context_img_${i}_${Date.now()}.png`, {type: blob.type});
                                     filesToPaste.push(file);
                                     Logger.debug(`Image asset loaded as file blob (${file.size} bytes).`);
                                 } else {
@@ -117,8 +130,8 @@
                     }
 
                     activeInput.selectionStart = activeInput.selectionEnd = start + combinedText.length;
-                    activeInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    activeInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    activeInput.dispatchEvent(new Event('input', {bubbles: true}));
+                    activeInput.dispatchEvent(new Event('change', {bubbles: true}));
                     textInjected = true;
                     Logger.info("Text successfully injected using Strategy A (Native Value Setter).");
                 } catch (err) {
@@ -141,7 +154,7 @@
                     textInjected = document.execCommand('insertText', false, combinedText);
 
                     if (textInjected) {
-                        activeInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                        activeInput.dispatchEvent(new Event('input', {bubbles: true, cancelable: true}));
                         Logger.info("Text successfully injected using Strategy B (ExecCommand).");
                     } else {
                         Logger.warn("execCommand('insertText') returned false.");
@@ -160,7 +173,11 @@
                     const safeHtml = combinedText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
                     dtText.setData('text/html', `<div>${safeHtml}</div>`);
 
-                    const pasteEvent = new ClipboardEvent('paste', { clipboardData: dtText, bubbles: true, cancelable: true });
+                    const pasteEvent = new ClipboardEvent('paste', {
+                        clipboardData: dtText,
+                        bubbles: true,
+                        cancelable: true
+                    });
                     activeInput.dispatchEvent(pasteEvent);
                     textInjected = true;
                     Logger.info("Text successfully injected using Strategy C (Synthetic Clipboard Event).");
@@ -177,8 +194,16 @@
                         const dtImages = new DataTransfer();
                         filesToPaste.forEach(file => dtImages.items.add(file));
 
-                        activeInput.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dtImages, bubbles: true, cancelable: true }));
-                        activeInput.dispatchEvent(new DragEvent('drop', { dataTransfer: dtImages, bubbles: true, cancelable: true }));
+                        activeInput.dispatchEvent(new ClipboardEvent('paste', {
+                            clipboardData: dtImages,
+                            bubbles: true,
+                            cancelable: true
+                        }));
+                        activeInput.dispatchEvent(new DragEvent('drop', {
+                            dataTransfer: dtImages,
+                            bubbles: true,
+                            cancelable: true
+                        }));
                         Logger.debug("Synthetic image attachment events dispatched.");
                     } catch (imgDispatchErr) {
                         Logger.error("Failed to dispatch synthetic image drop/paste events:", imgDispatchErr);

@@ -141,33 +141,24 @@ print(f"export EXT_DIR=\"{ext_dir}\"")
 TIME_METADATA=$(stop_timer)
 
 # ===================================================================
-# 2. DYNAMIC FASTEMBED MODEL CACHING & PURGING
+# 2. DYNAMIC FASTEMBED MODEL CACHING
 # ===================================================================
-log_info "📥 Synchronizing and caching FastEmbed model from config..."
+log_info "📥 Synchronizing FastEmbed model from config..."
 start_timer
 
 python -c '
-import os, sys, shutil
+import os, sys
 sys.path.insert(0, "src")
 from patens.server.config import MODEL_NAME
 from fastembed import TextEmbedding
 
 cache_path = os.path.abspath("fastembed_cache")
-print(f"Resolved configured model name: {MODEL_NAME}")
+print(f"Resolving configured model: {MODEL_NAME} -> {cache_path}")
 
+# Download and cache cleanly without deleting blobs
 TextEmbedding(model_name=MODEL_NAME, cache_dir=cache_path)
-
-for root, dirs, files in os.walk(cache_path, topdown=False):
-    if "blobs" in dirs:
-        shutil.rmtree(os.path.join(root, "blobs"), ignore_errors=True)
-    onnx_files = [f for f in files if f.endswith(".onnx")]
-    if len(onnx_files) > 1:
-        for f in onnx_files:
-            if f in ["model.onnx", "model_optimized.onnx"] and any("quant" in x for x in onnx_files):
-                os.remove(os.path.join(root, f))
 '
 TIME_FASTEMBED=$(stop_timer)
-SIZE_MODEL_CACHE=$(get_size "fastembed_cache")
 
 # ===================================================================
 # 3. PYINSTALLER COMPILATION
@@ -305,13 +296,12 @@ if [ -n "$ISCC_CMD" ]; then
 AppName=Patens
 AppVersion=${APP_VERSION}
 AppPublisher=${COMPANY}
-DefaultDirName={autopf}\Patens
-DefaultGroupName=Patens
-UninstallDisplayIcon={app}\Patens.exe
+DefaultDirName={userappdata}\..\Local\Programs\Patens
+PrivilegesRequired=lowest
+OutputBaseFilename=patens_installer_${APP_VERSION}
 Compression=lzma2/ultra64
 SolidCompression=yes
 OutputDir=dist
-OutputBaseFilename=patens_installer_${APP_VERSION}
 SetupIconFile=assets\patens.ico
 WizardStyle=modern
 

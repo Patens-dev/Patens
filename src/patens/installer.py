@@ -109,7 +109,7 @@ def install_to_ides(is_debug: bool = False):
 
         # Determine correct schema key based on the client
         root_key = "servers" if "VS Code" in ide_name or "JetBrains" in ide_name else "mcpServers"
-
+        
         if root_key not in data:
             data[root_key] = {}
         elif not isinstance(data[root_key], dict):
