@@ -775,12 +775,10 @@
     <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#install">Install Guide</a>
-        <a href="https://github.com/Patens-dev/Patens" target="_blank">GitHub</a>
-<!--        TO DO: To be replaced with app github repository-->
+        <a href="{{ GITHUB_REPO }}" target="_blank">GitHub</a>
     </div>
 </nav>
 
-<!-- CAP.SO STYLE SPLIT HERO SECTION -->
 <header class="hero">
     <div class="hero-grid">
         <!-- Left Hero Content with Dynamic Mode Switcher -->
@@ -928,21 +926,19 @@
             <p>Captures text and images directly from Chrome, Edge, or Firefox without leaving your page.</p>
 
             <div class="option-grid">
-<!--                TODO: To be replaced with storeURLS chrome-->
-                 <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" class="option-btn">
+                 <a href="{{ STORE_CHROME }}" target="_blank" class="option-btn">
                     <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
                          alt="Chrome" style="filter: invert(1);">
                     Chrome
                 </a>
-<!--                TODO: To be replaced with storeURLS firefox-->
 
-                <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank" class="option-btn">
+                <a href="{{ STORE_FIREFOX }}" target="_blank" class="option-btn">
                     <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
                          alt="Firefox" style="filter: invert(1);">
                     Firefox
                 </a>
-<!--                TODO: To be replaced with storeURLS edge-->
-                <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" class="option-btn">
+
+                <a href="{{ STORE_EDGE }}" target="_blank" class="option-btn">
                     <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
                          alt="Edge" style="filter: invert(1);">
                     Edge
@@ -957,20 +953,19 @@
             <p>Indexes your context locally with FastEmbed and connects directly to VS Code, Cursor, or Cline.</p>
 
             <div class="option-grid">
-                <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
+                <a href="{{ STORE_MS_STORE }}" class="option-btn">
                     <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
                          alt="Microsoft Store" style="filter: invert(1);">
                     Microsoft Store
                 </a>
-<!--                TODO: To be replaced with storeURLS visual Studio-->
-                <a href="vscode:extension/patens-dev.patens" target="_blank"
-                   class="option-btn">
+
+                <a href="{{ STORE_VSCODE }}" target="_blank" class="option-btn">
                     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
                          alt="VS Code">
                     VS Code Ext
                 </a>
-<!--                TODO: To be replaced with storeURLS exe installer-->
-                <a href="https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe" class="option-btn">
+
+                <a href="{{ STORE_EXE_INSTALLER }}" class="option-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
                          stroke-linejoin="round">
                         <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -999,21 +994,19 @@
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Grab the extension for your
                     primary browser to enable 1-click context capturing.</p>
                 <div class="option-grid">
-<!--                    TODO: To be replaced with storeURLS chrome-->
-                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" class="option-btn">
+                    <a href="{{ STORE_CHROME }}" target="_blank" class="option-btn">
                         <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
                              alt="Chrome" style="filter: invert(1);">
                         Chrome
                     </a>
-<!--                    TODO: To be replaced with storeURLS firefox-->
-                    <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank" class="option-btn">
+
+                    <a href="{{ STORE_FIREFOX }}" target="_blank" class="option-btn">
                         <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
                              alt="Firefox" style="filter: invert(1);">
                         Firefox
-
                     </a>
-<!--                    TODO: To be replaced with storeURLS edge-->
-                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" class="option-btn">
+
+                    <a href="{{ STORE_EDGE }}" target="_blank" class="option-btn">
                         <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
                              alt="Edge" style="filter: invert(1);">
                         Edge
@@ -1026,23 +1019,19 @@
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Launch the local server to
                     sync vector embeddings to your IDE workspace.</p>
                 <div class="option-grid">
-                    <!--                TODO: To be replaced with storeURLS microsoftStore-->
-
-                    <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
+                    <a href="{{ STORE_MS_STORE }}" class="option-btn">
                         <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
                              alt="Microsoft Store" style="filter: invert(1);">
                         Microsoft Store
                     </a>
-<!--                    TODO: To be replaced with storeURLS visual studio-->
-                    <a href="vscode:extension/patens-dev.patens" target="_blank"
-                       class="option-btn">
+
+                    <a href="{{ STORE_VSCODE }}" target="_blank" class="option-btn">
                         <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
                              alt="VS Code">
                         VS Code Ext
                     </a>
-<!--                TODO: To be replaced with storeURLS exe installer-->
 
-                    <a href="https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe" class="option-btn">
+                    <a href="{{ STORE_EXE_INSTALLER }}" class="option-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
                              stroke-linejoin="round">
                             <rect x="2" y="4" width="20" height="16" rx="2"/>

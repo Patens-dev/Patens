@@ -61,7 +61,7 @@ def sync():
             props["patens.downloadUrl"]["default"] = stores.get("exeInstaller", "")
 
         pkg_path.write_text(json.dumps(pkg, indent=2), encoding="utf-8")
-        print("✅ Synced package.json downloadUrl default")
+        print("✅ Synced package.json downloadUrl default.")
 
 if __name__ == "__main__":
     sync()
