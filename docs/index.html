@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>patens | The Local Memory Layer for AI Coding</title>
+    <style>
+        :root {
+            --bg-base: #09090b;
+            --bg-card: #121214;
+            --bg-card-hover: #18181b;
+            --border-color: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-green: #10b981;
+
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% -10%, var(--accent-glow) 0%, transparent 50%),
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-position: center top;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 32px 24px 48px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .logo img {
+            height: 32px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        /* CAP.SO SPLIT HERO SECTION WITH EXPANDED DEMO AREA */
+        .hero {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px 16px 80px 48px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 0.85fr 1.35fr;
+            gap: 36px;
+            align-items: center;
+        }
+
+        .hero-left {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            padding-right: 12px;
+        }
+
+        /* Cap.so Pill Switcher Bar */
+        .mode-switcher {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #121214;
+            border: 1px solid var(--border-color);
+            padding: 4px;
+            border-radius: 30px;
+            width: fit-content;
+            margin-bottom: 24px;
+            max-width: 100%;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .mode-btn.active {
+            background: var(--bg-card-hover);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Dynamic Animated Eyebrow Text */
+        .hero-eyebrow {
+            font-size: 14px;
+            font-weight: 600;
+            font-style: italic;
+            color: #60a5fa;
+            margin-bottom: 12px;
+            height: 22px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .hero-title {
+            font-size: clamp(32px, 3.8vw, 52px);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            color: #ffffff;
+            min-height: 115px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .hero-title span {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            font-size: 15px;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin-bottom: 32px;
+            line-height: 1.6;
+            min-height: 72px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .hero-animating {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        /* Hero CTA Buttons */
+        .hero-cta-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            min-height: 44px; /* Touch target size */
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: #ffffff;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: #52525b;
+        }
+
+        .hero-subtext {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .hero-subtext span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Hero Right Demo Panel & Video Container */
+        .demo-panel {
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+            position: relative;
+            width: 100%;
+        }
+
+        /* HEADER INTEGRATED STATUS BAR (STEPS LEFT, CONTROLS RIGHT) */
+        .demo-header {
+            background: #09090b;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2;
+            gap: 12px;
+        }
+
+        /* Header Status Badge (Left) */
+        .header-status-badge {
+            background: rgba(18, 18, 20, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 4px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .badge-step-num {
+            background: var(--accent-blue);
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 1px 7px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            flex-shrink: 0;
+        }
+
+        .step-dots {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .step-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .step-dot.active {
+            background: var(--accent-blue);
+            box-shadow: 0 0 6px var(--accent-blue);
+            transform: scale(1.2);
+        }
+
+        /* Window Controls & Title (Right) */
+        .demo-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .demo-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-right: 8px;
+            font-family: var(--font-mono);
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+        }
+
+        .demo-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scale(1.0);
+            transform-origin: center center;
+            display: block;
+        }
+
+        /* Story Section (Old vs New) */
+        .story-section {
+            max-width: 1000px;
+            margin: 100px auto;
+            padding: 0 24px;
+        }
+
+        .story-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .story-card {
+            background: var(--bg-card);
+            padding: 40px;
+        }
+
+        .story-card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .story-card.bad h3 {
+            color: #ef4444;
+        }
+
+        .story-card.good h3 {
+            color: var(--accent-green);
+        }
+
+        .story-card p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        .story-card strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* Features Bento Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            margin: 0 auto 100px;
+            padding: 0 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            transition: border-color 0.2s ease;
+        }
+
+        .feature-card:hover {
+            border-color: #52525b;
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: var(--accent-blue);
+            font-size: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #ffffff;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        /* Bottom Installation Section */
+        .setup-section {
+            max-width: 1000px;
+            margin: 0 auto 100px;
+            padding: 0 24px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .section-header h2 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .setup-matrix {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .setup-step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-number {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+            width: fit-content;
+            margin-bottom: 16px;
+        }
+
+        .setup-step-card h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .setup-step-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+            flex-grow: 1;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .option-btn:hover {
+            border-color: var(--accent-blue);
+            background: #18181b;
+        }
+
+        .option-btn img, .option-btn svg {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            padding: 32px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ========================================================= */
+        /* COMPREHENSIVE MOBILE RESPONSIVE OVERRIDES                 */
+        /* ========================================================= */
+        @media (max-width: 1024px) {
+            nav {
+                padding: 16px 20px;
+            }
+
+            .hero {
+                padding: 24px 20px 50px;
+            }
+
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .hero-left {
+                text-align: center;
+                align-items: center;
+                padding-right: 0;
+            }
+
+            .hero-cta-group {
+                align-items: center;
+            }
+
+            .hero-title {
+                min-height: auto;
+            }
+
+            .hero-desc {
+                min-height: auto;
+            }
+
+            .setup-matrix, .story-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Mobile Phones (< 640px) */
+        @media (max-width: 640px) {
+            nav {
+                padding: 16px;
+            }
+
+            .nav-links {
+                gap: 14px;
+            }
+
+            .nav-links a {
+                font-size: 13px;
+            }
+
+            .logo img {
+                height: 26px;
+            }
+
+            .hero {
+                padding: 16px 16px 40px;
+            }
+
+            /* Scrollable Pill Switcher on Phones */
+            .mode-switcher {
+                width: 100%;
+                justify-content: flex-start;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 3px;
+                border-radius: 24px;
+            }
+
+            .mode-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+                letter-spacing: -0.8px;
+                margin-bottom: 14px;
+            }
+
+            .hero-desc {
+                font-size: 14px;
+                margin-bottom: 24px;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .hero-subtext {
+                justify-content: center;
+                font-size: 12px;
+                gap: 10px;
+            }
+
+            /* DEMO HEADER SPACE OPTIMIZATION FOR MOBILE */
+            .demo-title {
+                display: none; /* Hide .mp4 filename string on mobile to prevent overflow */
+            }
+
+            #badge-text {
+                display: none; /* Hide full text on phone screens; keep "STEP X" + dots */
+            }
+
+            .header-status-badge {
+                padding: 4px 10px;
+                font-size: 11px;
+                gap: 8px;
+            }
+
+            .story-section, .features-grid, .setup-section {
+                margin: 50px auto;
+                padding: 0 16px;
+            }
+
+            .story-card, .feature-card, .setup-step-card {
+                padding: 24px 20px;
+            }
+
+            .section-header h2 {
+                font-size: 24px;
+            }
+
+            .section-header p {
+                font-size: 14px;
+            }
+
+            .option-grid {
+                grid-template-columns: 1fr; /* Full width option buttons on phone screens */
+            }
+
+            .modal-container {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">
+        <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
+             alt="Patens Icon">
+    </div>
+    <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#install">Install Guide</a>
+        <a href="https://github.com/Patens-dev/Patens" target="_blank">GitHub</a>
+    </div>
+</nav>
+
+<header class="hero">
+    <div class="hero-grid">
+        <!-- Left Hero Content with Dynamic Mode Switcher -->
+        <div class="hero-left">
+            <div class="mode-switcher">
+                <button type="button" class="mode-btn active" onclick="switchMode(0)">
+                    <span>🌐</span> In Browser
+                </button>
+                <button type="button" class="mode-btn" onclick="switchMode(1)">
+                    <span>💻</span> In IDE
+                </button>
+                <button type="button" class="mode-btn" onclick="switchMode(2)">
+                    <span>🤖</span> Web Models
+                </button>
+            </div>
+
+            <div class="hero-eyebrow" id="hero-eyebrow">with Patens in Browser...</div>
+            <h1 class="hero-title" id="hero-title">Add all the <span>context</span> you want.</h1>
+            <p class="hero-desc" id="hero-desc">Highlight docs, StackOverflow snippets, or Notion tasks in Chrome, Edge,
+                or Firefox. Hit Ctrl+Shift+C to vectorize locally with zero cloud dependencies.</p>
+
+            <div class="hero-cta-group">
+                <div class="hero-cta">
+                    <a href="#install" class="btn btn-primary" id="smart-install-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        <span id="smart-btn-text">Install Patens</span>
+                    </a>
+                    <button class="btn btn-secondary" onclick="openInstallModal()">
+                        Quick Setup Guide
+                    </button>
+                </div>
+                <div class="hero-subtext">
+                    <span>✓ No Telemetry</span>
+                    <span>✓ Zero Cloud Dependencies</span>
+                    <span>✓ Free Forever</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side Video Demo Container -->
+        <div class="hero-right">
+            <div class="demo-panel">
+                <!-- WINDOW HEADER (STEPS ON LEFT, CONTROLS ON RIGHT) -->
+                <div class="demo-header">
+                    <!-- Header Status Badge (LEFT) -->
+                    <div class="header-status-badge" id="video-badge">
+                        <span class="badge-step-num" id="badge-step-num">STEP 1</span>
+                        <span id="badge-text">1. Clip Context Across Web Tabs</span>
+                        <div class="step-dots" id="step-dots">
+                            <span class="step-dot active"></span>
+                            <span class="step-dot"></span>
+                            <span class="step-dot"></span>
+                            <span class="step-dot"></span>
+                        </div>
+                    </div>
+
+                    <!-- Window Title & Mac Dots (RIGHT) -->
+                    <div class="demo-header-right">
+                        <div class="demo-title">patens-end-to-end-demo.mp4</div>
+                        <div class="window-dot" style="background:#ef4444"></div>
+                        <div class="window-dot" style="background:#f59e0b"></div>
+                        <div class="window-dot" style="background:#10b981"></div>
+                    </div>
+                </div>
+
+                <div class="video-wrapper">
+                    <video
+                            id="demo-video"
+                            class="demo-video"
+                            autoplay
+                            loop
+                            muted
+                            playsinline
+                            preload="auto"
+                            poster="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/poster.webp"
+                    >
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.webm"
+                                type="video/webm">
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.mp4"
+                                type="video/mp4">
+                    </video>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Old vs New Workflow -->
+<section class="story-section">
+    <div class="story-grid">
+        <div class="story-card bad">
+            <h3>❌ The Old Copy-Paste Grind</h3>
+            <p>1. Find an auth snippet on StackOverflow.</p>
+            <p>2. Copy text, switch tabs, paste into Cursor prompt.</p>
+            <p>3. AI response is missing context. Copy API docs, paste again.</p>
+            <p><strong>Result:</strong> Blown context window, lost focus, and repetitive searching tomorrow.</p>
+        </div>
+        <div class="story-card good">
+            <h3>✨ The Patens Workflow</h3>
+            <p>1. Highlight snippet in Chrome, hit <strong>Ctrl+Shift+C</strong>.</p>
+            <p>2. Switch to Cursor and type: <em>"Fix auth using @00_Context_Index.md"</em>.</p>
+            <p>3. AI reads physical local files and generates accurate code instantly.</p>
+            <p><strong>Result:</strong> Zero context switching, offline searchability, perfect prompts.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Feature Bento Grid -->
+<section id="features" class="features-grid">
+    <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Zero-Friction Capture</h3>
+        <p>Highlight text or images on any web page, press <code style="color:#60a5fa">Ctrl+Shift+C</code>, and it
+            instantly vectorizes to your local database.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">📂</div>
+        <h3>Physical File Mounting</h3>
+        <p>Patens writes Markdown files directly to your workspace's <code style="color:#60a5fa">_context/</code>
+            directory. Works natively with Cursor, Copilot, or Cline.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>100% Private & Local</h3>
+        <p>Powered by local SQLite-vec and FastEmbed. Your code and research never leave your machine. No cloud, no
+            tracking.</p>
+    </div>
+</section>
+
+<!-- INSTALLATION MATRIX WITH OFFICIAL BRAND SVGs -->
+<section id="install" class="setup-section">
+    <div class="section-header">
+        <h2>Ready to activate your memory layer?</h2>
+        <p>Install the browser extension to capture context, and the local engine to feed your IDE.</p>
+    </div>
+
+    <div class="setup-matrix">
+        <!-- Step 1: Extension -->
+        <div class="setup-step-card">
+            <div class="step-number">STEP 1</div>
+            <h3>Browser Extension</h3>
+            <p>Captures text and images directly from Chrome, Edge, or Firefox without leaving your page.</p>
+
+            <div class="option-grid">
+                 <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
+                    <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
+                         alt="Chrome" style="filter: invert(1);">
+                    Chrome
+                </a>
+
+                <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank" class="option-btn">
+                    <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
+                         alt="Firefox" style="filter: invert(1);">
+                    Firefox
+                </a>
+
+                <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
+                    <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
+                         alt="Edge" style="filter: invert(1);">
+                    Edge
+                </a>
+            </div>
+        </div>
+
+        <!-- Step 2: Backend Server -->
+        <div class="setup-step-card">
+            <div class="step-number">STEP 2</div>
+            <h3>Memory Engine (Backend)</h3>
+            <p>Indexes your context locally with FastEmbed and connects directly to VS Code, Cursor, or Cline.</p>
+
+            <div class="option-grid">
+                <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
+                    <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
+                         alt="Microsoft Store" style="filter: invert(1);">
+                    Microsoft Store
+                </a>
+
+                <a href="vscode:extension/patens-dev.patens" target="_blank" class="option-btn">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                         alt="VS Code">
+                    VS Code Ext
+                </a>
+
+                <a href="https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe" class="option-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M6 8l4 4-4 4"/>
+                        <line x1="12" y1="16" x2="18" y2="16"/>
+                    </svg>
+                    .EXE Installer
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Install Modal Guide -->
+<div class="modal-overlay" id="install-modal">
+    <div class="modal-container">
+        <button class="modal-close" onclick="closeInstallModal()">✕</button>
+        <div class="section-header" style="text-align: left; margin-bottom: 24px;">
+            <h2>Quick Setup Guide</h2>
+            <p>Follow these 2 quick steps to activate Patens on your machine.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="background: #000; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px;">
+                <h4 style="color: var(--accent-blue); margin-bottom: 8px;">1. Install Browser Extension</h4>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Grab the extension for your
+                    primary browser to enable 1-click context capturing.</p>
+                <div class="option-grid">
+                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
+                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
+                             alt="Chrome" style="filter: invert(1);">
+                        Chrome
+                    </a>
+
+                    <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank" class="option-btn">
+                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
+                             alt="Firefox" style="filter: invert(1);">
+                        Firefox
+                    </a>
+
+                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
+                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
+                             alt="Edge" style="filter: invert(1);">
+                        Edge
+                    </a>
+                </div>
+            </div>
+
+            <div style="background: #000; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px;">
+                <h4 style="color: var(--accent-blue); margin-bottom: 8px;">2. Install Backend Server</h4>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Launch the local server to
+                    sync vector embeddings to your IDE workspace.</p>
+                <div class="option-grid">
+                    <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
+                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
+                             alt="Microsoft Store" style="filter: invert(1);">
+                        Microsoft Store
+                    </a>
+
+                    <a href="vscode:extension/patens-dev.patens" target="_blank" class="option-btn">
+                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                             alt="VS Code">
+                        VS Code Ext
+                    </a>
+
+                    <a href="https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe" class="option-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
+                             stroke-linejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="M6 8l4 4-4 4"/>
+                            <line x1="12" y1="16" x2="18" y2="16"/>
+                        </svg>
+                        .EXE Installer
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>Patens is open source under the MIT License. Built with the Model Context Protocol (MCP).</p>
+</footer>
+
+<!-- JS Logic: Auto Detection + Hero Mode Switching + Real-time Video Sync -->
+<script>
+    // --- Auto Browser/OS Detection ---
+    function detectEnvironment() {
+        const ua = navigator.userAgent;
+        let browser = "Chrome";
+
+        if (ua.includes("Firefox")) browser = "Firefox";
+        else if (ua.includes("Edg")) browser = "Edge";
+
+        const smartBtnText = document.getElementById("smart-btn-text");
+        if (smartBtnText) {
+            smartBtnText.textContent = `Get Patens for ${browser}`;
+        }
+    }
+
+    // --- Modal Logic ---
+    function openInstallModal() {
+        document.getElementById("install-modal").classList.add("active");
+    }
+
+    function closeInstallModal() {
+        document.getElementById("install-modal").classList.remove("active");
+    }
+
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeInstallModal();
+    });
+
+    // --- CAP.SO DYNAMIC HERO MODE SWITCHER ---
+    const heroModes = [
+        {
+            eyebrow: "with Patens in Browser...",
+            title: "Add all the <span>context</span> you want.",
+            desc: "Highlight docs, StackOverflow snippets, or Notion tasks in Chrome, Edge, or Firefox. Hit Ctrl+Shift+C to vectorize locally with zero cloud dependencies."
+        },
+        {
+            eyebrow: "with Patens in your IDE...",
+            title: "Have all the <span>memory</span> you want.",
+            desc: "Physical Markdown files auto-mount to your workspace _context/ folder. Prompt Cursor, Copilot, or Cline natively using simple @ tags."
+        },
+        {
+            eyebrow: "with Patens in Web Models...",
+            title: "Feed <span>verified facts</span> to any LLM.",
+            desc: "Inject local vector memory into ChatGPT, Claude, and DeepSeek chats with 1-click formatted clipboard context."
+        }
+    ];
+
+    let currentModeIdx = 0;
+    let modeInterval = null;
+
+    function switchMode(idx) {
+        if (idx === currentModeIdx) return;
+        currentModeIdx = idx;
+
+        const eyebrowEl = document.getElementById("hero-eyebrow");
+        const titleEl = document.getElementById("hero-title");
+        const descEl = document.getElementById("hero-desc");
+        const buttons = document.querySelectorAll(".mode-btn");
+
+        buttons.forEach((btn, i) => {
+            if (i === idx) btn.classList.add("active");
+            else btn.classList.remove("active");
+        });
+
+        eyebrowEl.classList.add("hero-animating");
+        titleEl.classList.add("hero-animating");
+        descEl.classList.add("hero-animating");
+
+        setTimeout(() => {
+            const data = heroModes[idx];
+            eyebrowEl.textContent = data.eyebrow;
+            titleEl.innerHTML = data.title;
+            descEl.textContent = data.desc;
+
+            eyebrowEl.classList.remove("hero-animating");
+            titleEl.classList.remove("hero-animating");
+            descEl.classList.remove("hero-animating");
+        }, 200);
+
+        startAutoSwitch();
+    }
+
+    function startAutoSwitch() {
+        clearInterval(modeInterval);
+        modeInterval = setInterval(() => {
+            const nextIdx = (currentModeIdx + 1) % heroModes.length;
+            switchMode(nextIdx);
+        }, 4000);
+    }
+
+    // --- Real-time Video Overlay Sync Engine ---
+    function initVideoSync() {
+        const video = document.getElementById('demo-video');
+        const badgeStep = document.getElementById('badge-step-num');
+        const badgeText = document.getElementById('badge-text');
+        const dotsContainer = document.getElementById('step-dots');
+
+        const timeline = [
+            {time: 0, step: 1, text: "1. Clip Context Across Web Tabs"},
+            {time: 5.8, step: 2, text: "2. Inject & Clip Multimodal Assets"},
+            {time: 12.5, step: 3, text: "3. Auto-Mount to IDE Workspace"},
+            {time: 18.2, step: 4, text: "4. Generate Code & Pull Local Assets"}
+        ];
+
+        if (video && badgeStep && badgeText && dotsContainer) {
+            const dots = dotsContainer.querySelectorAll('.step-dot');
+
+            video.addEventListener('timeupdate', () => {
+                const currentTime = video.currentTime;
+
+                let activeIdx = 0;
+                for (let i = timeline.length - 1; i >= 0; i--) {
+                    if (currentTime >= timeline[i].time) {
+                        activeIdx = i;
+                        break;
+                    }
+                }
+
+                const currentStep = timeline[activeIdx];
+
+                if (badgeStep.textContent !== `STEP ${currentStep.step}`) {
+                    badgeStep.textContent = `STEP ${currentStep.step}`;
+                    badgeText.textContent = currentStep.text;
+
+                    dots.forEach((dot, index) => {
+                        if (index === activeIdx) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    // Initialize scripts
+    detectEnvironment();
+    initVideoSync();
+    startAutoSwitch();
+</script>
+</body>
+</html>
