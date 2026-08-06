@@ -2,11 +2,14 @@
 import json
 from pathlib import Path
 
+# Smart detection: checks script folder first, then parent folder (if in a subfolder like scripts/)
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR if (SCRIPT_DIR / "urls.json").exists() else SCRIPT_DIR.parent
 
 def sync():
-    urls_path = Path("urls.json")
+    urls_path = PROJECT_ROOT / "urls.json"
     if not urls_path.exists():
-        print("❌ [Error] urls.json not found!")
+        print(f"❌ [Error] urls.json not found at: {urls_path}")
         return
 
     urls = json.loads(urls_path.read_text(encoding="utf-8"))
@@ -30,23 +33,26 @@ def sync():
     }
 
     template_files = [
-        ("index.template.html", "index.html"),
-        ("not-available.template.html", "not-available.html"),
-        ("welcome.template.html", "welcome.html")
+        ("docs/index.template.html", "docs/index.html"),
+        ("docs/not-available.template.html", "docs/not-available.html"),
     ]
 
     for t_name, out_name in template_files:
-        t_path = Path(t_name)
+        t_path = PROJECT_ROOT / t_name
+        out_path = PROJECT_ROOT / out_name
+
         if t_path.exists():
             content = t_path.read_text(encoding="utf-8")
             for placeholder, val in replacements.items():
                 content = content.replace(placeholder, val)
 
-            Path(out_name).write_text(content, encoding="utf-8")
+            out_path.write_text(content, encoding="utf-8")
             print(f"✨ Compiled {t_name} -> {out_name}")
+        else:
+            print(f"⚠️  [Skipped] Template file not found: {t_path.name}")
 
     # Keep package.json default setting aligned with exeInstaller
-    pkg_path = Path("package.json")
+    pkg_path = PROJECT_ROOT / "package.json"
     if pkg_path.exists():
         pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
         props = pkg.get("contributes", {}).get("configuration", {}).get("properties", {})
@@ -56,7 +62,6 @@ def sync():
 
         pkg_path.write_text(json.dumps(pkg, indent=2), encoding="utf-8")
         print("✅ Synced package.json downloadUrl default")
-
 
 if __name__ == "__main__":
     sync()
