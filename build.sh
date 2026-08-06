@@ -35,6 +35,14 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # ===================================================================
+# 0. PRE-BUILD CONFIGURATION SYNC
+# ===================================================================
+if [ -f "scripts/sync_config.py" ]; then
+    log_info "🔄 Syncing central urls.json inventory across project..."
+    python scripts/sync_config.py || log_warn "sync_config.py failed to run; continuing with build."
+fi
+
+# ===================================================================
 # TOOL DETECTORS
 # ===================================================================
 log_info "Detecting build tools..."
@@ -85,7 +93,7 @@ log_info "Using Windows SDK tools from: $(dirname "$MAKEAPPX_CMD")"
 if [ -n "$ISCC_CMD" ]; then
     log_info "Using Inno Setup Compiler: $ISCC_CMD"
 else
-    log_warn "Inno Setup (ISCC.exe) not found. Standard standalone binary will be used as the EXE installer target."
+    log_warn "Inno Setup (ISCC.exe) not found."
 fi
 
 log_info "Cleaning previous build outputs..."
@@ -159,16 +167,17 @@ print(f"Resolving configured model: {MODEL_NAME} -> {cache_path}")
 TextEmbedding(model_name=MODEL_NAME, cache_dir=cache_path)
 '
 TIME_FASTEMBED=$(stop_timer)
+SIZE_MODEL_CACHE=$(get_size "fastembed_cache")
 
 # ===================================================================
-# 3. PYINSTALLER COMPILATION
+# 3. PYINSTALLER COMPILATION (--onedir FOR ENTERPRISE WDAC COMPLIANCE)
 # ===================================================================
-log_info "🔨 Compiling PyInstaller binary..."
+log_info "🔨 Compiling PyInstaller binary (--onedir pattern)..."
 start_timer
 
 "$PYINSTALLER_BIN" \
   --name "Patens" \
-  --onefile \
+  --onedir \
   --noconfirm \
   --paths=src \
   --exclude-module torch \
@@ -192,7 +201,7 @@ start_timer
   src/patens/main.py
 
 TIME_PYINSTALLER=$(stop_timer)
-SIZE_PYINSTALLER_EXE=$(get_size "dist/Patens.exe")
+SIZE_PYINSTALLER_EXE=$(get_size "dist/Patens")
 
 # ===================================================================
 # 4. MSIX PACKAGE GENERATION & SIGNING
@@ -200,14 +209,14 @@ SIZE_PYINSTALLER_EXE=$(get_size "dist/Patens.exe")
 log_info "📦 Creating MSIX package layout..."
 start_timer
 
-PACKAGE_IDENTITY_NAME="Patens"                            # Package/Identity/Name
-PACKAGE_IDENTITY_PUBLISHER="CN=Patens"                   # Package/Identity/Publisher
-PUBLISHER_DISPLAY_NAME="Patens"                           # Package/Properties/PublisherDisplayName
+PACKAGE_IDENTITY_NAME="Patens"
+PACKAGE_IDENTITY_PUBLISHER="CN=Patens"
+PUBLISHER_DISPLAY_NAME="Patens"
 
 mkdir -p msix_layout/Assets
 
-# Copy compiled binary to layout
-cp "dist/Patens.exe" "msix_layout/Patens.exe"
+# Copy compiled directory output to MSIX layout
+cp -r dist/Patens/* msix_layout/
 
 # Convert assets/patens.ico to proper PNG assets if Pillow is available
 python -c '
@@ -224,7 +233,7 @@ except Exception as e:
     print(f"Image conversion note: {e}")
 '
 
-# Generate AppxManifest.xml with exact identity fields
+# Generate AppxManifest.xml
 cat << EOF > msix_layout/AppxManifest.xml
 <?xml version="1.0" encoding="utf-8"?>
 <Package
@@ -274,9 +283,8 @@ log_info "🔨 Packing MSIX package..."
 MSIX_OUTPUT="dist/patens_${APP_VERSION}.msix"
 MSYS_NO_PATHCONV=1 "$MAKEAPPX_CMD" pack /d msix_layout /p "$MSIX_OUTPUT" /o
 
-# Sign locally for testing if self-signed cert exists in Cert store
-if [ -f "$SIGNTOOL_CMD" ]; then
-    log_info "🔏 Attempting local sign with signtool for developer testing..."
+if [ -n "$SIGNTOOL_CMD" ]; then
+    log_info "🔏 Attempting local sign with signtool..."
     MSYS_NO_PATHCONV=1 "$SIGNTOOL_CMD" sign /fd SHA256 /n "${PUBLISHER_DISPLAY_NAME}" "$MSIX_OUTPUT" 2>/dev/null || log_warn "Local cert '${PUBLISHER_DISPLAY_NAME}' not found in Cert store. Package remains unsigned for local testing, but IS ready for Microsoft Store upload!"
 fi
 
@@ -284,7 +292,7 @@ TIME_MSIX=$(stop_timer)
 SIZE_MSIX=$(get_size "$MSIX_OUTPUT")
 
 # ===================================================================
-# 5. EXE INSTALLER GENERATION
+# 5. EXE INSTALLER GENERATION (INNO SETUP)
 # ===================================================================
 log_info "⚙️ Generating standalone EXE installer..."
 start_timer
@@ -306,7 +314,7 @@ SetupIconFile=assets\patens.ico
 WizardStyle=modern
 
 [Files]
-Source: "dist\Patens.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\Patens\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Patens"; Filename: "{app}\Patens.exe"
@@ -322,8 +330,16 @@ EOF
     log_info "🔨 Compiling Inno Setup EXE installer..."
     MSYS_NO_PATHCONV=1 "$ISCC_CMD" patens_setup.iss > /dev/null
 else
-    log_info "📋 Copying PyInstaller portable executable as standalone setup target..."
-    cp "dist/Patens.exe" "$EXE_INSTALLER_OUTPUT"
+    log_warn "ISCC.exe not found. Creating zip archive fallback for directory distribution..."
+    python -c '
+import sys, os, zipfile
+zip_path = sys.argv[1]
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+    for root, _, files in os.walk("dist/Patens"):
+        for file in files:
+            file_path = os.path.join(root, file)
+            zipf.write(file_path, os.path.relpath(file_path, "dist/Patens"))
+' "dist/patens_standalone_${APP_VERSION}.zip"
 fi
 
 TIME_EXE_INSTALLER=$(stop_timer)
@@ -346,7 +362,7 @@ if os.path.exists(ext_dir):
                     zipf.write(file_path, os.path.relpath(file_path, ext_dir))
 ' "$EXT_DIR" "$EXT_VERSION"
 TIME_EXTENSION=$(stop_timer)
-
+rm -rf dist/Patens
 TIME_TOTAL=$(( $(date +%s) - PIPELINE_START ))
 
 echo ""
@@ -356,8 +372,8 @@ echo -e "${CYAN}================================================================
 printf "%-35s | %-12s | %-15s\n" "Build Phase" "Duration" "Artifact Size"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "1. Metadata Parsing" "${TIME_METADATA}s" "N/A"
-printf "%-35s | %-12s | %-15s\n" "2. FastEmbed Model Prune" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
-printf "%-35s | %-12s | %-15s\n" "3. PyInstaller Compilation" "${TIME_PYINSTALLER}s" "Exe: ${SIZE_PYINSTALLER_EXE}"
+printf "%-35s | %-12s | %-15s\n" "2. FastEmbed Model Cache" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
+printf "%-35s | %-12s | %-15s\n" "3. PyInstaller (--onedir)" "${TIME_PYINSTALLER}s" "Dir: ${SIZE_PYINSTALLER_EXE}"
 printf "%-35s | %-12s | %-15s\n" "4. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
 printf "%-35s | %-12s | %-15s\n" "5. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
 printf "%-35s | %-12s | %-15s\n" "6. Extension Packaging" "${TIME_EXTENSION}s" "Zip: $(get_size "dist/extension_${EXT_VERSION}.zip")"
