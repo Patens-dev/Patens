@@ -1,10 +1,15 @@
 # scripts/sync_config.py
 import json
+import sys
 from pathlib import Path
 
+# Force stdout to UTF-8 on Windows Git hook environments (cp1252 fix)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 # Smart detection: checks script folder first, then parent folder (if in a subfolder like scripts/)
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR if (SCRIPT_DIR / "urls.json").exists() else SCRIPT_DIR.parent
+
 
 def sync():
     urls_path = PROJECT_ROOT / "urls.json"
@@ -62,6 +67,7 @@ def sync():
 
         pkg_path.write_text(json.dumps(pkg, indent=2), encoding="utf-8")
         print("✅ Synced package.json downloadUrl default.")
+
 
 if __name__ == "__main__":
     sync()
