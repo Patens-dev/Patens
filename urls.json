@@ -1,0 +1,18 @@
+{
+  "version": "1.1.1",
+  "releaseVersion": "1.1.2",
+  "app": {
+    "github": {
+      "repository": "https://github.com/Patens-dev/Patens"
+    }
+  },
+  "storeUrls": {
+    "firefox": "https://addons.mozilla.org/en-US/firefox/addon/patens/",
+    "vscode": "vscode:extension/patens-dev.patens",
+    "chrome": "https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB",
+    "edge": "https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB",
+    "microsoftStore": "ms-windows-store://pdp/?productid=9PM9R44F0RXV",
+    "exeInstaller": "https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe",
+    "extensionZip": "https://github.com/Patens-dev/Patens/releases/download/v1.1.2/extension.zip"
+  }
+}

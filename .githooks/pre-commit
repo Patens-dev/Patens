@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "🔄 Compiling HTML templates and updating package.json..."
+python scripts/sync_config.py
+git add index.html not-available.html welcome.html package.json 2>/dev/null
+exit 0
