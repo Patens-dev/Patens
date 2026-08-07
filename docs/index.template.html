@@ -834,7 +834,6 @@
                             <span class="step-dot active"></span>
                             <span class="step-dot"></span>
                             <span class="step-dot"></span>
-                            <span class="step-dot"></span>
                         </div>
                     </div>
 
@@ -926,7 +925,7 @@
             <p>Captures text and images directly from Chrome, Edge, or Firefox without leaving your page.</p>
 
             <div class="option-grid">
-                 <a href="{{ STORE_CHROME }}" target="_blank" class="option-btn">
+                <a href="{{ STORE_CHROME }}" target="_blank" class="option-btn">
                     <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
                          alt="Chrome" style="filter: invert(1);">
                     Chrome
@@ -1148,11 +1147,11 @@
         const badgeText = document.getElementById('badge-text');
         const dotsContainer = document.getElementById('step-dots');
 
+        // Mapped precisely to demo_13s.mp4 key events
         const timeline = [
-            {time: 0, step: 1, text: "1. Clip Context Across Web Tabs"},
-            {time: 5.8, step: 2, text: "2. Inject & Clip Multimodal Assets"},
-            {time: 12.5, step: 3, text: "3. Auto-Mount to IDE Workspace"},
-            {time: 18.2, step: 4, text: "4. Generate Code & Pull Local Assets"}
+            {time: 0.0, step: 1, text: "Ditch the old way, full of hallucinations"},
+            {time: 3.8, step: 2, text: "Capture context with 1-click"},
+            {time: 8.8, step: 3, text: "Implement with minimal instructions "}
         ];
 
         if (video && badgeStep && badgeText && dotsContainer) {
