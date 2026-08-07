@@ -53,7 +53,7 @@
         }
 
         .logo img {
-            height: 32px;
+            height: 48px;
             width: auto;
         }
 
@@ -75,7 +75,7 @@
             color: var(--text-main);
         }
 
-        /* CAP.SO SPLIT HERO SECTION WITH EXPANDED DEMO AREA */
+        /* SPLIT HERO SECTION WITH EXPANDED DEMO AREA */
         .hero {
             max-width: 1600px;
             margin: 0 auto;
@@ -96,7 +96,7 @@
             padding-right: 12px;
         }
 
-        /* Cap.so Pill Switcher Bar */
+        /* Pill Switcher Bar */
         .mode-switcher {
             display: inline-flex;
             align-items: center;
@@ -204,7 +204,7 @@
             transition: all 0.2s ease;
             cursor: pointer;
             border: none;
-            min-height: 44px; /* Touch target size */
+            min-height: 44px;
         }
 
         .btn-primary {
@@ -246,7 +246,7 @@
 
         /* Hero Right Demo Panel & Video Container */
         .demo-panel {
-            background: #000;
+            background: #09090b;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             overflow: hidden;
@@ -258,7 +258,7 @@
             width: 100%;
         }
 
-        /* HEADER INTEGRATED STATUS BAR (STEPS LEFT, CONTROLS RIGHT) */
+        /* HEADER INTEGRATED STATUS BAR */
         .demo-header {
             background: #09090b;
             padding: 10px 16px;
@@ -619,9 +619,7 @@
             font-size: 14px;
         }
 
-        /* ========================================================= */
-        /* COMPREHENSIVE MOBILE RESPONSIVE OVERRIDES                 */
-        /* ========================================================= */
+        /* Mobile Responsive Overrides */
         @media (max-width: 1024px) {
             nav {
                 padding: 16px 20px;
@@ -659,7 +657,6 @@
             }
         }
 
-        /* Mobile Phones (< 640px) */
         @media (max-width: 640px) {
             nav {
                 padding: 16px;
@@ -681,7 +678,6 @@
                 padding: 16px 16px 40px;
             }
 
-            /* Scrollable Pill Switcher on Phones */
             .mode-switcher {
                 width: 100%;
                 justify-content: flex-start;
@@ -723,13 +719,12 @@
                 gap: 10px;
             }
 
-            /* DEMO HEADER SPACE OPTIMIZATION FOR MOBILE */
             .demo-title {
-                display: none; /* Hide .mp4 filename string on mobile to prevent overflow */
+                display: none;
             }
 
             #badge-text {
-                display: none; /* Hide full text on phone screens; keep "STEP X" + dots */
+                display: none;
             }
 
             .header-status-badge {
@@ -756,7 +751,7 @@
             }
 
             .option-grid {
-                grid-template-columns: 1fr; /* Full width option buttons on phone screens */
+                grid-template-columns: 1fr;
             }
 
             .modal-container {
@@ -769,8 +764,10 @@
 
 <nav>
     <div class="logo">
-        <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
-             alt="Patens Icon">
+        <a href="https://patens.dev">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
+                 alt="Patens Icon">
+        </a>
     </div>
     <div class="nav-links">
         <a href="#features">Features</a>
@@ -795,10 +792,10 @@
                 </button>
             </div>
 
-            <div class="hero-eyebrow" id="hero-eyebrow">with Patens in Browser...</div>
-            <h1 class="hero-title" id="hero-title">Add all the <span>context</span> you want.</h1>
-            <p class="hero-desc" id="hero-desc">Highlight docs, StackOverflow snippets, or Notion tasks in Chrome, Edge,
-                or Firefox. Hit Ctrl+Shift+C to vectorize locally with zero cloud dependencies.</p>
+            <div class="hero-eyebrow" id="hero-eyebrow">🌐 In Your Browser</div>
+            <h1 class="hero-title" id="hero-title">Clip live docs in <span>1-click</span>.</h1>
+            <p class="hero-desc" id="hero-desc">Highlight any API doc, GitHub issue, or StackOverflow thread. Hit
+                Ctrl+Shift+C to capture exactly what's on your screen—even behind login walls.</p>
 
             <div class="hero-cta-group">
                 <div class="hero-cta">
@@ -824,12 +821,12 @@
         <!-- Right Side Video Demo Container -->
         <div class="hero-right">
             <div class="demo-panel">
-                <!-- WINDOW HEADER (STEPS ON LEFT, CONTROLS ON RIGHT) -->
+                <!-- WINDOW HEADER -->
                 <div class="demo-header">
                     <!-- Header Status Badge (LEFT) -->
                     <div class="header-status-badge" id="video-badge">
                         <span class="badge-step-num" id="badge-step-num">STEP 1</span>
-                        <span id="badge-text">1. Clip Context Across Web Tabs</span>
+                        <span id="badge-text">Ditch the old way, full of hallucinations</span>
                         <div class="step-dots" id="step-dots">
                             <span class="step-dot active"></span>
                             <span class="step-dot"></span>
@@ -872,18 +869,18 @@
 <section class="story-section">
     <div class="story-grid">
         <div class="story-card bad">
-            <h3>❌ The Old Copy-Paste Grind</h3>
-            <p>1. Find an auth snippet on StackOverflow.</p>
-            <p>2. Copy text, switch tabs, paste into Cursor prompt.</p>
-            <p>3. AI response is missing context. Copy API docs, paste again.</p>
-            <p><strong>Result:</strong> Blown context window, lost focus, and repetitive searching tomorrow.</p>
+            <h3>❌ The Broken Workflow</h3>
+            <p>• Copying docs into prompts wastes half your context window.</p>
+            <p>• Standard <code>@docs</code> web scrapers fail on gated pages, Notion, or SPAs.</p>
+            <p>• LLMs hallucinate methods from outdated training data.</p>
+            <p><strong>Result:</strong> Broken builds, lost flow state, and repeated prompts tomorrow.</p>
         </div>
         <div class="story-card good">
             <h3>✨ The Patens Workflow</h3>
-            <p>1. Highlight snippet in Chrome, hit <strong>Ctrl+Shift+C</strong>.</p>
-            <p>2. Switch to Cursor and type: <em>"Fix auth using @00_Context_Index.md"</em>.</p>
-            <p>3. AI reads physical local files and generates accurate code instantly.</p>
-            <p><strong>Result:</strong> Zero context switching, offline searchability, perfect prompts.</p>
+            <p>• Highlight any web page and press <strong>Ctrl+Shift+C</strong>.</p>
+            <p>• Physical Markdown mounts straight to your workspace <code>_context/</code>.</p>
+            <p>• Cursor, Copilot & Cline read local vectors instantly with zero lag.</p>
+            <p><strong>Result:</strong> 100% accurate AI code generation on the first try.</p>
         </div>
     </div>
 </section>
@@ -894,18 +891,18 @@
         <div class="feature-icon">⚡</div>
         <h3>Zero-Friction Capture</h3>
         <p>Highlight text or images on any web page, press <code style="color:#60a5fa">Ctrl+Shift+C</code>, and it
-            instantly vectorizes to your local database.</p>
+            instantly vectorizes to your local database—even behind logins.</p>
     </div>
     <div class="feature-card">
         <div class="feature-icon">📂</div>
         <h3>Physical File Mounting</h3>
         <p>Patens writes Markdown files directly to your workspace's <code style="color:#60a5fa">_context/</code>
-            directory. Works natively with Cursor, Copilot, or Cline.</p>
+            directory. Works natively with Cursor, Copilot, or Cline via simple @ tags.</p>
     </div>
     <div class="feature-card">
         <div class="feature-icon">🔒</div>
         <h3>100% Private & Local</h3>
-        <p>Powered by local SQLite-vec and FastEmbed. Your code and research never leave your machine. No cloud, no
+        <p>Powered by local SQLite-vec and FastEmbed. Your code and research never leave your machine. Zero cloud, no
             tracking.</p>
     </div>
 </section>
@@ -913,8 +910,9 @@
 <!-- INSTALLATION MATRIX WITH OFFICIAL BRAND SVGs -->
 <section id="install" class="setup-section">
     <div class="section-header">
-        <h2>Ready to activate your memory layer?</h2>
-        <p>Install the browser extension to capture context, and the local engine to feed your IDE.</p>
+        <h2>2 Minutes to Zero-Hallucination Coding</h2>
+        <p>Install the browser extension to capture web context, and the local engine to bridge it into VS Code or
+            Cursor.</p>
     </div>
 
     <div class="setup-matrix">
@@ -922,7 +920,7 @@
         <div class="setup-step-card">
             <div class="step-number">STEP 1</div>
             <h3>Browser Extension</h3>
-            <p>Captures text and images directly from Chrome, Edge, or Firefox without leaving your page.</p>
+            <p>Captures text and images directly from Chrome, Edge, or Firefox without leaving your active tab.</p>
 
             <div class="option-grid">
                 <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
@@ -949,7 +947,7 @@
         <div class="setup-step-card">
             <div class="step-number">STEP 2</div>
             <h3>Memory Engine (Backend)</h3>
-            <p>Indexes your context locally with FastEmbed and connects directly to VS Code, Cursor, or Cline.</p>
+            <p>Indexes your context locally with FastEmbed and mounts Markdown files straight to your IDE workspace.</p>
 
             <div class="option-grid">
                 <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
@@ -1078,22 +1076,22 @@
         if (e.key === "Escape") closeInstallModal();
     });
 
-    // --- CAP.SO DYNAMIC HERO MODE SWITCHER ---
+    // --- DYNAMIC HERO MODE SWITCHER ---
     const heroModes = [
         {
-            eyebrow: "with Patens in Browser...",
-            title: "Add all the <span>context</span> you want.",
-            desc: "Highlight docs, StackOverflow snippets, or Notion tasks in Chrome, Edge, or Firefox. Hit Ctrl+Shift+C to vectorize locally with zero cloud dependencies."
+            eyebrow: "🌐 In Your Browser",
+            title: "Clip live docs in <span>1-click</span>.",
+            desc: "Highlight any API doc, GitHub issue, or StackOverflow thread. Hit Ctrl+Shift+C to capture exactly what's on your screen—even behind login walls."
         },
         {
-            eyebrow: "with Patens in your IDE...",
-            title: "Have all the <span>memory</span> you want.",
-            desc: "Physical Markdown files auto-mount to your workspace _context/ folder. Prompt Cursor, Copilot, or Cline natively using simple @ tags."
+            eyebrow: "💻 In Your IDE Workspace",
+            title: "Auto-mount physical <span>_context/</span> files.",
+            desc: "Patens writes vector-indexed Markdown files straight into your project folder. Tag them in Cursor, Copilot, or Cline using simple @ files."
         },
         {
-            eyebrow: "with Patens in Web Models...",
-            title: "Feed <span>verified facts</span> to any LLM.",
-            desc: "Inject local vector memory into ChatGPT, Claude, and DeepSeek chats with 1-click formatted clipboard context."
+            eyebrow: "🤖 Across Web Models",
+            title: "Zero hallucinations on <span>any LLM</span>.",
+            desc: "Feed verified local memory to ChatGPT, Claude, or DeepSeek without blown context windows or repeated prompt engineering."
         }
     ];
 
@@ -1151,7 +1149,7 @@
         const timeline = [
             {time: 0.0, step: 1, text: "Ditch the old way, full of hallucinations"},
             {time: 3.8, step: 2, text: "Capture context with 1-click"},
-            {time: 8.8, step: 3, text: "Implement with minimal instructions "}
+            {time: 8.8, step: 3, text: "Implement with minimal instructions"}
         ];
 
         if (video && badgeStep && badgeText && dotsContainer) {
