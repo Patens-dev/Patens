@@ -1,138 +1,98 @@
 <div align="center">
-  
-  <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.svg" alt="Patens.dev Logo" width="120" />
+  <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="Patens.dev Logo" width="180" />
 
-  <h1>Patens.dev</h1>
-  <p><strong>The Local Memory Layer for AI Coding Assistants</strong></p>
+  <h1>Patens</h1>
+  <p><strong>Stop copy-pasting web docs into your IDE.</strong></p>
 
   <p>
-    <a href="#installation"><img src="https://img.shields.io/badge/Download-Executable-3b82f6?style=for-the-badge&logo=windows" alt="Download Server" /></a>
-    <a href="#installation"><img src="https://img.shields.io/badge/Chrome-Extension-10b981?style=for-the-badge&logo=googlechrome" alt="Chrome Extension" /></a>
+    <a href="#-installation"><img src="https://img.shields.io/badge/Extension-Chrome%20%7C%20Firefox%20%7C%20Edge-3b82f6?style=for-the-badge&logo=googlechrome" alt="Browser Extension" /></a>
+    <a href="#-installation"><img src="https://img.shields.io/badge/Backend-MS%20Store%20%7C%20VS%20Code%20%7C%20EXE-10b981?style=for-the-badge&logo=windows" alt="Backend Engine" /></a>
     <br/>
     <img src="https://img.shields.io/badge/100%25-Local_&_Private-success?style=flat-square" alt="100% Local" />
     <img src="https://img.shields.io/badge/Protocol-MCP-blue?style=flat-square" alt="MCP Compatible" />
+    <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
   </p>
 
-  <p><em>Stop losing hours to copy-pasting between Chrome and your IDE.</em></p>
+  <p><em>Never explain your context twice. 1-click browser context straight to Cursor, VS Code, and Cline.</em></p>
 </div>
 
 ---
+<div align="center">
+  <video 
+    src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.webm" 
+    autoplay 
+    loop 
+    muted 
+    playsinline 
+    width="100%" 
+    style="border-radius: 8px;">
+  </video>
+</div>
 
-## The Problem: This Is Your Life Right Now
+## ❌ The Broken Workflow vs ✨ The Patens Workflow
 
-**It's 2 PM. You're stuck on an authentication bug.**
-
-1. You Google "Next.js 14 App Router protected routes"
-2. Find a 3-post StackOverflow thread with the exact answer
-3. Highlight the code. Copy. Switch to Cursor.
-4. Paste. Paste again. Paste the OAuth config. Paste the middleware logic.
-5. Your context window is already at 60%. You paste the error log too. **Now it's 75%.**
-6. You ask Cursor: "Fix this" — but you've already used half your context on *messy copy-pasted snippets*.
-7. Cursor's response is generic. You switch back to Chrome. Re-read the docs. Copy. Paste again.
-8. **20 minutes later**, you finally have working code.
-
-**Then tomorrow, you need to implement the same thing in a different project.**
-
-You Google it again. You copy-paste again. Because there's no way to connect what you've already learned to your IDE.
-
----
-
-## The Solution: Patens Makes It Instant
-
-**Same scenario. Different ending.**
-
-1. You find the StackOverflow answer in Chrome
-2. **Highlight the code. Press `Ctrl+Shift+C`. Done.**
-3. Switch to your IDE.
-4. **The `_context` folder appears automatically.** It contains everything you just highlighted, pre-organized and searchable.
-5. Ask Cursor: "Fix this using `📄 NextJS_Auth_Patterns.md`"
-6. Cursor reads *your exact docs* (not its training data), and generates perfect code.
-7. **5 minutes total.**
-
-**Tomorrow, in a new project?**
-
-You ask: "Apply the same auth pattern." Cursor remembers. No re-googling. No re-pasting. No re-explaining.
+| ❌ The Old Copy-Paste Grind | ✨ The Patens Workflow |
+| :--- | :--- |
+| **Pasting docs into prompts** wastes half your context window. | **Highlight text in browser** and hit `Ctrl+Shift+C`. |
+| **Standard `@docs` scrapers fail** on gated pages, Notion, or SPAs. | **Captures rendered DOM** directly from active browser tabs. |
+| **LLMs hallucinate methods** from outdated training data. | **Auto-mounts physical Markdown** straight into `_context/`. |
+| **Result:** Broken builds, lost flow state, and repeated prompts. | **Result:** 100% accurate AI code generation on the first try. |
 
 ---
 
-## Why This Matters
+## ⚡ Core Features
 
-- **You own your research.** It's stored locally. Searchable. Reusable across projects.
-- **Context limits become irrelevant.** Instead of pasting sprawling docs into your prompt, the AI reads one indexed file.
-- **No more context whiplash.** You stay in the IDE. Your research comes to you.
-- **Privacy built-in.** Your StackOverflow history, your GitHub issue research, your API exploration — it never leaves your machine.
-
----
-
-## How It Works
-
-**Patens** is a zero-friction toolchain that bridges your web research and your IDE using two lightweight components:
-
-### **Component 1: Chrome Extension**
-Captures Web Context from any page you visit. Highlight docs, press the hotkey, and it's saved locally.
-
-### **Component 2: Desktop Server**
-Vectorizes the data, acts as an MCP Server, and syncs the physical `.md` files to your IDE workspace.
+- ⚡ **Zero-Friction Capture:** Highlight text or images on any web page and press `Ctrl+Shift+C`. It vectorizes directly to your local database, even behind logins, Notion specs, or SPAs.
+- 📂 **Physical File Mounting:** Patens writes vector-indexed Markdown files directly into your project's `_context/` directory. Tag them in Cursor, Copilot, or Cline using simple `@` file references.
+- 🔒 **100% Private & Local:** Powered by local **SQLite-vec** and **FastEmbed**. Your code and research never leave your hardware. Zero cloud dependencies, zero tracking, zero telemetry.
+- 🤝 **Git-Native Context Sharing:** Commit your `_context/` folder to Git. When teammates pull your repository, their AI assistants instantly inherit your research without re-googling.
 
 ---
 
-## Core Features
+## 🚀 How It Works (3 Steps)
 
-- ⚡ **Zero-Friction Capture:** Highlight text on any webpage and press `Ctrl+Shift+C`. It instantly vectorizes and saves to your local database without switching tabs.
-- 🔄 **Native IDE Syncing:** Your web research automatically synchronizes to a local `_context` folder right inside your project workspace.
-- 📊 **Master Index:** Patens auto-generates a master index file of your research. Tag one file, and the AI knows everything you researched today.
-- 🔒 **100% Local & Private:** Powered by local **SQLite** and **FastEmbed**. Your browsing history and API research *never* leave your machine until you explicitly share them with your AI assistant. No cloud. No telemetry.
+### Step 1: Ditch the old way, full of hallucinations
+Stop relying on LLM training data for fast-moving frameworks or private internal APIs.
 
----
+### Step 2: Capture context with 1-click
+Highlight any documentation page, StackOverflow thread, or Notion spec in Chrome, Firefox, or Edge, then press `Ctrl+Shift+C`.
 
-##  How It Works (The Workflow)
-
-Patens consists of two lightweight components that work seamlessly together:
-
-### **Component 1: Chrome Extension** 🔍
-Captures Web Context from any page you visit. Highlight docs, press the hotkey, and it's saved locally.
-
-### **Component 2: Desktop Server** 💻
-Vectorizes the data, acts as an MCP Server, and syncs the physical `.md` files to your IDE workspace.
-
-### The "Aha!" Moment - Real Example
-
-**Step 1: Research (In Chrome)**
-You are reading the Next.js App Router documentation. You highlight the routing logic, press `Ctrl+Shift+C`, and commit it to your local memory.
-
-**Step 2: Prompt (In Cursor / VS Code)**
-You switch to your IDE. A `_context` folder has automatically appeared with your research. You open your AI chat and type:
-
-> **You:** "Refactor my auth flow using `📄 00_Context_Index.md`"
-
-**Step 3: Generate**
-The AI reads the index, seamlessly pulls the exact documentation you highlighted in your browser, and generates the perfect code:
-
-> **AI:** *"I will update the `layout.tsx` to use the new App Router conventions based on the Next.js documentation you provided. Here is the refactored code..."*
+### Step 3: Implement with minimal instructions
+Switch to your IDE. A physical `_context/` folder auto-mounts in your workspace. Prompt Cursor, Copilot, or Cline:
+> *"Implement auth flow using `@00_Context_Index.md`"*
 
 ---
 
-## 🛠️ Installation & Setup
+## 📦 Installation & Setup
 
-Setup takes less than 3 minutes.
+Setup takes less than 2 minutes and consists of two lightweight components:
+### Step 1: Install Browser Extension
+Select your browser to enable 1-click capturing:
+- 🌐 [Chrome Web Store](#)
+- 🦊 [Firefox Add-ons](#)
+- 🌀 [Edge Add-ons](#)
 
-### Step 1: Install the Tools
-- 📦 **[Get the Chrome Extension](#)** *(Link to Chrome Web Store)*
-- 🖥️ **[Download the Desktop Server](#)** *(Link to Releases)*
+### Step 2: Install Local Memory Engine
+Select your preferred distribution to launch the local vector indexer and MCP bridge:
+- 🏪 [Microsoft Store](#)
+- 💻 [VS Code Extension](#)
+- 📦 [Executable Installer (.EXE)](#)
 
-### Step 2: Configure your IDE (MCP Setup)
+---
 
-Run the `Patens.exe` file. It will automatically detect your environment and launch the setup UI on `http://localhost:8000/welcome`.
+## ⚙️ IDE Configuration (Model Context Protocol)
 
-If you prefer manual setup, add the following to your IDE's MCP Configuration file:
+Run `Patens.exe` or launch the backend extension. It will automatically detect your environment and start the local sync bridge.
 
-**For Cursor (`.cursor/mcp.json`):**
+If you prefer manual MCP configuration, add Patens to your IDE settings:
+
+### For Cursor (`.cursor/mcp.json`)
 ```json
 {
   "mcpServers": {
     "patens": {
       "type": "stdio",
-      "command": "C:\\Absolute\\Path\\To\\Patens.exe",
+      "command": "C:\\Path\\To\\Patens.exe",
       "args": ["--mcp"]
     }
   }
@@ -145,7 +105,7 @@ If you prefer manual setup, add the following to your IDE's MCP Configuration fi
   "servers": {
     "patens": {
       "type": "stdio",
-      "command": "C:\\Absolute\\Path\\To\\Patens.exe",
+      "command": "C:\\Path\\To\\Patens.exe",
       "args": ["--mcp"]
     }
   }
