@@ -13,7 +13,9 @@
     <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
   </p>
 
-  <p><em>Never explain your context twice. 1-click browser context straight to Cursor, VS Code, and Cline.</em></p>
+  <p><em>Never explain your context twice. 1-click browser context straight to Cursor, VS Code, and Cline — or any web-based LLM.</em></p>
+
+  <p><a href="https://patens.dev"><strong>patens.dev</strong></a></p>
 </div>
 
 ---
@@ -46,6 +48,7 @@
 - 📂 **Physical File Mounting:** Patens writes vector-indexed Markdown files directly into your project's `_context/` directory. Tag them in Cursor, Copilot, or Cline using simple `@` file references.
 - 🔒 **100% Private & Local:** Powered by local **SQLite-vec** and **FastEmbed**. Your code and research never leave your hardware. Zero cloud dependencies, zero tracking, zero telemetry.
 - 🤝 **Git-Native Context Sharing:** Commit your `_context/` folder to Git. When teammates pull your repository, their AI assistants instantly inherit your research without re-googling.
+- 🤖 **Works Beyond the IDE:** Not just Cursor/Copilot/Cline — feed the same verified local memory to web-based models like ChatGPT, Claude, or DeepSeek without blowing out context windows or re-typing prompts.
 
 ---
 
@@ -68,15 +71,15 @@ Switch to your IDE. A physical `_context/` folder auto-mounts in your workspace.
 Setup takes less than 2 minutes and consists of two lightweight components:
 ### Step 1: Install Browser Extension
 Select your browser to enable 1-click capturing:
-- 🌐 [Chrome Web Store](#)
-- 🦊 [Firefox Add-ons](#)
-- 🌀 [Edge Add-ons](#)
+- 🌐 [Chrome Web Store](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB)
+- 🦊 [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/patens/)
+- 🌀 [Edge Add-ons](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB)
 
 ### Step 2: Install Local Memory Engine
 Select your preferred distribution to launch the local vector indexer and MCP bridge:
-- 🏪 [Microsoft Store](#)
-- 💻 [VS Code Extension](#)
-- 📦 [Executable Installer (.EXE)](#)
+- 🏪 [Microsoft Store](ms-windows-store://pdp/?productid=9PM9R44F0RXV)
+- 💻 [VS Code Extension](vscode:extension/patens-dev.patens)
+- 📦 [Executable Installer (.EXE, v1.1.2)](https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe)
 
 ---
 
@@ -177,11 +180,11 @@ Each file is:
 
 ## 🚀 Getting Started
 
-1. **Download** the Chrome Extension from [Chrome Web Store](#)
-2. **Download** the Desktop Server from [Releases](#)
+1. **Download** the Chrome Extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB)
+2. **Download** the Desktop Server from the [Microsoft Store](ms-windows-store://pdp/?productid=9PM9R44F0RXV), [VS Code Marketplace](vscode:extension/patens-dev.patens), or as the [.EXE Installer](https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe)
 3. **Configure** your IDE (2-minute setup)
 4. **Highlight** docs in Chrome → `Ctrl+Shift+C`
-5. **Chat** with your AI in Cursor/VS Code with full context
+5. **Chat** with your AI in Cursor/VS Code — or in ChatGPT, Claude, and other web models — with full context
 
 ---
 
@@ -191,6 +194,7 @@ Each file is:
 - 🐛 **Debugging:** Capture StackOverflow answers, apply solutions with AI
 - 🏗️ **Architecture:** Save design patterns, let AI follow them in generated code
 - 📖 **Learning:** Research tutorials, let AI build projects aligned with your research
+- 🤖 **Web Model Workflows:** Bring captured, verified context into ChatGPT, Claude, or DeepSeek without re-explaining yourself in every new chat
 
 ---
 
@@ -211,14 +215,14 @@ This project is licensed under the **MIT License** - see the [LICENSE](#) file f
 
 ## 📞 Support
 
-- 🐛 **Found a bug?** [Open an issue](#)
-- 💬 **Have a feature request?** [Discussions](#)
-- 📧 **Need help?** Check our [FAQ](#) or start a [GitHub Discussion](#)
+- 🐛 **Found a bug?** [Open an issue](https://github.com/Patens-dev/Patens/issues)
+- 💬 **Have a feature request?** [Discussions](https://github.com/Patens-dev/Patens/discussions)
+- 📧 **Need help?** Check our [FAQ](#) or start a [GitHub Discussion](https://github.com/Patens-dev/Patens/discussions)
 
 ---
 
 <div align="center">
   <strong>Made with ❤️ for developers who value speed and privacy</strong>
   <br/>
-  <a href="#installation"><strong>Get Started Now →</strong></a>
+  <a href="https://patens.dev"><strong>Get Started Now →</strong></a>
 </div>
