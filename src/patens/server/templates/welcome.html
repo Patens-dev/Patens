@@ -253,7 +253,6 @@
             border-color: var(--success-color);
             background: var(--success-color);
             color: white;
-            content: "✓";
         }
 
         .step-content h2 {
@@ -295,6 +294,48 @@
             background: rgba(245, 158, 11, 0.1);
             color: var(--warning-color);
             border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            margin-bottom: 12px;
+        }
+
+        .option-btn {
+            background: #09090b;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .option-btn:hover {
+            border-color: var(--accent-blue);
+            background: #18181b;
+        }
+
+        .option-btn.detected {
+            border-color: var(--success-color);
+            background: rgba(16, 185, 129, 0.08);
+            color: #fff;
+        }
+
+        .option-btn img {
+            width: 18px;
+            height: 18px;
+            filter: invert(1);
         }
 
         .interactive-target {
@@ -628,6 +669,7 @@
             .ide-cards {
                 grid-template-columns: 1fr;
             }
+
             .nav-container {
                 padding: 0 16px;
             }
@@ -661,7 +703,8 @@
 <nav class="app-navbar">
     <div class="nav-container">
         <a href="/welcome" class="nav-brand">
-            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="patens logo">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
+                 alt="patens logo">
         </a>
         <div class="nav-links">
             <a href="/welcome" class="nav-link active">🚀 Setup Guide</a>
@@ -678,38 +721,77 @@
                  alt="patens logo">
         </div>
         <h1>Welcome to patens</h1>
-        <p>Let's configure your memory layer and get your IDE connected.</p>
+        <p>Let's configure your memory layer and get your browser & IDE connected.</p>
         <div class="time-estimate">⏱️ Takes ~3 minutes</div>
 
         <div class="progress-container">
             <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div class="progress-text">Step <span id="current-step-display">1</span> of 5</div>
+        <div class="progress-text">Step <span id="current-step-display">1</span> of 6</div>
     </header>
 
     <main class="setup-flow">
 
-        <!-- STEP 1: VERIFICATION -->
+        <!-- STEP 1: BROWSER EXTENSION INSTALL & AUTO-DETECTION -->
         <div class="step-card active" id="step1">
             <div class="step-number">1</div>
             <div class="step-content">
-                <h2>System Check
+                <h2>Install Browser Extension
                     <button class="btn-manual" onclick="advanceStep(2)">Skip</button>
                 </h2>
-                <p>Verifying your background connections.</p>
+                <p>Install the Patens extension for your browser to capture web context with 1-click.</p>
+
+                <div class="option-grid">
+                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB"
+                       target="_blank" class="option-btn" id="btn-chrome">
+                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
+                             alt="Chrome">
+                        Chrome
+                    </a>
+
+                    <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank"
+                       class="option-btn" id="btn-firefox">
+                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
+                             alt="Firefox">
+                        Firefox
+                    </a>
+
+                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB"
+                       target="_blank" class="option-btn" id="btn-edge">
+                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
+                             alt="Edge">
+                        Edge
+                    </a>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span class="status-pill warning" id="extension-status">🟡 Waiting for extension installation...</span>
+                    <button type="button" class="btn-manual" style="float: none;" onclick="onExtensionDetected()">I've Installed It ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: SERVER VERIFICATION -->
+        <div class="step-card" id="step2">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h2>System Check
+                    <button class="btn-manual" onclick="advanceStep(3)">Skip</button>
+                </h2>
+                <p>Verifying your background Patens engine connections.</p>
                 <div style="display: flex; gap: 12px; margin-top: 12px;">
-                    <span class="status-pill success">🟢 Extension Active</span>
+                    <span class="status-pill success" id="ext-verified-pill">🟢 Extension Active</span>
                     <span class="status-pill warning" id="server-status">🟡 Checking Server...</span>
                 </div>
             </div>
         </div>
 
-        <!-- STEP 2: CAPTURE -->
-        <div class="step-card" id="step2">
-            <div class="step-number">2</div>
+        <!-- STEP 3: CAPTURE -->
+        <div class="step-card" id="step3">
+            <div class="step-number">3</div>
             <div class="step-content">
                 <h2>Capture Context
-                    <button class="btn-manual" onclick="advanceStep(3)">Skip</button>
+                    <button class="btn-manual" onclick="advanceStep(4)">Skip</button>
                 </h2>
                 <p>Now I will show you how to use this. Hold <strong style="color:var(--accent-blue)">Ctrl +
                     Shift</strong> and click with your mouse anywhere on the text block below. <em>(Don't worry, you can
@@ -722,12 +804,12 @@
             </div>
         </div>
 
-        <!-- STEP 3: COMMIT TO CART -->
-        <div class="step-card" id="step3">
-            <div class="step-number">3</div>
+        <!-- STEP 4: COMMIT TO CART -->
+        <div class="step-card" id="step4">
+            <div class="step-number">4</div>
             <div class="step-content">
                 <h2>Commit to Memory
-                    <button class="btn-manual" onclick="advanceStep(4)">Skip</button>
+                    <button class="btn-manual" onclick="advanceStep(5)">Skip</button>
                 </h2>
                 <p>Look at the bottom corner of your screen—the context cart icon (📦) is showing what you just read, but
                     haven't committed yet.</p>
@@ -736,14 +818,14 @@
             </div>
         </div>
 
-        <!-- STEP 4: RETRIEVE -->
-        <div class="step-card" id="step4">
-            <div class="step-number">4</div>
+        <!-- STEP 5: RETRIEVE -->
+        <div class="step-card" id="step5">
+            <div class="step-number">5</div>
             <div class="step-content">
                 <h2>Retrieve Context
-                    <button class="btn-manual" onclick="advanceStep(5)">Skip</button>
+                    <button class="btn-manual" onclick="advanceStep(6)">Skip</button>
                 </h2>
-                <p>Step 4 is to read from your memory layer. Press <strong style="color:var(--accent-blue)">Ctrl + Shift
+                <p>Step 5 is to read from your memory layer. Press <strong style="color:var(--accent-blue)">Ctrl + Shift
                     + Space</strong> to open your Command Palette right here.</p>
                 <p>Use your arrow keys to select the text you just saved, and press <strong>Enter</strong> to paste it
                     into the chat box below.</p>
@@ -751,9 +833,9 @@
             </div>
         </div>
 
-        <!-- STEP 5: VERIFY & MANUAL SETUP -->
-        <div class="step-card" id="step5">
-            <div class="step-number">5</div>
+        <!-- STEP 6: VERIFY & MANUAL SETUP -->
+        <div class="step-card" id="step6">
+            <div class="step-number">6</div>
             <div class="step-content">
                 <h2>Verify Connection
                     <button class="btn-manual" onclick="finishSetup()" id="btn-finish">Skip Validation</button>
@@ -774,8 +856,7 @@
                         <li>Send this exact prompt to the AI:</li>
                     </ol>
 
-                    <div class="prompt-box" id="prompt-box-copy"
-                         onclick="copyActivationPrompt(this)">
+                    <div class="prompt-box" id="prompt-box-copy" onclick="copyActivationPrompt(this)">
                         Mount Patens context.
                     </div>
                 </div>
@@ -790,8 +871,7 @@
                 <!-- ================= MANUAL SETUP FALLBACK ================= -->
                 <div class="manual-setup-section">
                     <h3>Automatic installation failed?</h3>
-                    <p>If the AI says it doesn't recognize the tool, select your editor below for the 1-minute manual
-                        setup.</p>
+                    <p>If the AI says it doesn't recognize the tool, select your editor below for the 1-minute manual setup.</p>
 
                     <!-- IDE Selector -->
                     <div class="ide-cards">
@@ -833,8 +913,7 @@
                                     <li>Navigate to <strong>Features &gt; MCP Servers</strong>.</li>
                                     <li>Click <strong>+ Add New MCP Server</strong>.</li>
                                     <li>Set Type to <strong>command</strong>.</li>
-                                    <li>Copy the JSON below or set Command to your path and Args to <code>--mcp</code>.
-                                    </li>
+                                    <li>Copy the JSON below or set Command to your path and Args to <code>--mcp</code>.</li>
                                 </ol>
                             </div>
                             <div class="setup-gif">
@@ -863,11 +942,8 @@
                         <div class="setup-layout">
                             <div class="setup-steps">
                                 <ol>
-                                    <li>Open VS Code with an MCP extension (like <strong>Cline</strong> or Copilot).
-                                    </li>
-                                    <li>Open the extension's MCP Settings (often a button saying <strong>MCP
-                                        Servers</strong>).
-                                    </li>
+                                    <li>Open VS Code with an MCP extension (like <strong>Cline</strong> or Copilot).</li>
+                                    <li>Open the extension's MCP Settings.</li>
                                     <li>Edit the configuration JSON file.</li>
                                     <li>Paste the exact configuration below.</li>
                                 </ol>
@@ -937,15 +1013,115 @@
 
     <div class="celebration" id="celebration">
         <h2>🎉 You are all set!</h2>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">Your context is now seamlessly synced across your
-            browser and IDE.</p>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Your context is now seamlessly synced across your browser and IDE.</p>
     </div>
 </div>
 
 <script>
     let currentStep = 1;
-    const totalSteps = 5;
+    const totalSteps = 6;
     let mcpPollingInterval = null;
+    let extensionDetected = false;
+
+    // Detect browser family and reorder buttons so the active browser appears FIRST in the grid
+    function detectBrowser() {
+        const ua = navigator.userAgent;
+        const grid = document.querySelector('.option-grid');
+        const btnChrome = document.getElementById('btn-chrome');
+        const btnFirefox = document.getElementById('btn-firefox');
+        const btnEdge = document.getElementById('btn-edge');
+
+        if (!grid || !btnChrome || !btnFirefox || !btnEdge) return;
+
+        let primaryBtn = btnChrome;
+
+        if (ua.includes("Edg") || ua.includes("Edge")) {
+            primaryBtn = btnEdge;
+        } else if (ua.includes("Firefox")) {
+            primaryBtn = btnFirefox;
+        } else {
+            primaryBtn = btnChrome;
+        }
+
+        // Highlight primary button
+        primaryBtn.style.borderColor = 'var(--accent-blue)';
+        primaryBtn.style.background = 'rgba(59, 130, 246, 0.1)';
+
+        // Prepend the active browser button to top of option-grid
+        grid.prepend(primaryBtn);
+    }
+
+    // Comprehensive Multi-Bridge Extension Detection Logic
+    function checkExtensionInstalled() {
+        if (extensionDetected) return true;
+
+        const isInstalled =
+            document.documentElement.hasAttribute('data-patens-extension') ||
+            document.documentElement.getAttribute('data-patens-installed') === 'true' ||
+            document.body.hasAttribute('data-patens-extension') ||
+            document.body.hasAttribute('data-patens-installed') ||
+            window.__PATENS_EXTENSION__ === true ||
+            document.getElementById('patens-context-cart-root') !== null ||
+            document.getElementById('patens-extension-root') !== null ||
+            document.querySelector('[data-patens-root]') !== null;
+
+        if (isInstalled) {
+            onExtensionDetected();
+            return true;
+        }
+
+        // PostMessage Ping (Window messaging bridge)
+        window.postMessage({ source: 'patens-welcome', action: 'ping', type: 'PATENS_PING' }, '*');
+
+        // CustomEvent Pings (Bypasses Isolated World boundaries)
+        window.dispatchEvent(new CustomEvent('PATENS_PING_EVENT', { detail: { source: 'welcome' } }));
+        window.dispatchEvent(new CustomEvent('PATENS_CHECK_INSTALLED'));
+
+        return false;
+    }
+
+    function onExtensionDetected() {
+        if (extensionDetected) return;
+        extensionDetected = true;
+
+        const statusEl = document.getElementById('extension-status');
+        if (statusEl) {
+            statusEl.className = 'status-pill success';
+            statusEl.innerText = '🟢 Browser Extension Detected!';
+        }
+
+        const extPill = document.getElementById('ext-verified-pill');
+        if (extPill) {
+            extPill.className = 'status-pill success';
+            extPill.innerText = '🟢 Extension Active';
+        }
+
+        // Highlight matching option button
+        const activeOptionBtn = document.querySelector('.option-btn[style*="accent-blue"]');
+        if (activeOptionBtn) {
+            activeOptionBtn.classList.add('detected');
+        }
+
+        // Automatically move to Step 2 if user is currently on Step 1
+        if (currentStep === 1) {
+            setTimeout(() => advanceStep(2), 600);
+        }
+    }
+
+    // Listen for incoming extension pongs or custom events
+    window.addEventListener('message', (e) => {
+        if (e.data && (e.data.source === 'patens-extension' || e.data.type === 'PATENS_PONG' || e.data.patensInstalled === true)) {
+            onExtensionDetected();
+        }
+    });
+
+    window.addEventListener('PATENS_PONG_EVENT', () => {
+        onExtensionDetected();
+    });
+
+    window.addEventListener('patens-extension-detected', () => {
+        onExtensionDetected();
+    });
 
     function copyActivationPrompt(el) {
         navigator.clipboard.writeText('Mount Patens context.');
@@ -991,7 +1167,8 @@
                 card.querySelector('.step-number').innerHTML = '✓';
             } else if (i === currentStep) {
                 card.className = 'step-card active';
-                if (i === 5 && !mcpPollingInterval) startIDEPolling();
+                if (i === 2) checkServer();
+                if (i === 6 && !mcpPollingInterval) startIDEPolling();
             } else {
                 card.className = 'step-card';
                 card.querySelector('.step-number').innerHTML = i;
@@ -1015,7 +1192,7 @@
 
     function finishSetup() {
         if (mcpPollingInterval) clearInterval(mcpPollingInterval);
-        currentStep = 6;
+        currentStep = 7;
         document.getElementById('progress-bar').style.width = '100%';
         document.querySelectorAll('.step-card').forEach(c => {
             c.className = 'step-card done';
@@ -1033,15 +1210,17 @@
     }
 
     async function checkServer() {
-        if (currentStep !== 1) return;
+        if (currentStep !== 2) return;
         try {
             const res = await fetch("/api/v1/config/system");
             if (res.ok) {
                 const data = await res.json();
 
                 const statusEl = document.getElementById('server-status');
-                statusEl.className = 'status-pill success';
-                statusEl.innerText = '🟢 Server Connected';
+                if (statusEl) {
+                    statusEl.className = 'status-pill success';
+                    statusEl.innerText = '🟢 Server Connected';
+                }
 
                 if (data.python_path) {
                     const escapedPath = data.python_path.replace(/\\/g, '\\\\');
@@ -1052,7 +1231,7 @@
                     document.getElementById('path-warning').style.display = 'block';
                 }
 
-                setTimeout(() => advanceStep(2), 1500);
+                setTimeout(() => advanceStep(3), 1200);
             }
         } catch (e) {
             setTimeout(checkServer, 2000);
@@ -1079,15 +1258,16 @@
         }, 1500);
     }
 
+    // Step 3 Event listener (Ctrl + Shift + Click)
     window.addEventListener('mousedown', (e) => {
-        if (currentStep !== 2) return;
+        if (currentStep !== 3) return;
         const captureTarget = document.getElementById('capture-target');
         if (e.target === captureTarget || captureTarget.contains(e.target)) {
             if (e.ctrlKey && e.shiftKey) {
                 captureTarget.style.background = 'rgba(16, 185, 129, 0.1)';
                 captureTarget.style.borderColor = 'var(--success-color)';
                 captureTarget.innerText = "✨ Captured successfully!";
-                setTimeout(() => advanceStep(3), 1000);
+                setTimeout(() => advanceStep(4), 1000);
             } else {
                 const originalText = '"Use this text as a tutorial! You can add information from various tabs without your progress being deleted. patens handles deduplication and automatic title resolution behind the scenes."';
                 captureTarget.innerText = "⚠️ Oops! Make sure to hold Ctrl + Shift while clicking.";
@@ -1102,22 +1282,27 @@
         }
     }, true);
 
+    // Step 4 Event listener (Cart send all)
     document.body.addEventListener('click', (e) => {
-        if (currentStep === 3 && e.target && e.target.closest('#cc-send-all')) {
-            setTimeout(() => advanceStep(4), 1200);
+        if (currentStep === 4 && e.target && e.target.closest('#cc-send-all')) {
+            setTimeout(() => advanceStep(5), 1200);
         }
     });
 
+    // Step 5 Event listener (Mock chat box)
     document.getElementById('mock-chat-box').addEventListener('input', (e) => {
-        if (currentStep === 4 && e.target.value.trim().length > 10) {
+        if (currentStep === 5 && e.target.value.trim().length > 10) {
             e.target.style.borderColor = 'var(--success-color)';
             e.target.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.2)';
-            setTimeout(() => advanceStep(5), 1000);
+            setTimeout(() => advanceStep(6), 1000);
         }
     });
 
+    // Initialize extension auto-detector polling
+    detectBrowser();
     updateProgress();
-    checkServer();
+    checkExtensionInstalled();
+    setInterval(checkExtensionInstalled, 1000);
 </script>
 </body>
 </html>

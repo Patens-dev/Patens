@@ -17,6 +17,7 @@
             --accent-blue-hover: #2563eb;
             --accent-glow: rgba(59, 130, 246, 0.15);
             --accent-green: #10b981;
+            --accent-amber: #f59e0b;
 
             --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
@@ -75,7 +76,7 @@
             color: var(--text-main);
         }
 
-        /* SPLIT HERO SECTION WITH EXPANDED DEMO AREA */
+        /* HERO SECTION */
         .hero {
             max-width: 1600px;
             margin: 0 auto;
@@ -96,7 +97,7 @@
             padding-right: 12px;
         }
 
-        /* Pill Switcher Bar */
+        /* Mode Switcher Bar */
         .mode-switcher {
             display: inline-flex;
             align-items: center;
@@ -134,7 +135,6 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
-        /* Dynamic Animated Eyebrow Text */
         .hero-eyebrow {
             font-size: 14px;
             font-weight: 600;
@@ -177,7 +177,6 @@
             transform: translateY(6px);
         }
 
-        /* Hero CTA Buttons */
         .hero-cta-group {
             display: flex;
             flex-direction: column;
@@ -204,18 +203,20 @@
             transition: all 0.2s ease;
             cursor: pointer;
             border: none;
-            min-height: 44px;
+            min-height: 46px;
         }
 
-        .btn-primary {
-            background: var(--accent-blue);
-            color: #ffffff;
-            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+        .btn-primary-white {
+            background: #ffffff;
+            color: #09090b;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+            font-weight: 700;
         }
 
-        .btn-primary:hover {
-            background: var(--accent-blue-hover);
+        .btn-primary-white:hover {
+            background: #e4e4e7;
             transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255, 255, 255, 0.3);
         }
 
         .btn-secondary {
@@ -244,7 +245,7 @@
             gap: 6px;
         }
 
-        /* Hero Right Demo Panel & Video Container */
+        /* Demo Panel */
         .demo-panel {
             background: #09090b;
             border: 1px solid var(--border-color);
@@ -258,7 +259,6 @@
             width: 100%;
         }
 
-        /* HEADER INTEGRATED STATUS BAR */
         .demo-header {
             background: #09090b;
             padding: 10px 16px;
@@ -270,7 +270,6 @@
             gap: 12px;
         }
 
-        /* Header Status Badge (Left) */
         .header-status-badge {
             background: rgba(18, 18, 20, 0.9);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -319,7 +318,6 @@
             transform: scale(1.2);
         }
 
-        /* Window Controls & Title (Right) */
         .demo-header-right {
             display: flex;
             align-items: center;
@@ -360,7 +358,7 @@
             display: block;
         }
 
-        /* Story Section (Old vs New) */
+        /* Story Section */
         .story-section {
             max-width: 1000px;
             margin: 100px auto;
@@ -459,16 +457,16 @@
             font-size: 15px;
         }
 
-        /* Bottom Installation Section */
+        /* SETUP SECTION WITH IDE SELECTOR */
         .setup-section {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto 100px;
             padding: 0 24px;
         }
 
         .section-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
 
         .section-header h2 {
@@ -483,132 +481,223 @@
             font-size: 16px;
         }
 
-        .setup-matrix {
+        /* IDE Selector Bar Component */
+        .ide-selector-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .ide-selector-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ide-selector-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .ide-select-btn {
+            background: #09090b;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 16px;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .ide-select-btn:hover {
+            border-color: #52525b;
+            color: var(--text-main);
+            background: #18181b;
+        }
+
+        .ide-select-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-blue);
+            color: #ffffff;
+            box-shadow: 0 0 0 1px var(--accent-blue);
+        }
+
+        .ide-select-btn img, .ide-select-btn svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Dynamic Redirect/Guide Callout Banner */
+        .guide-callout-banner {
+            display: none;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .guide-callout-banner.active {
+            display: flex;
+        }
+
+        .guide-callout-text {
+            font-size: 13.5px;
+            color: #fbbf24;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-callout-redirect {
+            background: #09090b;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .btn-callout-redirect:hover {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #fbbf24;
+        }
+
+        /* SETUP MATRIX (3 COLUMNS) */
+        .setup-matrix-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
         }
 
         .setup-step-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 32px;
+            padding: 28px 24px;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: all 0.3s ease;
         }
 
-        .step-number {
+        .setup-step-card:hover {
+            border-color: #52525b;
+            transform: translateY(-2px);
+        }
+
+        .setup-step-card.featured {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.03);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.3);
+        }
+
+        /* GREYED OUT / DISABLED CARD STATE */
+        .setup-step-card.disabled-card {
+            opacity: 0.35;
+            pointer-events: none;
+            filter: grayscale(80%);
+            border-color: var(--border-color) !important;
+            background: var(--bg-card) !important;
+            box-shadow: none !important;
+        }
+
+        .step-tag {
             font-family: var(--font-mono);
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 700;
             color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            padding: 4px 10px;
-            border-radius: 6px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            padding: 3px 8px;
+            border-radius: 4px;
             width: fit-content;
             margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .step-tag.green {
+            color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.25);
+        }
+
+        .step-tag.neutral {
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--border-color);
+        }
+
+        .step-tag.not-supported {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.25);
         }
 
         .setup-step-card h3 {
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 8px;
+            color: #ffffff;
+            font-weight: 700;
         }
 
         .setup-step-card p {
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 13px;
+            line-height: 1.5;
             margin-bottom: 24px;
             flex-grow: 1;
         }
 
-        .option-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
+        .card-bullet-list {
+            list-style: none;
+            margin-bottom: 24px;
+            font-size: 12px;
+            color: #d4d4d8;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .option-btn {
-            background: #000;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            color: var(--text-main);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 500;
+        .card-bullet-list li {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.2s;
-            min-height: 44px;
+            gap: 8px;
         }
 
-        .option-btn:hover {
-            border-color: var(--accent-blue);
-            background: #18181b;
-        }
-
-        .option-btn img, .option-btn svg {
-            flex-shrink: 0;
-            width: 18px;
-            height: 18px;
-        }
-
-        /* Modal Overlay */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            max-width: 700px;
-            width: 100%;
-            padding: 32px;
-            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 20px;
-            cursor: pointer;
-            padding: 8px;
-            line-height: 1;
-        }
-
-        .modal-close:hover {
-            color: #fff;
+        .card-bullet-list li::before {
+            content: "✓";
+            color: var(--accent-green);
+            font-weight: bold;
         }
 
         footer {
@@ -617,6 +706,17 @@
             text-align: center;
             color: var(--text-muted);
             font-size: 14px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Mobile Responsive Overrides */
@@ -644,15 +744,19 @@
                 align-items: center;
             }
 
-            .hero-title {
+            .hero-title, .hero-desc {
                 min-height: auto;
             }
 
-            .hero-desc {
-                min-height: auto;
+            .setup-matrix-3col {
+                grid-template-columns: 1fr;
             }
 
-            .setup-matrix, .story-grid {
+            .ide-selector-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .story-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -719,11 +823,7 @@
                 gap: 10px;
             }
 
-            .demo-title {
-                display: none;
-            }
-
-            #badge-text {
+            .demo-title, #badge-text {
                 display: none;
             }
 
@@ -750,12 +850,9 @@
                 font-size: 14px;
             }
 
-            .option-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .modal-container {
-                padding: 24px 18px;
+            .guide-callout-banner {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
@@ -771,14 +868,15 @@
     </div>
     <div class="nav-links">
         <a href="#features">Features</a>
-        <a href="#install">Install Guide</a>
+        <a href="#install">Install Options</a>
+        <a href="guide.html">📖 Setup Guide</a>
         <a href="https://github.com/Patens-dev/Patens" target="_blank">GitHub</a>
     </div>
 </nav>
 
 <header class="hero">
     <div class="hero-grid">
-        <!-- Left Hero Content with Dynamic Mode Switcher -->
+        <!-- Left Hero Content -->
         <div class="hero-left">
             <div class="mode-switcher">
                 <button type="button" class="mode-btn active" onclick="switchMode(0)">
@@ -799,16 +897,14 @@
 
             <div class="hero-cta-group">
                 <div class="hero-cta">
-                    <a href="#install" class="btn btn-primary" id="smart-install-btn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>
-                        <span id="smart-btn-text">Install Patens</span>
+                    <a href="vscode:extension/patens-dev.patens" class="btn btn-primary-white">
+                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                             alt="VS Code Icon" style="width: 20px; height: 20px;">
+                        <span>Get Extension for VS Code / Cursor</span>
                     </a>
-                    <button class="btn btn-secondary" onclick="openInstallModal()">
-                        Quick Setup Guide
-                    </button>
+                    <a href="#install" class="btn btn-secondary">
+                        All Downloads
+                    </a>
                 </div>
                 <div class="hero-subtext">
                     <span>✓ No Telemetry</span>
@@ -818,12 +914,10 @@
             </div>
         </div>
 
-        <!-- Right Side Video Demo Container -->
+        <!-- Right Side Video Demo -->
         <div class="hero-right">
             <div class="demo-panel">
-                <!-- WINDOW HEADER -->
                 <div class="demo-header">
-                    <!-- Header Status Badge (LEFT) -->
                     <div class="header-status-badge" id="video-badge">
                         <span class="badge-step-num" id="badge-step-num">STEP 1</span>
                         <span id="badge-text">Ditch the old way, full of hallucinations</span>
@@ -834,7 +928,6 @@
                         </div>
                     </div>
 
-                    <!-- Window Title & Mac Dots (RIGHT) -->
                     <div class="demo-header-right">
                         <div class="demo-title">patens-end-to-end-demo.mp4</div>
                         <div class="window-dot" style="background:#ef4444"></div>
@@ -907,200 +1000,235 @@
     </div>
 </section>
 
-<!-- INSTALLATION MATRIX WITH OFFICIAL BRAND SVGs -->
+<!-- REFACTORED INSTALLATION SECTION WITH IDE SELECTOR -->
 <section id="install" class="setup-section">
     <div class="section-header">
-        <h2>2 Minutes to Zero-Hallucination Coding</h2>
-        <p>Install the browser extension to capture web context, and the local engine to bridge it into VS Code or
-            Cursor.</p>
+        <h2>Choose Your Installation Method</h2>
+        <p>Select your code editor below to highlight compatible installation options.</p>
     </div>
 
-    <div class="setup-matrix">
-        <!-- Step 1: Extension -->
-        <div class="setup-step-card">
-            <div class="step-number">STEP 1</div>
-            <h3>Browser Extension</h3>
-            <p>Captures text and images directly from Chrome, Edge, or Firefox without leaving your active tab.</p>
-
-            <div class="option-grid">
-                <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
-                    <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
-                         alt="Chrome" style="filter: invert(1);">
-                    Chrome
-                </a>
-
-                <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank" class="option-btn">
-                    <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
-                         alt="Firefox" style="filter: invert(1);">
-                    Firefox
-                </a>
-
-                <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
-                    <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
-                         alt="Edge" style="filter: invert(1);">
-                    Edge
-                </a>
-            </div>
+    <!-- IDE Selector Bar -->
+    <div class="ide-selector-container">
+        <div class="ide-selector-label">
+            <span>⚙️ Select Your Primary Editor:</span>
         </div>
 
-        <!-- Step 2: Backend Server -->
-        <div class="setup-step-card">
-            <div class="step-number">STEP 2</div>
-            <h3>Memory Engine (Backend)</h3>
-            <p>Indexes your context locally with FastEmbed and mounts Markdown files straight to your IDE workspace.</p>
+        <div class="ide-selector-grid">
+            <button type="button" class="ide-select-btn active" id="ide-btn-vscode" onclick="selectIDE('vscode')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                     alt="VS Code">
+                VS Code / Cursor
+            </button>
 
-            <div class="option-grid">
-                <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
-                    <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
-                         alt="Microsoft Store" style="filter: invert(1);">
-                    Microsoft Store
-                </a>
+            <button type="button" class="ide-select-btn" id="ide-btn-jetbrains" onclick="selectIDE('jetbrains')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/intellij/intellij-original.svg"
+                     alt="JetBrains">
+                JetBrains / PyCharm
+            </button>
 
-                <a href="vscode:extension/patens-dev.patens" target="_blank" class="option-btn">
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
-                         alt="VS Code">
-                    VS Code Ext
-                </a>
-
-                <!-- Configured with fallback static alias & dynamic JS sync class -->
-                <a href="https://download.patens.dev/latest/patens_installer.exe" class="option-btn exe-download-link">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round">
-                        <rect x="2" y="4" width="20" height="16" rx="2"/>
-                        <path d="M6 8l4 4-4 4"/>
-                        <line x1="12" y1="16" x2="18" y2="16"/>
-                    </svg>
-                    .EXE Installer
-                </a>
-            </div>
+            <button type="button" class="ide-select-btn" id="ide-btn-visualstudio" onclick="selectIDE('visualstudio')">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/visualstudio/visualstudio-plain.svg"
+                     alt="Visual Studio">
+                Visual Studio / Other
+            </button>
         </div>
+    </div>
+
+    <!-- Redirect/Guide Callout Banner for Non-VS Code Editors -->
+    <div class="guide-callout-banner" id="guide-callout-banner">
+        <div class="guide-callout-text">
+            <span>💡</span>
+            <span id="guide-callout-msg">JetBrains editors require manual MCP server configuration. Read the JetBrains Setup Guide:</span>
+        </div>
+        <a href="guide.html" class="btn-callout-redirect" id="guide-callout-link">Open JetBrains Guide ➔</a>
+    </div>
+
+    <!-- 3 Installation Option Cards -->
+    <div class="setup-matrix-3col">
+
+        <!-- Channel 1: VS Code & Cursor Extension -->
+        <div class="setup-step-card featured" id="card-vscode-ext">
+            <div>
+                <div class="step-tag" id="tag-vscode-ext">RECOMMENDED</div>
+                <h3>VS Code / Cursor</h3>
+                <p>Seamless Marketplace extension. Automatically launches and updates the background Patens memory
+                    engine directly inside your IDE.</p>
+                <ul class="card-bullet-list">
+                    <li>Zero-config background engine</li>
+                    <li>Supports Cursor, VS Code, Copilot</li>
+                    <li>Auto-updates via Marketplace</li>
+                </ul>
+            </div>
+
+            <a href="vscode:extension/patens-dev.patens" class="btn btn-primary-white" style="width: 100%;"
+               id="btn-vscode-ext">
+                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                     alt="VS Code" style="width: 18px; height: 18px;">
+                <span>Install Extension</span>
+            </a>
+        </div>
+
+        <!-- Channel 2: Microsoft Store -->
+        <div class="setup-step-card" id="card-ms-store">
+            <div>
+                <div class="step-tag green" id="tag-ms-store">MICROSOFT STORE</div>
+                <h3>Windows Store App</h3>
+                <p>One-click installation via the official Microsoft Store. Fully sandboxed desktop application with
+                    native Windows auto-updates.</p>
+                <ul class="card-bullet-list">
+                    <li>Verified & sandboxed build</li>
+                    <li>Works without VS Code extension</li>
+                    <li>Native Windows background task</li>
+                </ul>
+            </div>
+
+            <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn btn-secondary" style="width: 100%;"
+               id="btn-ms-store">
+                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
+                     alt="Microsoft Store" style="width: 18px; height: 18px; filter: invert(1);">
+                <span>Get on MS Store</span>
+            </a>
+        </div>
+
+        <!-- Channel 3: Direct .EXE Installer -->
+        <div class="setup-step-card" id="card-exe-installer">
+            <div>
+                <div class="step-tag neutral" id="tag-exe-installer">STANDALONE</div>
+                <h3>Direct .EXE Setup</h3>
+                <p>Standalone Inno Setup installer for custom environments, offline machines, or manual directory
+                    installations.</p>
+                <ul class="card-bullet-list">
+                    <li>Custom install folder support</li>
+                    <li>Standalone background daemon</li>
+                    <li>Offline setup friendly</li>
+                </ul>
+            </div>
+
+            <a href="https://download.patens.dev/latest/patens_installer.exe"
+               class="btn btn-secondary exe-download-link" style="width: 100%;" id="btn-exe-installer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" style="width: 18px; height: 18px; color: #60a5fa;">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M6 8l4 4-4 4"/>
+                    <line x1="12" y1="16" x2="18" y2="16"/>
+                </svg>
+                <span class="exe-link-label">Download .EXE</span>
+            </a>
+        </div>
+
     </div>
 </section>
-
-<!-- Install Modal Guide -->
-<div class="modal-overlay" id="install-modal">
-    <div class="modal-container">
-        <button class="modal-close" onclick="closeInstallModal()">✕</button>
-        <div class="section-header" style="text-align: left; margin-bottom: 24px;">
-            <h2>Quick Setup Guide</h2>
-            <p>Follow these 2 quick steps to activate Patens on your machine.</p>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            <div style="background: #000; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px;">
-                <h4 style="color: var(--accent-blue); margin-bottom: 8px;">1. Install Browser Extension</h4>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Grab the extension for your
-                    primary browser to enable 1-click context capturing.</p>
-                <div class="option-grid">
-                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
-                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
-                             alt="Chrome" style="filter: invert(1);">
-                        Chrome
-                    </a>
-
-                    <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank" class="option-btn">
-                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
-                             alt="Firefox" style="filter: invert(1);">
-                        Firefox
-                    </a>
-
-                    <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB" target="_blank" class="option-btn">
-                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
-                             alt="Edge" style="filter: invert(1);">
-                        Edge
-                    </a>
-                </div>
-            </div>
-
-            <div style="background: #000; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px;">
-                <h4 style="color: var(--accent-blue); margin-bottom: 8px;">2. Install Backend Server</h4>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Launch the local server to
-                    sync vector embeddings to your IDE workspace.</p>
-                <div class="option-grid">
-                    <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="option-btn">
-                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
-                             alt="Microsoft Store" style="filter: invert(1);">
-                        Microsoft Store
-                    </a>
-
-                    <a href="vscode:extension/patens-dev.patens" target="_blank" class="option-btn">
-                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
-                             alt="VS Code">
-                        VS Code Ext
-                    </a>
-
-                    <!-- Configured with fallback static alias & dynamic JS sync class -->
-                    <a href="https://download.patens.dev/latest/patens_installer.exe" class="option-btn exe-download-link">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
-                             stroke-linejoin="round">
-                            <rect x="2" y="4" width="20" height="16" rx="2"/>
-                            <path d="M6 8l4 4-4 4"/>
-                            <line x1="12" y1="16" x2="18" y2="16"/>
-                        </svg>
-                        .EXE Installer
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <footer>
     <p>Patens is open source under the MIT License. Built with the Model Context Protocol (MCP).</p>
 </footer>
 
-<!-- JS Logic: Auto Detection + Hero Mode Switching + Real-time Video Sync + Dynamic Manifest Sync -->
 <script>
-    // --- Dynamic Manifest Resolver for Latest Installer ---
+    function selectIDE(ideType) {
+        document.querySelectorAll('.ide-select-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`ide-btn-${ideType}`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        const cardVscode = document.getElementById('card-vscode-ext');
+        const cardMsStore = document.getElementById('card-ms-store');
+        const cardExe = document.getElementById('card-exe-installer');
+
+        const tagVscode = document.getElementById('tag-vscode-ext');
+        const tagMsStore = document.getElementById('tag-ms-store');
+        const tagExe = document.getElementById('tag-exe-installer');
+
+        const guideBanner = document.getElementById('guide-callout-banner');
+        const guideMsg = document.getElementById('guide-callout-msg');
+        const guideLink = document.getElementById('guide-callout-link');
+
+        if (ideType === 'vscode') {
+            // Restore VS Code Extension Card
+            cardVscode.classList.remove('disabled-card');
+            cardVscode.classList.add('featured');
+            tagVscode.textContent = 'RECOMMENDED';
+            tagVscode.className = 'step-tag';
+
+            cardMsStore.classList.remove('featured');
+            tagMsStore.textContent = 'MICROSOFT STORE';
+            tagMsStore.className = 'step-tag green';
+
+            cardExe.classList.remove('featured');
+            tagExe.textContent = 'STANDALONE';
+            tagExe.className = 'step-tag neutral';
+
+            guideBanner.classList.remove('active');
+        } else if (ideType === 'jetbrains') {
+            // Grey out VS Code card
+            cardVscode.classList.add('disabled-card');
+            cardVscode.classList.remove('featured');
+            tagVscode.textContent = 'NOT APPLICABLE';
+            tagVscode.className = 'step-tag not-supported';
+
+            // Highlight MS Store and Standalone EXE
+            cardMsStore.classList.add('featured');
+            tagMsStore.textContent = 'RECOMMENDED STORE APP';
+            tagMsStore.className = 'step-tag green';
+
+            cardExe.classList.add('featured');
+            tagExe.textContent = 'STANDALONE';
+            tagExe.className = 'step-tag neutral';
+
+            // Show JetBrains Guide Callout
+            guideMsg.textContent = 'JetBrains editors (PyCharm, IntelliJ) require adding Patens as an MCP Server. Follow the JetBrains guide:';
+            guideLink.href = 'guide.html?ide=jetbrains';
+            guideLink.textContent = 'Open JetBrains Guide ➔';
+            guideBanner.classList.add('active');
+        } else if (ideType === 'visualstudio') {
+            // Grey out VS Code card
+            cardVscode.classList.add('disabled-card');
+            cardVscode.classList.remove('featured');
+            tagVscode.textContent = 'NOT APPLICABLE';
+            tagVscode.className = 'step-tag not-supported';
+
+            // Highlight BOTH Microsoft Store AND Standalone EXE
+            cardMsStore.classList.add('featured');
+            tagMsStore.textContent = 'RECOMMENDED STORE APP';
+            tagMsStore.className = 'step-tag green';
+
+            cardExe.classList.add('featured');
+            tagExe.textContent = 'STANDALONE';
+            tagExe.className = 'step-tag neutral';
+
+            // Show Visual Studio Guide Callout
+            guideMsg.textContent = 'For Visual Studio or custom environments, install the Background Engine (Store or .EXE) and configure your MCP client:';
+            guideLink.href = 'guide.html?ide=visualstudio';
+            guideLink.textContent = 'Open Visual Studio Guide ➔';
+            guideBanner.classList.add('active');
+        }
+    }
+
+    // --- Dynamic Manifest Resolver for R2 Bucket latest.json ---
     async function syncLatestDownloads() {
         const MANIFEST_URL = 'https://download.patens.dev/latest.json';
 
         try {
-            const response = await fetch(MANIFEST_URL);
+            const response = await fetch(MANIFEST_URL, {cache: 'no-store'});
             if (!response.ok) throw new Error(`Manifest fetch HTTP error: ${response.status}`);
 
             const data = await response.json();
 
-            // Update all .EXE installer links across the page and modal dynamically
             if (data.installerUrl) {
                 const exeLinks = document.querySelectorAll('.exe-download-link');
                 exeLinks.forEach(link => {
                     link.href = data.installerUrl;
+
+                    const labelSpan = link.querySelector('.exe-link-label');
+                    if (labelSpan && data.version) {
+                        labelSpan.textContent = `Download .EXE (v${data.version})`;
+                    }
                 });
             }
         } catch (err) {
-            console.warn('Could not fetch latest.json, using static fallback link:', err);
+            console.warn('Could not fetch latest.json from R2, using static fallback URL:', err);
         }
     }
 
-    // --- Auto Browser/OS Detection ---
-    function detectEnvironment() {
-        const ua = navigator.userAgent;
-        let browser = "Chrome";
-
-        if (ua.includes("Firefox")) browser = "Firefox";
-        else if (ua.includes("Edg")) browser = "Edge";
-
-        const smartBtnText = document.getElementById("smart-btn-text");
-        if (smartBtnText) {
-            smartBtnText.textContent = `Get Patens for ${browser}`;
-        }
-    }
-
-    // --- Modal Logic ---
-    function openInstallModal() {
-        document.getElementById("install-modal").classList.add("active");
-    }
-
-    function closeInstallModal() {
-        document.getElementById("install-modal").classList.remove("active");
-    }
-
-    window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeInstallModal();
-    });
-
-    // --- DYNAMIC HERO MODE SWITCHER ---
+    // --- Dynamic Hero Mode Switcher ---
     const heroModes = [
         {
             eyebrow: "🌐 In Your Browser",
@@ -1169,7 +1297,6 @@
         const badgeText = document.getElementById('badge-text');
         const dotsContainer = document.getElementById('step-dots');
 
-        // Mapped precisely to demo_13s.mp4 key events
         const timeline = [
             {time: 0.0, step: 1, text: "Ditch the old way, full of hallucinations"},
             {time: 3.8, step: 2, text: "Capture context with 1-click"},
@@ -1210,7 +1337,6 @@
 
     // Initialize scripts
     syncLatestDownloads();
-    detectEnvironment();
     initVideoSync();
     startAutoSwitch();
 </script>

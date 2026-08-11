@@ -208,7 +208,7 @@
             cursor: pointer;
             border: none;
             width: 100%;
-            min-height: 44px; /* Touch target minimum */
+            min-height: 44px;
         }
 
         .btn-primary {
@@ -233,7 +233,14 @@
             border-color: var(--accent-blue);
         }
 
-        /* PERMANENTLY VISIBLE MANUAL SETUP GUIDE SECTION */
+        .version-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-left: 4px;
+        }
+
+        /* MANUAL SETUP GUIDE SECTION */
         .guide-section {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -259,7 +266,6 @@
             color: #ffffff;
         }
 
-        /* FULL-WIDTH STACKED LAYOUT FOR MAXIMUM VIDEO LEGIBILITY */
         .guide-grid {
             display: flex;
             flex-direction: column;
@@ -306,7 +312,7 @@
             overflow-wrap: anywhere;
         }
 
-        /* Large Video Container Styling */
+        /* Video Container Styling */
         .gif-wrapper {
             width: 100%;
             background: #000;
@@ -324,7 +330,7 @@
             object-fit: cover;
         }
 
-        /* Windows Defender / SmartScreen Callout Card */
+        /* Windows Defender Callout Card */
         .smartscreen-box {
             background: rgba(245, 158, 11, 0.05);
             border: 1px solid rgba(245, 158, 11, 0.3);
@@ -373,9 +379,6 @@
             font-size: 14px;
         }
 
-        /* ========================================================= */
-        /* MOBILE RESPONSIVE OVERRIDES                               */
-        /* ========================================================= */
         @media (max-width: 860px) {
             nav {
                 padding: 16px 20px;
@@ -464,19 +467,18 @@
 
     <!-- Fallback Conversion Matrix -->
     <div class="action-matrix">
-        <!-- Action 1: Extension GitHub Package -->
+        <!-- Action 1: Extension Package -->
         <div class="action-card">
             <div>
                 <div class="card-number">STEP 1: BROWSER EXTENSION</div>
-                <h3>GitHub Release Package</h3>
+                <h3>Standalone Extension Package</h3>
                 <p>Load the extension directly into Chrome, Edge, or Firefox using our standalone ZIP package.</p>
             </div>
-            <!-- Updated with static fallback & ext-download-link class -->
-            <a href="https://github.com/Patens-dev/Patens/releases/latest/download/extension.zip" target="_blank" class="btn btn-primary ext-download-link">
+            <a href="https://download.patens.dev/latest/extension.zip" target="_blank" class="btn btn-primary ext-download-link">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
-                Get Extension (.zip)
+                <span>Get Extension (.zip)</span> <span class="version-badge ext-version-tag"></span>
             </a>
         </div>
 
@@ -484,33 +486,28 @@
         <div class="action-card">
             <div>
                 <div class="card-number">STEP 2: MEMORY ENGINE (CHOOSE ONE)</div>
-                <h3>VS Code Extension <span
-                        style="font-weight: 400; font-size: 14px; color: var(--text-muted);">OR</span> Standalone Server
-                </h3>
-                <p>The VS Code extension includes the full memory engine built-in. If you use VS Code/Cursor, grab the
-                    extension directly. Otherwise, run the standalone installer.</p>
+                <h3>VS Code Extension <span style="font-weight: 400; font-size: 14px; color: var(--text-muted);">OR</span> Standalone Server</h3>
+                <p>The VS Code extension includes the full memory engine built-in. If you use VS Code/Cursor, grab the extension directly. Otherwise, run the standalone installer.</p>
             </div>
             <div class="btn-group">
-                <a href="vscode:extension/patens-dev.patens" target="_blank"
-                   class="btn btn-primary">
+                <a href="vscode:extension/patens-dev.patens" target="_blank" class="btn btn-primary">
                     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
                          alt="VS Code" width="16" height="16">
-                    VS Code Extension (.vsix)
+                    <span>VS Code Extension (.vsix)</span>
                 </a>
 
                 <div class="or-divider"><span>OR</span></div>
 
-                <!-- Updated with static fallback & exe-download-link class -->
                 <a href="https://download.patens.dev/latest/patens_installer.exe" class="btn btn-secondary exe-download-link">
                     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/windows11/windows11-original.svg"
                          alt="Windows 11" width="16" height="16">
-                    Standalone .EXE Installer
+                    <span>Standalone .EXE Installer</span> <span class="version-badge exe-version-tag"></span>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- PERMANENTLY VISIBLE MANUAL SETUP INSTRUCTIONS (FULL-WIDTH STACKED) -->
+    <!-- MANUAL SETUP INSTRUCTIONS -->
     <section class="guide-section">
         <div class="guide-header">
             <h2>💡 Quick Manual Setup Guide</h2>
@@ -526,26 +523,18 @@
                     <li>Download and unzip <code>extension.zip</code> to a folder on your computer.</li>
                     <li>Open a new tab in your browser and copy one of these URLs into the address bar:
                         <ul style="margin-top: 6px; margin-bottom: 6px; padding-left: 20px;">
-                            <li>For <strong>Microsoft Edge</strong>: copy <code>edge://extensions</code> and press
-                                Enter.
-                            </li>
-                            <li>For <strong>Google Chrome</strong>: copy <code>chrome://extensions</code> and press
-                                Enter.
-                            </li>
+                            <li>For <strong>Microsoft Edge</strong>: copy <code>edge://extensions</code> and press Enter.</li>
+                            <li>For <strong>Google Chrome</strong>: copy <code>chrome://extensions</code> and press Enter.</li>
                         </ul>
                     </li>
-                    <li>Click the <strong>Developer mode</strong> toggle switch (located in the top-right or left
-                        sidebar).
-                    </li>
+                    <li>Click the <strong>Developer mode</strong> toggle switch (located in the top-right or left sidebar).</li>
                     <li>Click the <strong>Load unpacked</strong> button that appears.</li>
                     <li>Select the unzipped <code>extension</code> folder.</li>
                 </ol>
 
-                <!-- Full Width Video Container 1: Browser Dev Mode Walkthrough -->
                 <div class="gif-wrapper">
                     <video autoplay loop muted playsinline preload="auto">
-                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/install_guide_dev_extension.mp4"
-                                type="video/mp4">
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/install_guide_dev_extension.mp4" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                 </div>
@@ -559,20 +548,15 @@
                     <span style="color: var(--accent-blue);">Step 2:</span> How to Install Memory Engine
                 </div>
                 <ol class="step-list">
-                    <li><strong>Option A (VS Code / Cursor):</strong> Open VS Code, press <code>Ctrl+Shift+X</code>, search for <code>Patens</code> and click install (or open the Marketplace deep link).
-                    </li>
-                    <li><strong>Option B (Standalone):</strong> Download and launch
-                        <code>patens_installer.exe</code>.
-                    </li>
+                    <li><strong>Option A (VS Code / Cursor):</strong> Open VS Code, press <code>Ctrl+Shift+X</code>, search for <code>Patens</code> and click install (or open the Marketplace deep link).</li>
+                    <li><strong>Option B (Standalone):</strong> Download and launch <code>patens_installer.exe</code>.</li>
                 </ol>
 
-                <!-- Windows SmartScreen Alert Callout Box -->
                 <div class="smartscreen-box">
                     <div class="smartscreen-header">
                         <span>🛡️</span> Windows SmartScreen Warning Note
                     </div>
-                    <p>Because Patens is open-source without an enterprise certificate, Windows SmartScreen may show an
-                        <strong>"Unknown Publisher"</strong> prompt when running the <code>.exe</code> installer.</p>
+                    <p>Because Patens is open-source without an enterprise certificate, Windows SmartScreen may show an <strong>"Unknown Publisher"</strong> prompt when running the <code>.exe</code> installer.</p>
 
                     <div class="smartscreen-steps">
                         <strong>How to run the installer:</strong>
@@ -583,11 +567,9 @@
                     </div>
                 </div>
 
-                <!-- Full Width Video Container 2: Windows Security Walkthrough -->
                 <div class="gif-wrapper">
                     <video autoplay loop muted playsinline preload="auto">
-                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/windows_security_guide.mp4"
-                                type="video/mp4">
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/windows_security_guide.mp4" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                 </div>
@@ -601,42 +583,51 @@
 </footer>
 
 <script>
-    // URL Context Switcher (e.g. not-available.html?store=Edge)
+    // Inspect URL Context (e.g. not-available.html?store=Chrome or ?browser=Edge)
     const urlParams = new URLSearchParams(window.location.search);
-    const storeParam = urlParams.get('store') || urlParams.get('browser');
+    const storeParam = urlParams.get('store') || urlParams.get('browser') || urlParams.get('app');
     const labelEl = document.getElementById('store-label');
 
     if (storeParam && labelEl) {
         labelEl.textContent = `${storeParam} Store Review In Progress`;
     }
 
-    // --- Dynamic Manifest Resolver for Latest Artifacts ---
+    // --- Dynamic Manifest Resolver for R2 Bucket latest.json ---
     async function syncLatestDownloads() {
         const MANIFEST_URL = 'https://download.patens.dev/latest.json';
 
         try {
-            const response = await fetch(MANIFEST_URL);
+            // Fetch with no-store to prevent CDN/browser caching stale manifests
+            const response = await fetch(MANIFEST_URL, { cache: 'no-store' });
             if (!response.ok) throw new Error(`Manifest fetch HTTP error: ${response.status}`);
 
             const data = await response.json();
 
-            // Update .EXE links
+            // 1. Update EXE Installer links & version tags
             if (data.installerUrl) {
-                const exeLinks = document.querySelectorAll('.exe-download-link');
-                exeLinks.forEach(link => {
+                document.querySelectorAll('.exe-download-link').forEach(link => {
                     link.href = data.installerUrl;
                 });
+                if (data.version) {
+                    document.querySelectorAll('.exe-version-tag').forEach(span => {
+                        span.textContent = `(v${data.version})`;
+                    });
+                }
             }
 
-            // Update Extension .ZIP links
+            // 2. Update Extension ZIP links & version tags
             if (data.extensionUrl) {
-                const extLinks = document.querySelectorAll('.ext-download-link');
-                extLinks.forEach(link => {
+                document.querySelectorAll('.ext-download-link').forEach(link => {
                     link.href = data.extensionUrl;
                 });
+                if (data.version) {
+                    document.querySelectorAll('.ext-version-tag').forEach(span => {
+                        span.textContent = `(v${data.version})`;
+                    });
+                }
             }
         } catch (err) {
-            console.warn('Could not fetch latest.json, using static fallback links:', err);
+            console.warn('Could not fetch latest.json from R2, using static fallback links:', err);
         }
     }
 

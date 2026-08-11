@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patens Setup Guide | JetBrains & Visual Studio</title>
+    <style>
+        :root {
+            --bg-base: #09090b;
+            --bg-card: #121214;
+            --bg-card-hover: #18181b;
+            --border-color: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-image: radial-gradient(circle at 50% -10%, var(--accent-glow) 0%, transparent 50%),
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-position: center top;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .logo img {
+            height: 32px;
+            width: auto;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1000px;
+            margin: 20px auto 80px;
+            padding: 0 24px;
+            width: 100%;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            color: #ffffff;
+        }
+
+        .page-header p {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        /* Download Engine Requirement Callout */
+        .engine-download-callout {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 24px 28px;
+            margin-bottom: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .callout-text h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .callout-text p {
+            font-size: 13.5px;
+            color: var(--text-muted);
+        }
+
+        .callout-btn-group {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .btn-callout {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-callout.store {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-callout.store:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: var(--accent-green);
+        }
+
+        .btn-callout.exe {
+            background: #09090b;
+            color: #ffffff;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-callout.exe:hover {
+            background: #18181b;
+            border-color: #60a5fa;
+        }
+
+        /* IDE Tab Selector Bar */
+        .ide-tab-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .ide-tab-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px 20px;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .ide-tab-btn:hover {
+            border-color: #52525b;
+            color: var(--text-main);
+            background: var(--bg-card-hover);
+        }
+
+        .ide-tab-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-blue);
+            color: #ffffff;
+            box-shadow: 0 0 0 1px var(--accent-blue);
+        }
+
+        .ide-tab-btn img, .ide-tab-btn svg {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        /* Content Panels */
+        .ide-panel {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 36px;
+            box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .ide-panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+        }
+
+        .panel-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .panel-header p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .guide-steps {
+            margin-left: 20px;
+            color: var(--text-muted);
+            font-size: 14.5px;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .guide-steps li {
+            margin-bottom: 12px;
+        }
+
+        .guide-steps li strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .guide-steps code {
+            background: #000000;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: #60a5fa;
+            border: 1px solid var(--border-color);
+        }
+
+        /* GitHub Feature Request Banner Box */
+        .github-issue-callout {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .github-issue-text h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .github-issue-text p {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .btn-github-issue {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #18181b;
+            color: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn-github-issue:hover {
+            background: #27272a;
+            border-color: #60a5fa;
+            transform: translateY(-1px);
+        }
+
+        .btn-github-issue svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* Video Wrapper */
+        .gif-wrapper {
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+            margin-bottom: 28px;
+        }
+
+        .gif-wrapper video {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        /* Code Block Component */
+        .code-block {
+            background: #000000;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            padding-top: 28px;
+            border-radius: 10px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: #a5b4fc;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: "mcp.json snippet";
+            position: absolute;
+            top: -10px;
+            left: 14px;
+            background: var(--bg-card-hover);
+            padding: 0 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            background: #18181b;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+        }
+
+        .copy-btn:hover {
+            background: #27272a;
+            color: #fff;
+            border-color: #52525b;
+        }
+
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 30px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 860px) {
+            nav {
+                padding: 16px 20px;
+            }
+
+            .container {
+                padding: 0 16px;
+                margin: 20px auto 40px;
+            }
+
+            .ide-tab-bar {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .engine-download-callout {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 20px;
+            }
+
+            .callout-btn-group {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn-callout {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .github-issue-callout {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .btn-github-issue {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .ide-panel {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">
+        <a href="index.html">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
+                 alt="Patens Icon">
+        </a>
+    </div>
+    <div class="nav-links">
+        <a href="index.html">← Back to Main Site</a>
+    </div>
+</nav>
+
+<main class="container">
+    <header class="page-header">
+        <h1>Patens MCP Engine Setup Guide</h1>
+        <p>Pair GitHub Copilot inside JetBrains or Visual Studio with Patens local memory layer.</p>
+    </header>
+
+    <!-- Download Engine Requirement Callout -->
+    <div class="engine-download-callout">
+        <div class="callout-text">
+            <h3><span>⚡</span> Step 1: Download & Install Background Engine</h3>
+            <p>Non-VS Code environments require running the standalone Patens background engine.</p>
+        </div>
+        <div class="callout-btn-group">
+            <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn-callout store">
+                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg" alt="MS Store"
+                     style="width: 14px; filter: invert(1);">
+                Microsoft Store
+            </a>
+            <a href="https://download.patens.dev/latest/patens_installer.exe" class="btn-callout exe exe-download-link">
+                <span>Download .EXE</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- IDE Tab Bar -->
+    <div class="ide-tab-bar">
+        <button type="button" class="ide-tab-btn active" id="tab-btn-jetbrains" onclick="switchTab('jetbrains')">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/intellij/intellij-original.svg"
+                 alt="JetBrains">
+            JetBrains (GitHub Copilot)
+        </button>
+
+        <button type="button" class="ide-tab-btn" id="tab-btn-visualstudio" onclick="switchTab('visualstudio')">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/visualstudio/visualstudio-plain.svg"
+                 alt="Visual Studio">
+            Visual Studio 2022
+        </button>
+
+        <button type="button" class="ide-tab-btn" id="tab-btn-other" onclick="switchTab('other')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                 stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            Other Clients (Claude / Windsurf)
+        </button>
+    </div>
+
+    <!-- PANEL 1: JETBRAINS + GITHUB COPILOT -->
+    <div class="ide-panel active" id="panel-jetbrains">
+        <div class="panel-header">
+            <h2>JetBrains Setup: GitHub Copilot + Patens MCP</h2>
+            <p>Replace JetBrains' native AI with GitHub Copilot while giving Copilot access to your Patens local vector
+                memory.</p>
+        </div>
+
+        <ol class="guide-steps">
+            <li>
+                <strong>Install GitHub Copilot Plugin in JetBrains:</strong>
+                <br>Open Settings (<code>Ctrl+Alt+S</code> on Windows/Linux or <code>Cmd+,</code> on macOS) → <strong>Plugins</strong>
+                → Search <code>GitHub Copilot</code> → Click <strong>Install</strong> → Restart IDE and sign into your
+                GitHub account.
+            </li>
+            <li>
+                <strong>Install Patens Background Engine:</strong>
+                <br>Download and run the <strong>Microsoft Store App</strong> or the <strong>.EXE Installer</strong>
+                above. This places <code>Patens.exe</code> on your machine at <code>%LOCALAPPDATA%\Programs\Patens\Patens.exe</code>.
+            </li>
+        </ol>
+
+    </div>
+
+    <!-- PANEL 2: VISUAL STUDIO 2022 -->
+    <div class="ide-panel" id="panel-visualstudio">
+        <div class="panel-header">
+            <h2>Visual Studio 2022 Setup Guide</h2>
+            <p>Configure GitHub Copilot Chat Agent Mode or Visual Studio MCP settings to read Patens memory.</p>
+        </div>
+
+        <ol class="guide-steps">
+            <li>Ensure you are running <strong>Visual Studio 2022 v17.14 or later</strong>.</li>
+            <li>Install the Patens background engine via <strong>Microsoft Store</strong> or <strong>.EXE
+                installer</strong> above.
+            </li>
+            <li>Open your Visual Studio solution.</li>
+            <li>Enable Agent mode in <strong>Tools &gt; Options &gt; GitHub &gt; Copilot &gt; Copilot Chat</strong>.
+            </li>
+        </ol>
+
+    </div>
+
+    <!-- PANEL 3: OTHER CLIENTS (WITH GITHUB ISSUES CALLOUT) -->
+    <div class="ide-panel" id="panel-other">
+        <div class="panel-header">
+            <h2>Other MCP Clients (Claude Desktop, Windsurf, Cline, Zed)</h2>
+            <p>Universal configuration snippet for any Model Context Protocol compliant application.</p>
+        </div>
+
+        <!-- GitHub Request Callout -->
+        <div class="github-issue-callout">
+            <div class="github-issue-text">
+                <h3>💬 Don't see your browser or favorite editor listed?</h3>
+                <p>Request a dedicated integration, native plugin, or step-by-step setup guide by opening an issue on
+                    GitHub!</p>
+            </div>
+            <a href="https://github.com/Patens-dev/Patens/issues/new?title=Request%3A+Integration+for+%5BClient%2FBrowser+Name%5D&labels=enhancement"
+               target="_blank" class="btn-github-issue">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                <span>Request on GitHub ➔</span>
+            </a>
+        </div>
+
+
+    </div>
+</main>
+
+<footer>
+    <p>Patens is open source under the MIT License. Built with the Model Context Protocol (MCP).</p>
+</footer>
+
+<script>
+    // Tab Switcher Engine
+    function switchTab(ideKey) {
+        document.querySelectorAll('.ide-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.ide-panel').forEach(panel => panel.classList.remove('active'));
+
+        const targetBtn = document.getElementById(`tab-btn-${ideKey}`);
+        const targetPanel = document.getElementById(`panel-${ideKey}`);
+
+        if (targetBtn && targetPanel) {
+            targetBtn.classList.add('active');
+            targetPanel.classList.add('active');
+        }
+    }
+
+    // Inspect URL parameters (e.g., guide.html?ide=jetbrains)
+    function initTabFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const ideParam = urlParams.get('ide') || urlParams.get('editor');
+
+        if (ideParam === 'jetbrains' || ideParam === 'pycharm' || ideParam === 'intellij') {
+            switchTab('jetbrains');
+        } else if (ideParam === 'visualstudio' || ideParam === 'vs') {
+            switchTab('visualstudio');
+        } else if (ideParam === 'other' || ideParam === 'claude' || ideParam === 'windsurf') {
+            switchTab('other');
+        }
+    }
+
+    // Copy Snippet Logic
+    function copySnippet(btn) {
+        const pre = btn.parentElement.querySelector('pre');
+        navigator.clipboard.writeText(pre.innerText).then(() => {
+            btn.innerText = "✓ Copied";
+            btn.style.color = "var(--accent-green)";
+            btn.style.borderColor = "var(--accent-green)";
+            setTimeout(() => {
+                btn.innerText = "Copy";
+                btn.style.color = "var(--text-muted)";
+                btn.style.borderColor = "var(--border-color)";
+            }, 2000);
+        });
+    }
+
+    // R2 Manifest Sync
+    async function syncLatestDownloads() {
+        const MANIFEST_URL = 'https://download.patens.dev/latest.json';
+        try {
+            const response = await fetch(MANIFEST_URL, {cache: 'no-store'});
+            if (!response.ok) throw new Error(`Manifest fetch HTTP error: ${response.status}`);
+            const data = await response.json();
+
+            if (data.installerUrl) {
+                document.querySelectorAll('.exe-download-link').forEach(link => {
+                    link.href = data.installerUrl;
+                });
+            }
+        } catch (err) {
+            console.warn('Could not fetch latest.json from R2, using static fallback:', err);
+        }
+    }
+
+    initTabFromURL();
+    syncLatestDownloads();
+</script>
+</body>
+</html>
