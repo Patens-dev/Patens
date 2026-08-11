@@ -108,13 +108,12 @@ class DatabaseManager:
         extra_params = []
 
         if start_time:
-            extra_sql += " AND s.created_at >= ?" if "s." in extra_sql or True else " AND created_at >= ?"  # force s. for uniform logic
+            extra_sql += " AND s.created_at >= ?"
             extra_params.append(start_time)
         if end_time:
             extra_sql += " AND s.created_at < ?"
             extra_params.append(end_time)
 
-        # NEW: Filter by URL token (e.g. from:github.com)
         if url_filter:
             extra_sql += " AND s.url LIKE ?"
             extra_params.append(f"%{url_filter}%")
@@ -125,7 +124,6 @@ class DatabaseManager:
                 where_clauses = ["(title LIKE ? OR content LIKE ?)"] * len(terms)
                 params = [val for term in terms for val in (f"%{term}%", f"%{term}%")]
 
-                # Replace 's.' for lexical query since it doesn't use table alias 's'
                 kw_extra_sql = extra_sql.replace('s.', '')
 
                 kw_sql = f"""
@@ -152,7 +150,6 @@ class DatabaseManager:
 
         for r in kw_results:
             if r["id"] not in seen_ids:
-                # FIX: dict(r).get() prevents the sqlite3.Row crash
                 final_results.append({"id": r["id"], "title": r["title"], "url": r["url"], "content": r["content"],
                                       "created_at": r["created_at"], "is_volatile": dict(r).get("is_volatile", 0),
                                       "distance": 0.0})
@@ -161,7 +158,6 @@ class DatabaseManager:
         valid_vec = sorted([r for r in vec_results if r["distance"] <= threshold], key=lambda x: x["distance"])
         for r in valid_vec:
             if r["id"] not in seen_ids:
-                # FIX: dict(r).get() prevents the sqlite3.Row crash
                 final_results.append({"id": r["id"], "title": r["title"], "url": r["url"], "content": r["content"],
                                       "created_at": r["created_at"], "is_volatile": dict(r).get("is_volatile", 0),
                                       "distance": r["distance"]})
@@ -210,7 +206,6 @@ class DatabaseManager:
                 sql += " AND created_at < ?"
                 params.append(end_time)
 
-            # NEW: Filter by URL token (e.g. from:github.com)
             if url_filter:
                 sql += " AND url LIKE ?"
                 params.append(f"%{url_filter}%")
@@ -220,7 +215,6 @@ class DatabaseManager:
 
             results = db.execute(sql, params).fetchall()
 
-        # FIX: dict(r).get() prevents the sqlite3.Row crash
         return [
             {"id": r["id"], "title": r["title"], "url": r["url"], "content": r["content"],
              "created_at": r["created_at"], "is_volatile": dict(r).get("is_volatile", 0), "distance": 0.0}
@@ -233,12 +227,11 @@ class DatabaseManager:
             sql = """
                   SELECT id, title, url, content, created_at, is_volatile
                   FROM snippets
-                  WHERE id = ? \
+                  WHERE id = ?
                   """
             result = db.execute(sql, (content_id,)).fetchone()
 
         if result:
-            # FIX: dict(result).get() prevents the sqlite3.Row crash
             return {
                 "id": result["id"],
                 "title": result["title"],
@@ -249,21 +242,20 @@ class DatabaseManager:
             }
         return None
 
-    def update_snippet(self, snippet_id: int, new_content: str, new_embedding: list) -> bool:
+    def update_snippet(self, snippet_id: int, new_content: str, new_embedding: List[float]) -> bool:
         """Updates the content and vector embedding of an existing snippet."""
         try:
-            # Serialize the vector depending on how your DB handles it (e.g., JSON or raw bytes)
-            import json
-            embedding_json = json.dumps(new_embedding)
-
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE snippets SET content = ?, embedding = ? WHERE id = ?",
-                    (new_content, embedding_json, snippet_id)
-                )
-                conn.commit()
-                return cursor.rowcount > 0
+            with closing(self._get_connection()) as db:
+                with db:
+                    cursor = db.execute(
+                        "UPDATE snippets SET content = ? WHERE id = ?",
+                        (new_content, snippet_id)
+                    )
+                    db.execute(
+                        "UPDATE vec_snippets SET embedding = ? WHERE content_id = ?",
+                        (serialize_float32(new_embedding), snippet_id)
+                    )
+                    return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Error updating snippet {snippet_id}: {e}")
             return False
@@ -271,10 +263,8 @@ class DatabaseManager:
     def get_recent_snippets(self, hours: int = 24) -> list:
         """Retrieves snippets saved within the last X hours to populate the .context folder."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                cursor.execute("""
+            with closing(self._get_connection()) as db:
+                cursor = db.execute("""
                                SELECT id, title, url, content, created_at
                                FROM snippets
                                WHERE created_at >= datetime('now', ?)
@@ -282,19 +272,24 @@ class DatabaseManager:
                                """, (f'-{hours} hours',))
                 return [dict(row) for row in cursor.fetchall()]
         except Exception as e:
-            self.logger.error(f"Error fetching recent snippets: {e}")
+            logger.error(f"Error fetching recent snippets: {e}")
             return []
 
     def delete_snippet(self, snippet_id: int) -> bool:
-        """Allows the AI to delete a snippet from the database by ID."""
+        """Deletes a snippet and its corresponding vector embedding from the database by ID."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM snippets WHERE id = ?", (snippet_id,))
-                conn.commit()
-                return cursor.rowcount > 0
+            with closing(self._get_connection()) as db:
+                with db:
+                    # 1. Delete associated vector embedding
+                    db.execute("DELETE FROM vec_snippets WHERE content_id = ?", (snippet_id,))
+                    # 2. Delete primary snippet record
+                    cursor = db.execute("DELETE FROM snippets WHERE id = ?", (snippet_id,))
+                    deleted = cursor.rowcount > 0
+                    if deleted:
+                        logger.info(f"Successfully deleted snippet ID={snippet_id} from DB and vector index.")
+                    return deleted
         except Exception as e:
-            self.logger.error(f"Error deleting snippet {snippet_id}: {e}")
+            logger.error(f"Error deleting snippet {snippet_id}: {e}")
             return False
 
     def clear_history(self) -> None:
@@ -307,29 +302,29 @@ class DatabaseManager:
 
     def purge_old_volatile(self, hours: int = 4) -> int:
         """
-        Purges is_volatile=True records older than the specified hours.
+        Purges is_volatile=True records older than the specified hours and cleans vector index.
         Returns the number of records deleted.
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                # Delete snippets older than X hours where is_volatile = 1
-                cursor.execute(
-                    """
-                    DELETE
-                    FROM snippets
-                    WHERE is_volatile = 1
-                      AND created_at < datetime('now', ?)
-                    """,
-                    (f'-{hours} hours',)
-                )
-                deleted_count = cursor.rowcount
-                conn.commit()
+            with closing(self._get_connection()) as db:
+                with db:
+                    # Find IDs to purge
+                    rows = db.execute(
+                        "SELECT id FROM snippets WHERE is_volatile = 1 AND created_at < datetime('now', ?)",
+                        (f'-{hours} hours',)
+                    ).fetchall()
 
-                if deleted_count > 0:
+                    ids_to_delete = [r["id"] for r in rows]
+                    if not ids_to_delete:
+                        return 0
+
+                    for sid in ids_to_delete:
+                        db.execute("DELETE FROM vec_snippets WHERE content_id = ?", (sid,))
+                        db.execute("DELETE FROM snippets WHERE id = ?", (sid,))
+
+                    deleted_count = len(ids_to_delete)
                     logger.info(f"Purged {deleted_count} volatile records older than {hours} hours.")
-
-                return deleted_count
+                    return deleted_count
         except Exception as e:
             logger.error(f"Error purging old volatile records: {e}")
             return 0

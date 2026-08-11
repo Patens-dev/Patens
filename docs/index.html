@@ -962,7 +962,8 @@
                     VS Code Ext
                 </a>
 
-                <a href="https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe" class="option-btn">
+                <!-- Configured with fallback static alias & dynamic JS sync class -->
+                <a href="https://download.patens.dev/latest/patens_installer.exe" class="option-btn exe-download-link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
                          stroke-linejoin="round">
                         <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -1028,7 +1029,8 @@
                         VS Code Ext
                     </a>
 
-                    <a href="https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe" class="option-btn">
+                    <!-- Configured with fallback static alias & dynamic JS sync class -->
+                    <a href="https://download.patens.dev/latest/patens_installer.exe" class="option-btn exe-download-link">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"
                              stroke-linejoin="round">
                             <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -1047,8 +1049,30 @@
     <p>Patens is open source under the MIT License. Built with the Model Context Protocol (MCP).</p>
 </footer>
 
-<!-- JS Logic: Auto Detection + Hero Mode Switching + Real-time Video Sync -->
+<!-- JS Logic: Auto Detection + Hero Mode Switching + Real-time Video Sync + Dynamic Manifest Sync -->
 <script>
+    // --- Dynamic Manifest Resolver for Latest Installer ---
+    async function syncLatestDownloads() {
+        const MANIFEST_URL = 'https://download.patens.dev/latest.json';
+
+        try {
+            const response = await fetch(MANIFEST_URL);
+            if (!response.ok) throw new Error(`Manifest fetch HTTP error: ${response.status}`);
+
+            const data = await response.json();
+
+            // Update all .EXE installer links across the page and modal dynamically
+            if (data.installerUrl) {
+                const exeLinks = document.querySelectorAll('.exe-download-link');
+                exeLinks.forEach(link => {
+                    link.href = data.installerUrl;
+                });
+            }
+        } catch (err) {
+            console.warn('Could not fetch latest.json, using static fallback link:', err);
+        }
+    }
+
     // --- Auto Browser/OS Detection ---
     function detectEnvironment() {
         const ua = navigator.userAgent;
@@ -1185,6 +1209,7 @@
     }
 
     // Initialize scripts
+    syncLatestDownloads();
     detectEnvironment();
     initVideoSync();
     startAutoSwitch();

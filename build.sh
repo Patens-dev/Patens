@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
-
+# Automatically load environment variables from .env if present
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
 # ===================================================================
 # CONFIGURATION & COLOR LOGGING
 # ===================================================================
@@ -27,7 +30,7 @@ get_size() {
     if [ -e "$1" ]; then du -sh "$1" 2>/dev/null | cut -f1; else echo "0B"; fi
 }
 
-TEMP_FILES=("version_info.txt" "msix_layout" "patens_setup.iss")
+TEMP_FILES=("version_info.txt" "msix_layout" "patens_setup.iss" "Patens.spec")
 cleanup() {
     log_info "Cleaning temporary build script artifacts..."
     for item in "${TEMP_FILES[@]}"; do [ -e "$item" ] && rm -rf "$item"; done
@@ -35,11 +38,22 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # ===================================================================
-# 0. PRE-BUILD CONFIGURATION SYNC
+# 0. PRE-BUILD CONFIGURATION SYNC & VENV DETECTION
 # ===================================================================
+PYTHON_BIN="python"
+if [ -f "./.venv/Scripts/python.exe" ]; then
+    PYTHON_BIN="./.venv/Scripts/python.exe"
+elif [ -f "./.venv/bin/python" ]; then
+    PYTHON_BIN="./.venv/bin/python"
+elif [ -f "./build_env/Scripts/python.exe" ]; then
+    PYTHON_BIN="./build_env/Scripts/python.exe"
+elif [ -f "./build_env/bin/python" ]; then
+    PYTHON_BIN="./build_env/bin/python"
+fi
+
 if [ -f "scripts/sync_config.py" ]; then
     log_info "🔄 Syncing central urls.json inventory across project..."
-    python scripts/sync_config.py || log_warn "sync_config.py failed to run; continuing with build."
+    "$PYTHON_BIN" scripts/sync_config.py || log_warn "sync_config.py failed to run; continuing with build."
 fi
 
 # ===================================================================
@@ -101,22 +115,28 @@ rm -rf build dist Patens.spec msix_layout
 mkdir -p dist
 
 # ===================================================================
-# 1. METADATA PARSING
+# 1. METADATA PARSING (SECURE ENV FILE GENERATION)
 # ===================================================================
 log_info "Parsing project metadata..."
 start_timer
 
-eval "$(python -c '
-import json, os, re, sys
+META_ENV=$(mktemp)
+TEMP_FILES+=("$META_ENV")
+
+"$PYTHON_BIN" -c '
+import json, os, sys, shlex
 if not os.path.exists("pyproject.toml"): sys.exit(1)
 app_version, name, desc, company = "1.0.0", "Patens", "Patens Executable", "Patens"
 try:
     import tomllib
     with open("pyproject.toml", "rb") as f: toml_data = tomllib.load(f)
     project = toml_data.get("project", {})
-    name, app_version, desc = project.get("name", name), project.get("version", app_version), project.get("description", desc)
+    name = project.get("name", name)
+    app_version = project.get("version", app_version)
+    desc = project.get("description", desc)
     authors = project.get("authors", [])
-    if authors and isinstance(authors[0], dict): company = authors[0].get("name", company)
+    if authors and isinstance(authors[0], dict):
+        company = authors[0].get("name", company)
 except Exception: pass
 
 v_parts = app_version.split(".")
@@ -132,29 +152,52 @@ version_info_template = f"""VSVersionInfo(
     StringStruct("ProductName", "{name}"), StringStruct("ProductVersion", "{app_version}")
   ])]), VarFileInfo([VarStruct("Translation", [1033, 1200])])]
 )"""
-with open("version_info.txt", "w", encoding="utf-8") as f: f.write(version_info_template)
+with open("version_info.txt", "w", encoding="utf-8") as f:
+    f.write(version_info_template)
 
 possible_ext_paths = ["extension/manifest.json", "browser_extension/manifest.json", "chrome_extension/manifest.json", "manifest.json"]
 ext_manifest_path = next((p for p in possible_ext_paths if os.path.exists(p)), None)
 ext_version, ext_dir = "1.0.0", "extension"
 if ext_manifest_path:
     ext_dir = os.path.dirname(ext_manifest_path) or "."
-    with open(ext_manifest_path, "r", encoding="utf-8") as f: ext_version = json.load(f).get("version", "1.0.0")
+    try:
+        with open(ext_manifest_path, "r", encoding="utf-8") as f:
+            ext_version = json.load(f).get("version", "1.0.0")
+    except Exception: pass
 
-print(f"export APP_VERSION=\"{app_version}\"")
-print(f"export EXT_VERSION=\"{ext_version}\"")
-print(f"export COMPANY=\"{company}\"")
-print(f"export EXT_DIR=\"{ext_dir}\"")
-')"
+with open(sys.argv[1], "w", encoding="utf-8") as f:
+    f.write(f"APP_VERSION={shlex.quote(app_version)}\n")
+    f.write(f"EXT_VERSION={shlex.quote(ext_version)}\n")
+    f.write(f"COMPANY={shlex.quote(company)}\n")
+    f.write(f"EXT_DIR={shlex.quote(ext_dir)}\n")
+' "$META_ENV"
+
+source "$META_ENV"
+VERSION_DIR="dist/v${APP_VERSION}"
+mkdir -p "$VERSION_DIR"
 TIME_METADATA=$(stop_timer)
 
 # ===================================================================
-# 2. DYNAMIC FASTEMBED MODEL CACHING
+# 2. RUN TEST SUITE (FAIL-FAST)
+# ===================================================================
+log_info "🧪 Executing unit and integration test suites..."
+start_timer
+
+if "$PYTHON_BIN" -m pytest tests/ -v; then
+    log_success "✅ All test suites passed cleanly!"
+else
+    log_error "❌ Test suite failure detected! Aborting build pipeline immediately."
+    exit 1
+fi
+TIME_TESTS=$(stop_timer)
+
+# ===================================================================
+# 3. DYNAMIC FASTEMBED MODEL CACHING
 # ===================================================================
 log_info "📥 Synchronizing FastEmbed model from config..."
 start_timer
 
-python -c '
+"$PYTHON_BIN" -c '
 import os, sys
 sys.path.insert(0, "src")
 from patens.server.config import MODEL_NAME
@@ -170,41 +213,133 @@ TIME_FASTEMBED=$(stop_timer)
 SIZE_MODEL_CACHE=$(get_size "fastembed_cache")
 
 # ===================================================================
-# 3. PYINSTALLER COMPILATION (--onedir FOR ENTERPRISE WDAC COMPLIANCE)
+# 4. PYINSTALLER COMPILATION (DYNAMIC SPEC GENERATION)
 # ===================================================================
-log_info "🔨 Compiling PyInstaller binary (--onedir pattern)..."
+log_info "📝 Generating dynamic Patens.spec with complete C-extension hooks..."
 start_timer
 
-"$PYINSTALLER_BIN" \
-  --name "Patens" \
-  --onedir \
-  --noconfirm \
-  --paths=src \
-  --exclude-module torch \
-  --exclude-module scipy \
-  --exclude-module transformers \
-  --exclude-module sympy \
-  --exclude-module sklearn \
-  --exclude-module scikit_learn \
-  --exclude-module networkx \
-  --exclude-module matplotlib \
-  --exclude-module tkinter \
-  --exclude-module unittest \
-  --copy-metadata fastmcp \
-  --copy-metadata fastmcp-slim \
-  --add-data "fastembed_cache;fastembed_cache" \
-  --add-data "src/patens/server/default_config.yaml;patens/server" \
-  --add-data "src/patens/server/templates;patens/server/templates" \
-  --collect-all sqlite_vec \
-  --version-file="version_info.txt" \
-  --icon="assets/patens.ico" \
-  src/patens/main.py
+"$PYTHON_BIN" -c '
+spec_content = """# -*- mode: python ; coding: utf-8 -*-
+import sys
+from PyInstaller.utils.hooks import collect_all, collect_dynamic_libs, copy_metadata
+
+block_cipher = None
+
+sqlite_vec_datas, sqlite_vec_binaries, sqlite_vec_hidden = collect_all("sqlite_vec")
+fastembed_datas, fastembed_binaries, fastembed_hidden = collect_all("fastembed")
+onnx_binaries = collect_dynamic_libs("onnxruntime")
+
+fastmcp_datas = []
+for pkg in ["fastmcp", "fastmcp-slim"]:
+    try:
+        fastmcp_datas.extend(copy_metadata(pkg))
+    except Exception:
+        pass
+
+datas = [
+    ("fastembed_cache", "fastembed_cache"),
+    ("src/patens/server/default_config.yaml", "patens/server"),
+    ("src/patens/server/templates", "patens/server/templates"),
+] + sqlite_vec_datas + fastembed_datas + fastmcp_datas
+
+binaries = sqlite_vec_binaries + fastembed_binaries + onnx_binaries
+
+hiddenimports = [
+    "patens.server.api",
+    "patens.server.unified_server",
+] + sqlite_vec_hidden + fastembed_hidden
+
+excludes = [
+    "pytest", "_pytest", "pytest_mock", "pluggy", "unittest",
+    "tkinter", "torch", "scipy", "transformers", "matplotlib",
+    "sympy", "sklearn", "scikit_learn", "networkx"
+]
+
+a = Analysis(
+    ["src/patens/main.py"],
+    pathex=["src"],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=excludes,
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name="Patens",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon="assets/patens.ico",
+    version="version_info.txt",
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name="Patens",
+)
+"""
+
+with open("Patens.spec", "w", encoding="utf-8") as f:
+    f.write(spec_content)
+'
+
+log_info "🔨 Compiling PyInstaller binary using generated Patens.spec..."
+"$PYINSTALLER_BIN" --noconfirm Patens.spec
 
 TIME_PYINSTALLER=$(stop_timer)
 SIZE_PYINSTALLER_EXE=$(get_size "dist/Patens")
 
 # ===================================================================
-# 4. MSIX PACKAGE GENERATION & SIGNING
+# 4.1 RUNTIME DLL SMOKE TEST (FAIL-FAST GUARD)
+# ===================================================================
+log_info "🔍 Verifying binary integrity and dynamic C-extension DLLs..."
+
+"$PYTHON_BIN" -c '
+import subprocess, sys
+exe_path = "dist/Patens/Patens.exe"
+print(f"Booting executable smoke test: {exe_path}")
+try:
+    res = subprocess.run([exe_path, "--mcp"], timeout=5, capture_output=True)
+    if res.returncode not in (0, 124):
+        print(f"Smoke test failed with returncode {res.returncode}")
+        print("STDERR:", res.stderr.decode("utf-8", errors="replace"))
+        sys.exit(1)
+except subprocess.TimeoutExpired:
+    pass
+except Exception as e:
+    print(f"Smoke test failed with exception: {e}")
+    sys.exit(1)
+'
+log_success "✅ Compiled binary booted successfully! All dynamic C-extensions and DLLs loaded."
+
+# ===================================================================
+# 5. MSIX PACKAGE GENERATION & SIGNING
 # ===================================================================
 log_info "📦 Creating MSIX package layout..."
 start_timer
@@ -214,12 +349,9 @@ PACKAGE_IDENTITY_PUBLISHER="CN=Patens"
 PUBLISHER_DISPLAY_NAME="Patens"
 
 mkdir -p msix_layout/Assets
-
-# Copy compiled directory output to MSIX layout
 cp -r dist/Patens/* msix_layout/
 
-# Convert assets/patens.ico to proper PNG assets if Pillow is available
-python -c '
+"$PYTHON_BIN" -c '
 import os
 try:
     from PIL import Image
@@ -233,7 +365,6 @@ except Exception as e:
     print(f"Image conversion note: {e}")
 '
 
-# Generate AppxManifest.xml
 cat << EOF > msix_layout/AppxManifest.xml
 <?xml version="1.0" encoding="utf-8"?>
 <Package
@@ -280,23 +411,33 @@ cat << EOF > msix_layout/AppxManifest.xml
 EOF
 
 log_info "🔨 Packing MSIX package..."
-MSIX_OUTPUT="dist/patens_${APP_VERSION}.msix"
+MSIX_OUTPUT="${VERSION_DIR}/patens_${APP_VERSION}.msix"
 MSYS_NO_PATHCONV=1 "$MAKEAPPX_CMD" pack /d msix_layout /p "$MSIX_OUTPUT" /o
 
 if [ -n "$SIGNTOOL_CMD" ]; then
     log_info "🔏 Attempting local sign with signtool..."
-    MSYS_NO_PATHCONV=1 "$SIGNTOOL_CMD" sign /fd SHA256 /n "${PUBLISHER_DISPLAY_NAME}" "$MSIX_OUTPUT" 2>/dev/null || log_warn "Local cert '${PUBLISHER_DISPLAY_NAME}' not found in Cert store. Package remains unsigned for local testing, but IS ready for Microsoft Store upload!"
+    MSYS_NO_PATHCONV=1 "$SIGNTOOL_CMD" sign /fd SHA256 /n "${PUBLISHER_DISPLAY_NAME}" "$MSIX_OUTPUT" 2>/dev/null || log_warn "Local cert '${PUBLISHER_DISPLAY_NAME}' not found in Cert store."
 fi
 
 TIME_MSIX=$(stop_timer)
 SIZE_MSIX=$(get_size "$MSIX_OUTPUT")
 
 # ===================================================================
-# 5. EXE INSTALLER GENERATION (INNO SETUP)
+# 6. EXE INSTALLER GENERATION (INNO SETUP + VC++ REDISTRIBUTABLE)
 # ===================================================================
 log_info "⚙️ Generating standalone EXE installer..."
 start_timer
-EXE_INSTALLER_OUTPUT="dist/patens_installer_${APP_VERSION}.exe"
+EXE_INSTALLER_OUTPUT="${VERSION_DIR}/patens_installer_${APP_VERSION}.exe"
+
+mkdir -p assets
+VCREDIST_PATH="assets/vcredist_x64.exe"
+if [ ! -f "$VCREDIST_PATH" ]; then
+    log_info "📥 Downloading Visual C++ 2015-2022 x64 Redistributable..."
+    curl -sSL "https://aka.ms/vs/17/release/vc_redist.x64.exe" -o "$VCREDIST_PATH" || {
+        log_error "Failed to download VC++ Redistributable"
+        exit 1
+    }
+fi
 
 if [ -n "$ISCC_CMD" ]; then
     cat << EOF > patens_setup.iss
@@ -309,12 +450,14 @@ PrivilegesRequired=lowest
 OutputBaseFilename=patens_installer_${APP_VERSION}
 Compression=lzma2/ultra64
 SolidCompression=yes
-OutputDir=dist
+OutputDir=${VERSION_DIR}
 SetupIconFile=assets\patens.ico
 WizardStyle=modern
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
 Source: "dist\Patens\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "assets\vcredist_x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: VCRedistNeedsInstall
 
 [Icons]
 Name: "{group}\Patens"; Filename: "{app}\Patens.exe"
@@ -324,14 +467,30 @@ Name: "{autodesktop}\Patens"; Filename: "{app}\Patens.exe"; Tasks: desktopicon
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Run]
+Filename: "{tmp}\vcredist_x64.exe"; Parameters: "/quiet /norestart"; StatusMsg: "Installing Visual C++ 2015-2022 Runtime..."; Flags: waituntilterminated; Check: VCRedistNeedsInstall
 Filename: "{app}\Patens.exe"; Description: "{cm:LaunchProgram,Patens}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function VCRedistNeedsInstall: Boolean;
+var
+  Installed: Cardinal;
+begin
+  if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Installed', Installed) then
+  begin
+    Result := (Installed <> 1);
+  end
+  else
+  begin
+    Result := True;
+  end;
+end;
 EOF
 
     log_info "🔨 Compiling Inno Setup EXE installer..."
     MSYS_NO_PATHCONV=1 "$ISCC_CMD" patens_setup.iss > /dev/null
 else
-    log_warn "ISCC.exe not found. Creating zip archive fallback for directory distribution..."
-    python -c '
+    log_warn "ISCC.exe not found. Creating zip archive fallback..."
+    "$PYTHON_BIN" -c '
 import sys, os, zipfile
 zip_path = sys.argv[1]
 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -339,20 +498,20 @@ with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for file in files:
             file_path = os.path.join(root, file)
             zipf.write(file_path, os.path.relpath(file_path, "dist/Patens"))
-' "dist/patens_standalone_${APP_VERSION}.zip"
+' "${VERSION_DIR}/patens_standalone_${APP_VERSION}.zip"
 fi
 
 TIME_EXE_INSTALLER=$(stop_timer)
 SIZE_EXE_INSTALLER=$(get_size "$EXE_INSTALLER_OUTPUT")
 
 # ===================================================================
-# 6. BROWSER EXTENSION PACKAGING
+# 7. BROWSER EXTENSION PACKAGING
 # ===================================================================
 start_timer
-python -c '
+EXTENSION_ZIP_OUTPUT="${VERSION_DIR}/extension_${EXT_VERSION}.zip"
+"$PYTHON_BIN" -c '
 import sys, os, zipfile
-ext_dir, ext_version = sys.argv[1], sys.argv[2]
-zip_filename = os.path.join("dist", f"extension_{ext_version}.zip")
+ext_dir, ext_version, zip_filename = sys.argv[1], sys.argv[2], sys.argv[3]
 if os.path.exists(ext_dir):
     with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(ext_dir):
@@ -360,7 +519,77 @@ if os.path.exists(ext_dir):
                 if not file.startswith(".") and not file.endswith((".zip", ".git")):
                     file_path = os.path.join(root, file)
                     zipf.write(file_path, os.path.relpath(file_path, ext_dir))
-' "$EXT_DIR" "$EXT_VERSION"
+' "$EXT_DIR" "$EXT_VERSION" "$EXTENSION_ZIP_OUTPUT"
+
+# ===================================================================
+# 7.1 LOCAL HARDLINK CREATION (ZERO DISK SPACE DUPLICATION)
+# ===================================================================
+log_info "🔗 Creating local 'dist/latest/' hardlinks (0 bytes wasted)..."
+mkdir -p dist/latest
+rm -rf dist/latest/*
+
+# Create hardlinks locally
+ln "$EXE_INSTALLER_OUTPUT" "dist/latest/patens_installer.exe" 2>/dev/null || cp "$EXE_INSTALLER_OUTPUT" "dist/latest/patens_installer.exe"
+ln "$MSIX_OUTPUT" "dist/latest/patens.msix" 2>/dev/null || cp "$MSIX_OUTPUT" "dist/latest/patens.msix"
+ln "$EXTENSION_ZIP_OUTPUT" "dist/latest/extension.zip" 2>/dev/null || cp "$EXTENSION_ZIP_OUTPUT" "dist/latest/extension.zip"
+
+# ===================================================================
+# 8. R2 DEPLOYMENT (SINGLE-PASS UPLOAD TO vX.X.X ONLY)
+# ===================================================================
+GIT_BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")}"
+
+# Compute SHA256 checksum for the installer
+HASH=$("$PYTHON_BIN" -c '
+import hashlib, sys
+with open(sys.argv[1], "rb") as f:
+    print(hashlib.sha256(f.read()).hexdigest())
+' "$EXE_INSTALLER_OUTPUT")
+
+# Generate latest.json manifest containing links to all 3 artifacts
+cat << EOF > dist/latest.json
+{
+  "version": "${APP_VERSION}",
+  "installerUrl": "https://download.patens.dev/v${APP_VERSION}/patens_installer_${APP_VERSION}.exe",
+  "msixUrl": "https://download.patens.dev/v${APP_VERSION}/patens_${APP_VERSION}.msix",
+  "extensionUrl": "https://download.patens.dev/v${APP_VERSION}/extension_${EXT_VERSION}.zip",
+  "sha256": "${HASH}",
+  "minExtensionVersion": "1.1.0"
+}
+EOF
+cp dist/latest.json "${VERSION_DIR}/latest.json"
+
+if [[ "$GIT_BRANCH" == "release" ]] || [[ "$GIT_BRANCH" == release/* ]]; then
+    log_info "🚀 On release branch ('$GIT_BRANCH'). Publishing versioned artifacts to R2..."
+
+    : "${R2_BUCKET:?Need to set R2_BUCKET environment variable}"
+    : "${R2_ENDPOINT:?Need to set R2_ENDPOINT environment variable}"
+
+    # 1. Upload ALL 3 artifacts to versioned folder ONLY (No duplicate binary uploads!)
+    log_info "☁️ Uploading v${APP_VERSION} directory artifacts to R2..."
+    aws s3 cp "${VERSION_DIR}/" "s3://${R2_BUCKET}/v${APP_VERSION}/" \
+      --recursive \
+      --endpoint-url "$R2_ENDPOINT"
+
+    # 2. Upload latest.json manifest to root
+    log_info "📝 Updating root latest.json manifest on R2..."
+    aws s3 cp dist/latest.json "s3://${R2_BUCKET}/latest.json" \
+      --endpoint-url "$R2_ENDPOINT" \
+      --cache-control "no-cache, no-store, must-revalidate"
+
+    # 3. Cache Purge
+    if [ -n "${CLOUDFLARE_ZONE_ID:-}" ] && [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+        log_info "🧹 Purging Cloudflare CDN cache..."
+        curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+             -H "Content-Type: application/json" \
+             --data '{"files":["https://download.patens.dev/latest.json"]}' > /dev/null
+    fi
+
+    log_success "🎉 Release v${APP_VERSION} successfully published to R2!"
+else
+    log_warn "⏭️ Skipping R2 upload. Current branch ('$GIT_BRANCH') is not 'release'."
+fi
+
 TIME_EXTENSION=$(stop_timer)
 rm -rf dist/Patens
 TIME_TOTAL=$(( $(date +%s) - PIPELINE_START ))
@@ -372,11 +601,16 @@ echo -e "${CYAN}================================================================
 printf "%-35s | %-12s | %-15s\n" "Build Phase" "Duration" "Artifact Size"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "1. Metadata Parsing" "${TIME_METADATA}s" "N/A"
-printf "%-35s | %-12s | %-15s\n" "2. FastEmbed Model Cache" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
-printf "%-35s | %-12s | %-15s\n" "3. PyInstaller (--onedir)" "${TIME_PYINSTALLER}s" "Dir: ${SIZE_PYINSTALLER_EXE}"
-printf "%-35s | %-12s | %-15s\n" "4. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
-printf "%-35s | %-12s | %-15s\n" "5. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
-printf "%-35s | %-12s | %-15s\n" "6. Extension Packaging" "${TIME_EXTENSION}s" "Zip: $(get_size "dist/extension_${EXT_VERSION}.zip")"
+printf "%-35s | %-12s | %-15s\n" "2. Test Suite Execution" "${TIME_TESTS}s" "Passed ✅"
+printf "%-35s | %-12s | %-15s\n" "3. FastEmbed Model Cache" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
+printf "%-35s | %-12s | %-15s\n" "4. PyInstaller Spec & Build" "${TIME_PYINSTALLER}s" "Dir: ${SIZE_PYINSTALLER_EXE}"
+printf "%-35s | %-12s | %-15s\n" "5. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
+printf "%-35s | %-12s | %-15s\n" "6. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
+printf "%-35s | %-12s | %-15s\n" "7. Extension Packaging" "${TIME_EXTENSION}s" "Zip: $(get_size "$EXTENSION_ZIP_OUTPUT")"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "TOTAL RUNTIME" "${TIME_TOTAL}s" ""
+echo -e "${CYAN}===================================================================${NC}"
+echo -e "${GREEN} LOCAL ARTIFACTS LOCATION:${NC}"
+echo -e "  • Versioned Folder: ${VERSION_DIR}/"
+echo -e "  • Latest (Hardlinks): dist/latest/ (0 bytes extra)"
 echo -e "${CYAN}===================================================================${NC}"

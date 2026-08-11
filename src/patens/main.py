@@ -5,19 +5,25 @@ import socket
 import ctypes
 import threading
 
-# Force UTF-8 encoding for Windows stdout/stderr
-if sys.platform == "win32":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
 from patens.server import unified_server
 from patens import installer
 from patens.server.config import setup_logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
+
 # Global variable to hold the socket open
 _instance_lock = None
+
+
+def configure_utf8_streams():
+    """Forces UTF-8 encoding for Windows stdout/stderr safely without breaking PyTest stream capture."""
+    if sys.platform == "win32":
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        elif hasattr(sys.stdout, "buffer"):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 
 def enforce_single_api_instance():
@@ -67,6 +73,10 @@ def main():
 
 
 if __name__ == "__main__":
+    configure_utf8_streams()
+    setup_logging()
+
     if "--debug" not in sys.argv:
         hide_console_window()
+
     main()

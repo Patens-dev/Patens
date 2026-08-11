@@ -37,7 +37,7 @@
                                         onclick: Patens.Cart.toggleModal
                                     },
                                     '📦',
-                                    h('div', { class: 'cc-cart-badge', id: 'cc-badge' }, cart.length)
+                                    h('div', {class: 'cc-cart-badge', id: 'cc-badge'}, cart.length)
                                 );
                                 document.body.appendChild(btn);
                             } else {
@@ -58,7 +58,7 @@
 
             toggleModal: () => {
                 let modal = document.getElementById('cc-cart-modal');
-                Patens.State = Patens.State || { ui: {} };
+                Patens.State = Patens.State || {ui: {}};
                 Patens.State.ui = Patens.State.ui || {};
 
                 if (Patens.State.ui.cartOpen && modal) {
@@ -83,14 +83,18 @@
                 modal.textContent = '';
 
                 let tooltip = document.getElementById('cc-cart-tooltip') || (() => {
-                    const tt = h('div', { id: 'cc-cart-tooltip', class: 'cc-cart-tooltip', style: 'z-index: 2147483647;' });
+                    const tt = h('div', {
+                        id: 'cc-cart-tooltip',
+                        class: 'cc-cart-tooltip',
+                        style: 'z-index: 2147483647;'
+                    });
                     document.body.appendChild(tt);
                     return tt;
                 })();
 
                 // Header with Title + "Clear All" + Minimize
-                const header = h('div', { class: 'cc-cart-header' },
-                    h('div', { style: 'display: flex; align-items: center; gap: 10px;' },
+                const header = h('div', {class: 'cc-cart-header'},
+                    h('div', {style: 'display: flex; align-items: center; gap: 10px;'},
                         h('span', {}, 'Context Cart'),
                         cart.length > 0 ? h('span', {
                             class: 'cc-cart-clear-btn',
@@ -104,7 +108,7 @@
                     }, '_')
                 );
 
-                const itemsContainer = h('div', { class: 'cc-cart-items' },
+                const itemsContainer = h('div', {class: 'cc-cart-items'},
                     ...cart.map(itemData => h('div', {
                             class: 'cc-cart-item',
                             onmouseenter: (e) => Patens.Cart.showTooltip(itemData, e.currentTarget, tooltip, modal),
@@ -116,16 +120,17 @@
                                 e.stopPropagation();
                                 tooltip.classList.remove('cc-tooltip-visible');
                                 const updatedCart = cart.filter(i => i.id !== itemData.id);
-                                chrome.storage.local.set({ contextCart: updatedCart }, () => Patens.Cart.renderUI());
+                                chrome.storage.local.set({contextCart: updatedCart}, () => Patens.Cart.renderUI());
                             }
                         }, '✕'),
-                        h('div', { class: 'cc-item-source' }, itemData.title),
-                        h('div', { class: 'cc-item-text' }, itemData.content)
+                        h('div', {class: 'cc-item-source'}, itemData.title),
+                        h('div', {class: 'cc-item-text'}, itemData.content)
                     ))
                 );
 
-                const footer = h('div', { class: 'cc-cart-footer' },
+                const footer = h('div', {class: 'cc-cart-footer'},
                     h('button', {
+                        id: 'cc-send-all',
                         class: 'cc-send-btn',
                         onclick: async (e) => Patens.Cart.handleCheckout(e.target, cart, tooltip)
                     }, '✨ Send All to Local Memory')
@@ -139,7 +144,7 @@
             showTooltip: (itemData, itemEl, tooltip, modal) => {
                 tooltip.textContent = '';
                 if (itemData.type === 'image') {
-                    tooltip.appendChild(h('img', { src: itemData.media }));
+                    tooltip.appendChild(h('img', {src: itemData.media}));
                 } else {
                     tooltip.textContent = itemData.content.length > 256
                         ? itemData.content.substring(0, 256) + '...'
@@ -155,7 +160,7 @@
             handleClearAll: (btnEl, tooltip) => {
                 if (btnEl.dataset.confirming === "true") {
                     tooltip?.classList.remove('cc-tooltip-visible');
-                    chrome.storage.local.set({ contextCart: [] }, () => {
+                    chrome.storage.local.set({contextCart: []}, () => {
                         Logger.info("Context cart cleared.");
                         Patens.Cart.renderUI();
                     });
@@ -198,8 +203,11 @@
                         });
                         clipText += `> 📏 **Total Size:** ~${totalTokens} tokens\n> 📂 Available instantly in your IDE via \`@\` or \`#\` in the \`_context/\` folder.`;
 
-                        try { await navigator.clipboard.writeText(clipText); } catch (e) {}
-                        setTimeout(() => chrome.storage.local.set({ contextCart: [] }, () => Patens.Cart.renderUI()), 1000);
+                        try {
+                            await navigator.clipboard.writeText(clipText);
+                        } catch (e) {
+                        }
+                        setTimeout(() => chrome.storage.local.set({contextCart: []}, () => Patens.Cart.renderUI()), 1000);
                     } else {
                         btn.textContent = "❌ Failed to send";
                         btn.style.background = "#8B0000";
@@ -247,7 +255,7 @@
                     });
 
                     if (addedCount > 0) {
-                        await chrome.storage.local.set({ contextCart: cart });
+                        await chrome.storage.local.set({contextCart: cart});
                         Patens.Cart.renderUI();
                     }
 

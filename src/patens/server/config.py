@@ -50,8 +50,28 @@ _hotkeys = _config.get("hotkeys", {})
 HOTKEY_CAPTURE = _hotkeys.get("capture", {"ctrl": True, "shift": True, "alt": False, "meta": False})
 HOTKEY_PALETTE = _hotkeys.get("palette", {"ctrl": True, "shift": True, "alt": False, "meta": False, "key": " "})
 
+ROOT_MARKERS = {
+    ".git",
+    "pyproject.toml",
+    "package.json",
+    "Cargo.toml",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "setup.py",
+    "requirements.txt",
+    "README.md",
+}
+
+
 def setup_logging():
     """Configures global logging pointing to the user's home directory."""
+    root_logger = logging.getLogger('')
+
+    # Guard: prevent duplicate handlers if setup_logging() is called multiple times
+    if root_logger.hasHandlers():
+        return
+
     logging.basicConfig(
         filename=str(LOG_FILE),
         level=LOG_LEVEL,
@@ -63,8 +83,7 @@ def setup_logging():
     console.setLevel(LOG_LEVEL)
     formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(name)s - %(message)s')
     console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
-
+    root_logger.addHandler(console)
 
 def update_hotkeys_config(capture_config: dict, palette_config: dict) -> bool:
     """Updates the hotkey configuration dynamically in the user's config file."""

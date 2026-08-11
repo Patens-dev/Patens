@@ -85,13 +85,11 @@ Patens.API = {
         });
     },
 
-    // Replace ONLY the ingestBatch function inside Patens.API
     ingestBatch: (payload) => {
         const itemCount = Array.isArray(payload) ? payload.length : 1;
         Logger.info(`Sending batch ingestion request for ${itemCount} items...`);
         const startTime = performance.now();
 
-        // ✨ FIX: Strictly clone and strip the payload so Chrome's IPC doesn't silently drop the message!
         const safePayload = payload.map(item => ({
             id: item.id || Date.now().toString(),
             hash: item.hash || "",
@@ -133,155 +131,201 @@ Patens.API = {
 // ==========================================
 // 3. HELPER UTILITIES
 // ==========================================
-    Patens.Utils = {
-        fastHash: (str) => {
-            if (!str) return 0;
-            let hash = 5381;
-            for (let i = 0; i < str.length; i++) {
-                hash = ((hash << 5) + hash) + str.charCodeAt(i);
-            }
-            return hash >>> 0;
-        },
-
-        truncateTitle: (title) => {
-            if (!title) return 'Untitled';
-            const words = title.trim().split(/\s+/);
-            return words.length <= 5 ? title : `${words.slice(0, 5).join(' ')}...`;
-        },
-
-        formatDateTime: (dateString) => {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                Logger.warn(`Invalid date format passed to formatDateTime: '${dateString}'`);
-                return '';
-            }
-
-            const now = new Date();
-            const diffMs = Math.max(0, now - date);
-
-            const isToday = date.toDateString() === now.toDateString();
-            const yesterday = new Date(now);
-            yesterday.setDate(now.getDate() - 1);
-            const isYesterday = date.toDateString() === yesterday.toDateString();
-
-            const timeStr = date.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
-
-            if (isToday) {
-                if (diffMs < 60000) return `Just now`;
-                if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
-                return `Today at ${timeStr}`;
-            }
-            if (isYesterday) return `Yesterday at ${timeStr}`;
-
-            const opts = {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'};
-            if (date.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
-            return date.toLocaleDateString(undefined, opts);
-        },
-
-        getSmartTitle: () => {
-            const url = window.location.href;
-            try {
-                if (url.includes("chatgpt.com")) {
-                    const el = document.querySelector('title');
-                    if (el && el.innerText !== "ChatGPT") return el.innerText.replace(' | ChatGPT', '');
-                }
-                if (url.includes("gemini.google.com")) {
-                    const el = document.querySelector('.recent-content-title, .selected .conversation-title');
-                    if (el) return el.innerText.trim();
-                }
-                if (url.includes("claude.ai")) {
-                    const el = document.querySelector('title');
-                    if (el && el.innerText !== "Claude") return el.innerText;
-                }
-                if (url.includes("github.com") || url.includes("stackoverflow.com")) {
-                    const el = document.querySelector('h1');
-                    if (el) return el.innerText.trim().replace(/\n/g, ' ');
-                }
-            } catch (e) {
-                Logger.debug("Smart title extraction selector error:", e);
-            }
-            return (document.title || "Untitled")
-                .replace(/ - Google Search$/, '')
-                .replace(/ - YouTube$/, '')
-                .replace(/ \| ChatGPT$/, '');
-        },
-
-        getBase64Image: async (imgElement) => {
-            if (!imgElement || !imgElement.src) {
-                Logger.warn("getBase64Image called with an invalid image element.");
-                return "";
-            }
-
-            if (imgElement.src.startsWith('data:')) {
-                Logger.debug("Image source is already Base64 data string.");
-                return imgElement.src;
-            }
-
-            try {
-                Logger.debug(`Fetching image directly as blob -> ${imgElement.src}`);
-                const response = await fetch(imgElement.src);
-                const blob = await response.blob();
-
-                return await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = (err) => {
-                        Logger.error("FileReader failed converting image blob to DataURL:", err);
-                        reject(err);
-                    };
-                    reader.readAsDataURL(blob);
-                });
-            } catch (err) {
-                Logger.warn("Direct fetch for image blob failed (CORS/Network); falling back to canvas draw.", err);
-                try {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = imgElement.naturalWidth || imgElement.width || 100;
-                    canvas.height = imgElement.naturalHeight || imgElement.height || 100;
-                    const ctx = canvas.getContext("2d");
-                    if (ctx) {
-                        ctx.drawImage(imgElement, 0, 0);
-                        return canvas.toDataURL("image/png");
-                    }
-                } catch (canvasErr) {
-                    Logger.error("Canvas draw fallback failed due to tainted canvas (CORS restriction):", canvasErr);
-                }
-                return "";
-            }
-        },
-
-        findUnderlyingImage: (targetElement) => {
-            if (!targetElement || targetElement.nodeType !== Node.ELEMENT_NODE) return null;
-            if (targetElement.tagName === 'IMG') return targetElement;
-            if (['PICTURE', 'FIGURE', 'A'].includes(targetElement.tagName)) {
-                return targetElement.querySelector('img');
-            }
-            return null;
-        },
-
-        checkModifiers: (e, configObj) => {
-            if (!configObj) return false;
-            return (e.ctrlKey === !!configObj.ctrl) &&
-                (e.shiftKey === !!configObj.shift) &&
-                (e.altKey === !!configObj.alt) &&
-                (e.metaKey === !!configObj.meta);
-        },
-
-        showNotification: (message, color, x, y) => {
-            Logger.debug(`Displaying notification tooltip: "${message}" at [${x}, ${y}]`);
-            const popup = document.createElement('div');
-            popup.className = 'cc-duplicate-warning';
-            popup.innerText = message;
-            popup.style.cssText = `background: ${color}; left: ${x + 15}px; top: ${y + 15}px; z-index: 2147483647; position: fixed;`;
-
-            document.body.appendChild(popup);
-            setTimeout(() => {
-                popup.classList.add('cc-duplicate-fade');
-                setTimeout(() => popup.remove(), 300);
-            }, 1500);
+Patens.Utils = {
+    fastHash: (str) => {
+        if (!str) return 0;
+        let hash = 5381;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) + hash) + str.charCodeAt(i);
         }
-    };
+        return hash >>> 0;
+    },
 
+    truncateTitle: (title) => {
+        if (!title) return 'Untitled';
+        const words = title.trim().split(/\s+/);
+        return words.length <= 5 ? title : `${words.slice(0, 5).join(' ')}...`;
+    },
+
+    formatDateTime: (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            Logger.warn(`Invalid date format passed to formatDateTime: '${dateString}'`);
+            return '';
+        }
+
+        const now = new Date();
+        const diffMs = Math.max(0, now - date);
+
+        const isToday = date.toDateString() === now.toDateString();
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+
+        const timeStr = date.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
+
+        if (isToday) {
+            if (diffMs < 60000) return `Just now`;
+            if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
+            return `Today at ${timeStr}`;
+        }
+        if (isYesterday) return `Yesterday at ${timeStr}`;
+
+        const opts = {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'};
+        if (date.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
+        return date.toLocaleDateString(undefined, opts);
+    },
+
+    getSmartTitle: () => {
+        const url = window.location.href;
+        try {
+            if (url.includes("chatgpt.com")) {
+                const el = document.querySelector('title');
+                if (el && el.innerText !== "ChatGPT") return el.innerText.replace(' | ChatGPT', '');
+            }
+            if (url.includes("gemini.google.com")) {
+                const el = document.querySelector('.recent-content-title, .selected .conversation-title');
+                if (el) return el.innerText.trim();
+            }
+            if (url.includes("claude.ai")) {
+                const el = document.querySelector('title');
+                if (el && el.innerText !== "Claude") return el.innerText;
+            }
+            if (url.includes("github.com") || url.includes("stackoverflow.com")) {
+                const el = document.querySelector('h1');
+                if (el) return el.innerText.trim().replace(/\n/g, ' ');
+            }
+        } catch (e) {
+            Logger.debug("Smart title extraction selector error:", e);
+        }
+        return (document.title || "Untitled")
+            .replace(/ - Google Search$/, '')
+            .replace(/ - YouTube$/, '')
+            .replace(/ \| ChatGPT$/, '');
+    },
+
+    getBase64Image: async (imgElement) => {
+        if (!imgElement || !imgElement.src) {
+            Logger.warn("getBase64Image called with an invalid image element.");
+            return "";
+        }
+
+        if (imgElement.src.startsWith('data:')) {
+            Logger.debug("Image source is already Base64 data string.");
+            return imgElement.src;
+        }
+
+        try {
+            Logger.debug(`Fetching image directly as blob -> ${imgElement.src}`);
+            const response = await fetch(imgElement.src);
+            const blob = await response.blob();
+
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = (err) => {
+                    Logger.error("FileReader failed converting image blob to DataURL:", err);
+                    reject(err);
+                };
+                reader.readAsDataURL(blob);
+            });
+        } catch (err) {
+            Logger.warn("Direct fetch for image blob failed (CORS/Network); falling back to canvas draw.", err);
+            try {
+                const canvas = document.createElement("canvas");
+                canvas.width = imgElement.naturalWidth || imgElement.width || 100;
+                canvas.height = imgElement.naturalHeight || imgElement.height || 100;
+                const ctx = canvas.getContext("2d");
+                if (ctx) {
+                    ctx.drawImage(imgElement, 0, 0);
+                    return canvas.toDataURL("image/png");
+                }
+            } catch (canvasErr) {
+                Logger.error("Canvas draw fallback failed due to tainted canvas (CORS restriction):", canvasErr);
+            }
+            return "";
+        }
+    },
+
+    findUnderlyingImage: (targetElement) => {
+        if (!targetElement || targetElement.nodeType !== Node.ELEMENT_NODE) return null;
+        if (targetElement.tagName === 'IMG') return targetElement;
+        if (['PICTURE', 'FIGURE', 'A'].includes(targetElement.tagName)) {
+            return targetElement.querySelector('img');
+        }
+        return null;
+    },
+
+    checkModifiers: (e, configObj) => {
+        if (!configObj) return false;
+        return (e.ctrlKey === !!configObj.ctrl) &&
+            (e.shiftKey === !!configObj.shift) &&
+            (e.altKey === !!configObj.alt) &&
+            (e.metaKey === !!configObj.meta);
+    },
+
+    showNotification: (message, color = '#10b981', x, y) => {
+        Logger.debug(`Displaying notification tooltip: "${message}" at [${x}, ${y}]`);
+        const popup = document.createElement('div');
+        popup.className = 'cc-toast-notification';
+        popup.innerText = message;
+
+        const isCursorPos = (typeof x === 'number' && typeof y === 'number');
+
+        if (isCursorPos) {
+            // Cursor-following mini tooltip (used when clipping text/images near mouse)
+            popup.style.cssText = `
+            position: fixed;
+            left: ${x + 15}px;
+            top: ${y + 15}px;
+            background: ${color};
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            z-index: 2147483648;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        `;
+        } else {
+            // Bottom-center dark theme toast matching Patens UI
+            popup.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #18181b;
+            border: 1px solid #27272a;
+            color: #f4f4f5;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            z-index: 2147483648;
+            pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        `;
+        }
+
+        document.body.appendChild(popup);
+
+        setTimeout(() => {
+            popup.style.opacity = '0';
+            popup.style.transform = isCursorPos ? 'translateY(-5px)' : 'translateX(-50%) translateY(10px)';
+            setTimeout(() => popup.remove(), 300);
+        }, 1800);
+
+        return popup;}
+    };
 // ==========================================
 // 4. DECLARATIVE UI BUILDER
 // ==========================================
@@ -313,7 +357,7 @@ Patens.API = {
             }
 
             for (const child of children) {
-                if (child == null || child === false) continue; // Skip empty/falsy nodes
+                if (child == null || child === false) continue;
 
                 if (typeof child === 'string' || typeof child === 'number') {
                     el.appendChild(document.createTextNode(child.toString()));

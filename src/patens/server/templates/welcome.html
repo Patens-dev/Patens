@@ -6,7 +6,7 @@
     <title>Setup patens</title>
     <style>
         html {
-            scroll-padding-top: 120px;
+            scroll-padding-top: 100px;
         }
 
         :root {
@@ -45,13 +45,82 @@
             linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
             background-size: 100% 100%, 40px 40px, 40px 40px;
             background-position: center top;
+            padding-top: 70px;
             padding-bottom: 60px;
+        }
+
+        /* NAVIGATION BAR */
+        .app-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-container {
+            max-width: 860px;
+            width: 100%;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .nav-brand img {
+            height: 26px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .container {
             max-width: 860px;
             width: 100%;
-            padding: 60px 24px;
+            padding: 40px 24px;
             margin: 0 auto;
         }
 
@@ -280,24 +349,6 @@
             color: white;
         }
 
-        .btn-primary {
-            display: inline-block;
-            margin-top: 16px;
-            padding: 10px 20px;
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-blue-hover);
-        }
-
         .radar-box {
             display: flex;
             align-items: center;
@@ -307,6 +358,7 @@
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 24px;
+            transition: all 0.3s ease;
         }
 
         .radar-indicator {
@@ -553,6 +605,7 @@
             user-select: all;
             cursor: pointer;
             position: relative;
+            transition: border-color 0.2s ease;
         }
 
         .prompt-box::after {
@@ -574,6 +627,9 @@
         @media (max-width: 650px) {
             .ide-cards {
                 grid-template-columns: 1fr;
+            }
+            .nav-container {
+                padding: 0 16px;
             }
         }
 
@@ -601,6 +657,19 @@
     </style>
 </head>
 <body>
+
+<nav class="app-navbar">
+    <div class="nav-container">
+        <a href="/welcome" class="nav-brand">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="patens logo">
+        </a>
+        <div class="nav-links">
+            <a href="/welcome" class="nav-link active">🚀 Setup Guide</a>
+            <a href="/settings" class="nav-link">⚙️ Settings</a>
+            <a href="/dashboard" class="nav-link">📊 Dashboard</a>
+        </div>
+    </div>
+</nav>
 
 <div class="container">
     <header class="hero">
@@ -693,16 +762,20 @@
 
                 <div class="activation-instructions">
                     <ol>
-                        <li><strong>Restart</strong> your IDE completely so it loads any new configurations.</li>
+                        <li><strong>Restart</strong> your IDE completely so it loads the new configuration.</li>
                         <li>Open your AI Chat panel (Cursor, Copilot, or Cline).</li>
-                        <li>Click the <strong>Tools (📎)</strong> or <strong>MCP</strong> icon and ensure
-                            <strong>patens</strong> is enabled.
+                        <li>
+                            Verify that <strong>patens</strong> is active:
+                            <ul>
+                                <li>In <strong>Cursor</strong>: Check the top-right corner of the chat window (or <strong>Settings &gt; Features &gt; MCP</strong>).</li>
+                                <li>In <strong>VS Code / Copilot / Cline</strong>: Check the tools icon (📎 / ⚡ / MCP) in the bottom corner of the chat panel.</li>
+                            </ul>
                         </li>
                         <li>Send this exact prompt to the AI:</li>
                     </ol>
 
-                    <div class="prompt-box"
-                         onclick="navigator.clipboard.writeText('Mount Patens context.'); this.style.borderColor='var(--success-color)'; setTimeout(()=>this.style.borderColor='var(--border-color)', 1000);">
+                    <div class="prompt-box" id="prompt-box-copy"
+                         onclick="copyActivationPrompt(this)">
                         Mount Patens context.
                     </div>
                 </div>
@@ -710,7 +783,7 @@
                 <div class="radar-box" id="ide-radar">
                     <div class="radar-indicator">
                         <div class="radar-dot"></div>
-                        Waiting for your first AI prompt...
+                        <span id="radar-status-text">Waiting for your first AI prompt...</span>
                     </div>
                 </div>
 
@@ -874,6 +947,18 @@
     const totalSteps = 5;
     let mcpPollingInterval = null;
 
+    function copyActivationPrompt(el) {
+        navigator.clipboard.writeText('Mount Patens context.');
+        el.style.borderColor = 'var(--success-color)';
+
+        const radarText = document.getElementById('radar-status-text');
+        if (radarText && radarText.textContent.includes('Waiting')) {
+            radarText.textContent = "Prompt copied! Send it in your AI chat panel to complete verification...";
+        }
+
+        setTimeout(() => el.style.borderColor = 'var(--border-color)', 1500);
+    }
+
     function copyConfigJSON(btn) {
         const pre = btn.parentElement.querySelector('pre');
         const textToCopy = pre.innerText;
@@ -947,7 +1032,6 @@
         document.getElementById(`panel-${ideName}`).classList.add('active');
     }
 
-    // ✨ FIX: Updated fetch path to /api/v1/config/system
     async function checkServer() {
         if (currentStep !== 1) return;
         try {
@@ -975,7 +1059,6 @@
         }
     }
 
-    // ✨ FIX: Updated fetch path to /api/internal/mcp-status
     function startIDEPolling() {
         mcpPollingInterval = setInterval(async () => {
             try {
@@ -988,12 +1071,12 @@
                         radarBox.style.background = 'rgba(16, 185, 129, 0.1)';
                         radarBox.innerHTML = '<div style="color: var(--success-color); font-weight: 600; display:flex; align-items:center; gap:8px;">✅ IDE Connected Successfully!</div>';
 
-                        setTimeout(() => finishSetup(), 2000);
+                        setTimeout(() => finishSetup(), 1500);
                     }
                 }
             } catch (e) {
             }
-        }, 3000);
+        }, 1500);
     }
 
     window.addEventListener('mousedown', (e) => {
@@ -1020,7 +1103,9 @@
     }, true);
 
     document.body.addEventListener('click', (e) => {
-        if (currentStep === 3 && e.target && e.target.id === 'cc-send-all') setTimeout(() => advanceStep(4), 1200);
+        if (currentStep === 3 && e.target && e.target.closest('#cc-send-all')) {
+            setTimeout(() => advanceStep(4), 1200);
+        }
     });
 
     document.getElementById('mock-chat-box').addEventListener('input', (e) => {

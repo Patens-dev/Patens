@@ -1,6 +1,5 @@
 import re
 import json
-import os
 import sys
 import time
 import threading
@@ -8,17 +7,18 @@ import logging
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 import uvicorn
 from fastmcp import FastMCP
 from fastembed import TextEmbedding
 
 from patens.server.config import (
-    setup_logging, DB_PATH, IMAGE_DIR, MODEL_NAME, API_HOST, API_PORT
+    setup_logging, DB_PATH, IMAGE_DIR, MODEL_NAME, API_HOST, API_PORT, ROOT_MARKERS
 )
 from patens.server.database import DatabaseManager
 from patens.server.api import create_app
+from patens.server.state import app_state
 
 # Initialize global logging configuration
 setup_logging()
@@ -93,8 +93,20 @@ def get_embedder() -> TextEmbedding:
     logger.info("FastEmbed model loaded in %.2f seconds.", elapsed)
     return _embedder_instance
 
+
+def trigger_workspace_sync():
+    """Signals the background sync thread to immediately re-evaluate workspace files."""
+    logger.debug("Workspace sync trigger requested.")
+    workspace_sync_event.set()
+
+
 # Initialize API and MCP Server instances
-fastapi_app = create_app(db_manager, get_embedder, str(IMAGE_DIR))
+fastapi_app = create_app(
+    db_manager=db_manager,
+    embedder_model=get_embedder,
+    image_dir=str(IMAGE_DIR),
+    on_sync_trigger=trigger_workspace_sync)
+
 mcp = FastMCP("Patens")
 
 # =====================================================================
@@ -125,24 +137,31 @@ def is_valid_workspace(path: Path) -> bool:
     """Safeguard: Prevents polluting System32, Home, Root, or the binary EXE directory."""
     try:
         abs_path = path.resolve()
-        abs_str = str(abs_path).lower()
+        parts = [p.lower() for p in abs_path.parts]
         home_path = Path.home().resolve()
         home_str = str(home_path).lower()
 
         # 1. Block Home directory and Root drive
-        if abs_str == home_str or abs_path.parent == abs_path:
+        if str(abs_path).lower() == home_str or abs_path.parent == abs_path:
             logger.debug("Workspace path '%s' rejected: Is home or root directory.", abs_path)
             return False
 
-        # 2. Block system directories
-        system_dirs = ["system32", "windows", "program files", "program files (x86)", "appdata"]
-        if any(sys_dir in abs_str for sys_dir in system_dirs):
+        # 2. Block critical system directories
+        system_dirs = {"system32", "windows", "program files", "program files (x86)"}
+        if any(sys_dir in parts for sys_dir in system_dirs):
             logger.debug("Workspace path '%s' rejected: Contains system directory.", abs_path)
             return False
 
+        # Block AppData config folders, but allow temporary working dirs (e.g. AppData/Local/Temp)
+        if "appdata" in parts:
+            last_appdata_idx = len(parts) - 1 - parts[::-1].index("appdata")
+            if "temp" not in parts[last_appdata_idx:]:
+                logger.debug("Workspace path '%s' rejected: Resides in AppData configuration directory.", abs_path)
+                return False
+
         # 3. Block directory where executable/python lives
         exe_dir = str(Path(sys.executable).parent.resolve()).lower()
-        if abs_str == exe_dir:
+        if str(abs_path).lower() == exe_dir:
             logger.debug("Workspace path '%s' rejected: Matches Python/Executable directory.", abs_path)
             return False
 
@@ -216,8 +235,8 @@ def sync_workspace_files_loop():
                     }
                 else:
                     grouped_clips[key]["content"] += (
-                        f"\n\n---\n> **➕ Added on:** {clip.get('created_at', 'Unknown')}\n\n"
-                        + clip.get("content", "")
+                            f"\n\n---\n> **➕ Added on:** {clip.get('created_at', 'Unknown')}\n\n"
+                            + clip.get("content", "")
                     )
                     grouped_clips[key]["created_at"] = clip.get("created_at", "Unknown")
                     grouped_clips[key]["clip_count"] += 1
@@ -273,11 +292,14 @@ def sync_workspace_files_loop():
                 logger.debug("Updating context index file: %s", index_filepath)
                 index_filepath.write_text(index_content, encoding="utf-8")
 
-            # 5. Prune Stale Files
+            # 5. Prune Stale Files (Unlink files deleted from DB)
             for file in context_dir.iterdir():
                 if file.is_file() and file.name not in active_filenames:
-                    logger.info("Pruning stale context file: %s", file.name)
-                    file.unlink(missing_ok=True)
+                    logger.info("Pruning deleted/stale context file from local workspace: %s", file.name)
+                    try:
+                        file.unlink(missing_ok=True)
+                    except Exception as pe:
+                        logger.error("Failed to prune context file %s: %s", file.name, pe)
 
         except Exception as e:
             logger.error("Workspace sync thread encountered an error: %s", e, exc_info=True)
@@ -292,6 +314,9 @@ def sync_workspace_files_loop():
 
 def notify_ide_activity(event: str = "tool_call", **meta):
     """Pings backend telemetry asynchronously when an IDE executes a tool."""
+
+    # Instantly flag MCP connection active in global app state
+    app_state.ide_connected = True
 
     def _ping():
         url = f"http://{API_HOST}:{API_PORT}/api/internal/activity"
@@ -355,7 +380,7 @@ def forget_memory(memory_id: int) -> str:
         success = db_manager.delete_snippet(memory_id)
         if success:
             logger.info("Memory ID %d deleted successfully.", memory_id)
-            workspace_sync_event.set()
+            trigger_workspace_sync()
             return f"Successfully deleted memory ID {memory_id}."
 
         logger.warning("Failed to delete memory ID %d (Not found or DB error)", memory_id)
@@ -381,7 +406,7 @@ def memorize_ide_insight(title: str, insight: str) -> str:
         )
         logger.info("Insight successfully saved to DB with ID: %s", snippet_id)
 
-        workspace_sync_event.set()
+        trigger_workspace_sync()
         return f"Success! The insight '{title}' has been permanently saved."
     except Exception as e:
         logger.error("Error executing memorize_ide_insight: %s", e, exc_info=True)
@@ -390,21 +415,45 @@ def memorize_ide_insight(title: str, insight: str) -> str:
 
 @mcp.tool()
 def mount_workspace_context(absolute_project_path: str) -> str:
-    """Redirects the context sync engine to write the _context folder into a specific workspace path."""
+    """
+    Redirects the context sync engine to write the _context folder into the project root.
+    Automatically resolves subdirectories up to the Git root or project manifest root.
+    """
     logger.info("MCP Tool Called: mount_workspace_context (path='%s')", absolute_project_path)
     notify_ide_activity(tool="mount_workspace_context", path=absolute_project_path)
 
-    project_path = Path(absolute_project_path).resolve()
+    given_path = Path(absolute_project_path).resolve()
+    if given_path.is_file():
+        given_path = given_path.parent
 
-    if not project_path.exists() or not project_path.is_dir():
+    if not given_path.exists() or not given_path.is_dir():
         logger.warning("Mount failed: Path '%s' is not a valid directory", absolute_project_path)
         return f"Failed: Could not verify '{absolute_project_path}' as a valid directory."
 
-    target_context_dir = project_path / "_context"
+    project_root = given_path
+    curr = given_path
+
+    # Walk up parent directories while staying within a valid/safe workspace
+    while curr != curr.parent and is_valid_workspace(curr):
+        # 1. Top Priority: Actual Git repository root
+        if (curr / ".git").exists():
+            project_root = curr
+            logger.info("Resolved Git repository root at: '%s'", project_root)
+            break
+
+        # 2. Secondary Priority: Project configuration or manifest files
+        if any((curr / marker).exists() for marker in ROOT_MARKERS):
+            project_root = curr
+            logger.info("Resolved project root via manifest marker at: '%s'", project_root)
+            break  # <-- STOP traversal once project root marker is found
+
+        curr = curr.parent
+
+    target_context_dir = project_root / "_context"
     set_context_dir(target_context_dir)
 
-    workspace_sync_event.set()
-    return f"Success! Context redirected to {target_context_dir}. Context files will update shortly."
+    trigger_workspace_sync()
+    return f"Done! Patens context has been successfully mounted to {target_context_dir}. Context files will sync and update shortly."
 
 
 # =====================================================================
@@ -444,7 +493,7 @@ def run_fastapi():
             host=API_HOST,
             port=API_PORT,
             log_level="error",  # Silence non-critical logs on standard output
-            access_log=False,   # Prevents console/I/O congestion
+            access_log=False,  # Prevents console/I/O congestion
         )
     except Exception as e:
         logger.critical("Fatal error running Uvicorn FastAPI server: %s", e, exc_info=True)

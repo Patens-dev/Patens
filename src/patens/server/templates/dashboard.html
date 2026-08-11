@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patens Activity Dashboard</title>
+    <style>
+        :root {
+            --bg-base: #09090b;
+            --bg-card: #121214;
+            --bg-card-active: #18181b;
+            --border-color: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --accent-blue: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --success-color: #10b981;
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 90px;
+            padding-bottom: 60px;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-position: center top;
+        }
+
+        /* NAVIGATION BAR */
+        .app-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-container {
+            max-width: 860px;
+            width: 100%;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand img {
+            height: 26px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .container {
+            max-width: 860px;
+            width: 100%;
+            padding: 0 24px;
+        }
+
+        .header-title {
+            margin-bottom: 24px;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* KPI STAT CARDS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* TABLE STYLING */
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .table-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .table-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .live-badge {
+            font-size: 11px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--success-color);
+            border-radius: 50%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        th {
+            background: #18181b;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .code-pill {
+            font-family: var(--font-mono);
+            background: #000000;
+            border: 1px solid var(--border-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #a5b4fc;
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        @media (max-width: 650px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="app-navbar">
+    <div class="nav-container">
+        <a href="/welcome" class="nav-brand">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="patens logo">
+        </a>
+        <div class="nav-links">
+            <a href="/welcome" class="nav-link">🚀 Setup Guide</a>
+            <a href="/settings" class="nav-link">⚙️ Settings</a>
+            <a href="/dashboard" class="nav-link active">📊 Dashboard</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="header-title">
+        <h1>MCP Telemetry & Activity</h1>
+        <p>Real-time log of tool executions between your IDE and Patens local daemon.</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Tool Calls</div>
+            <div class="stat-value" id="stat-calls">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Approx. Tokens Served</div>
+            <div class="stat-value" id="stat-tokens">0t</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">MCP Daemon Status</div>
+            <div class="stat-value" style="color: var(--success-color); font-size: 18px; padding-top: 4px;">🟢 Active</div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Recent MCP Execution Log</h3>
+            <div class="live-badge">
+                <div class="live-dot"></div> Auto-refreshing
+            </div>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>Time</th>
+                <th>MCP Tool</th>
+                <th>Query / Parameters</th>
+                <th>~ Tokens</th>
+            </tr>
+            </thead>
+            <tbody id="activity-tbody">
+            <tr>
+                <td colspan="4" class="empty-state">No MCP tool executions logged yet. Try prompting your AI in Cursor/VS Code!</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function refreshDashboard() {
+        try {
+            const res = await fetch('/api/internal/activity-data');
+            if (!res.ok) return;
+
+            const data = await res.json();
+            const activities = data.activities || [];
+
+            document.getElementById('stat-calls').innerText = activities.length;
+
+            let totalTokens = 0;
+            activities.forEach(a => {
+                const t = parseInt(a.approx_tokens) || 0;
+                totalTokens += t;
+            });
+            document.getElementById('stat-tokens').innerText = `~${totalTokens.toLocaleString()}t`;
+
+            const tbody = document.getElementById('activity-tbody');
+            if (activities.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No MCP tool executions logged yet. Try prompting your AI in Cursor/VS Code!</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = activities.map(a => {
+                const date = a.ts ? new Date(a.ts * 1000).toLocaleTimeString() : 'Just now';
+                const tool = a.tool || a.event || 'tool_call';
+                const query = a.query || a.title || (a.memory_id ? `ID: ${a.memory_id}` : (a.path || '-'));
+                const tokens = a.approx_tokens ? `~${a.approx_tokens}t` : '-';
+
+                return `
+                    <tr>
+                        <td style="color: var(--text-muted); font-size: 12px;">${date}</td>
+                        <td><span class="code-pill">${tool}</span></td>
+                        <td style="word-break: break-word;">${query}</td>
+                        <td style="font-family: var(--font-mono); color: var(--accent-blue);">${tokens}</td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (e) {
+            console.error("Failed to refresh dashboard:", e);
+        }
+    }
+
+    refreshDashboard();
+    setInterval(refreshDashboard, 2500);
+</script>
+</body>
+</html>

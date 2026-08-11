@@ -5,42 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Context Clipboard Settings</title>
     <style>
-        body {
-            background: #0d1117;
-            color: #c9d1d9;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            padding-top: 8vh;
+        :root {
+            --bg-base: #09090b;
+            --bg-card: #121214;
+            --bg-card-active: #18181b;
+            --border-color: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --danger-color: #f85149;
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding-bottom: 8vh;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 90px;
+            padding-bottom: 60px;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 40%),
+            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-position: center top;
+        }
+
+        /* NAVIGATION BAR */
+        .app-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-container {
+            max-width: 860px;
+            width: 100%;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .nav-brand img {
+            height: 26px;
+            width: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .wrapper {
-            width: 500px;
+            width: 540px;
+            max-width: 90vw;
         }
 
         .container {
-            background: #161b22;
-            padding: 24px;
-            border-radius: 6px;
-            border: 1px solid #30363d;
-            margin-bottom: 32px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: var(--bg-card);
+            padding: 28px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
         h2 {
-            color: #58a6ff;
+            color: #ffffff;
             margin-top: 0;
             font-size: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             margin-bottom: 8px;
+            font-weight: 700;
         }
 
         p.subtitle {
-            color: #8b949e;
+            color: var(--text-muted);
             font-size: 13px;
             line-height: 1.5;
             margin-bottom: 24px;
@@ -49,7 +146,7 @@
 
         .setting-group {
             margin-bottom: 24px;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 20px;
         }
 
@@ -64,7 +161,7 @@
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 12px;
-            color: #c9d1d9;
+            color: #ffffff;
         }
 
         .pill-container {
@@ -75,9 +172,9 @@
         }
 
         .modifier-pill {
-            background: #21262d;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
+            background: #18181b;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
             padding: 6px 14px;
             border-radius: 20px;
             font-size: 13px;
@@ -88,14 +185,14 @@
         }
 
         .modifier-pill:hover {
-            border-color: #8b949e;
-            background: #30363d;
+            border-color: #52525b;
+            color: var(--text-main);
         }
 
         .modifier-pill.active {
-            background: rgba(56, 139, 253, 0.15);
-            border-color: #388bfd;
-            color: #58a6ff;
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--accent-blue);
+            color: #ffffff;
         }
 
         .key-input-wrapper {
@@ -107,13 +204,13 @@
 
         .key-input-label {
             font-size: 13px;
-            color: #8b949e;
+            color: var(--text-muted);
         }
 
         .key-box {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            color: #c9d1d9;
+            background: #09090b;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
             padding: 6px 16px;
             border-radius: 6px;
             font-size: 13px;
@@ -126,59 +223,59 @@
         }
 
         .key-box:hover {
-            border-color: #8b949e;
+            border-color: #52525b;
         }
 
         .key-box.recording {
-            border-color: #f85149;
+            border-color: var(--danger-color);
             background: rgba(248, 81, 73, 0.1);
-            color: #f85149;
+            color: var(--danger-color);
         }
 
         .save-btn {
-            background: #238636;
+            background: var(--accent-blue);
             color: #ffffff;
-            border: 1px solid rgba(240, 246, 252, 0.1);
-            padding: 8px 16px;
+            border: none;
+            padding: 10px 16px;
             width: 100%;
             border-radius: 6px;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 14px;
             cursor: pointer;
             transition: background 0.2s;
         }
 
         .save-btn:hover {
-            background: #2ea043;
+            background: var(--accent-blue-hover);
         }
 
         .danger-zone h3 {
-            color: #f85149;
-            font-size: 16px;
+            color: var(--danger-color);
+            font-size: 15px;
             font-weight: 600;
             margin: 0 0 16px 0;
             padding-bottom: 8px;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .danger-card {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.3);
             padding: 16px;
-            border-radius: 6px;
-            background: transparent;
+            border-radius: 8px;
+            background: rgba(248, 81, 73, 0.03);
         }
 
         .danger-info h4 {
-            color: #c9d1d9;
+            color: var(--text-main);
             margin: 0 0 4px 0;
             font-size: 14px;
         }
 
         .danger-info p {
-            color: #8b949e;
+            color: var(--text-muted);
             font-size: 12px;
             margin: 0;
             max-width: 280px;
@@ -186,25 +283,45 @@
         }
 
         .btn-danger {
-            background: #21262d;
-            color: #f85149;
-            border: 1px solid rgba(240, 246, 252, 0.1);
-            padding: 6px 16px;
+            background: #18181b;
+            color: var(--danger-color);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            padding: 8px 16px;
             border-radius: 6px;
-            font-weight: 500;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
-            transition: .2s;
+            transition: all 0.2s;
         }
 
         .btn-danger:hover {
-            background: #b62324;
+            background: var(--danger-color);
             color: #ffffff;
-            border-color: #b62324;
+            border-color: var(--danger-color);
+        }
+
+        @media (max-width: 650px) {
+            .nav-container {
+                padding: 0 16px;
+            }
         }
     </style>
 </head>
 <body>
+
+<nav class="app-navbar">
+    <div class="nav-container">
+        <a href="/welcome" class="nav-brand">
+            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="patens logo">
+        </a>
+        <div class="nav-links">
+            <a href="/welcome" class="nav-link">🚀 Setup Guide</a>
+            <a href="/settings" class="nav-link active">⚙️ Settings</a>
+            <a href="/dashboard" class="nav-link">📊 Dashboard</a>
+        </div>
+    </div>
+</nav>
+
 <div class="wrapper">
     <div class="container">
         <h2>⚙️ Context Clipboard Settings</h2>
@@ -220,7 +337,7 @@
                 <div id="cap-alt" class="modifier-pill" onclick="toggleModifier('capture', 'alt')">Alt</div>
                 <div id="cap-meta" class="modifier-pill" onclick="toggleModifier('capture', 'meta')">⌘ Win/Mac</div>
             </div>
-            <span style="font-size: 12px; color: #8b949e;">Triggered via: Selected Modifiers + Mouse Click/Hover</span>
+            <span style="font-size: 12px; color: var(--text-muted);">Triggered via: Selected Modifiers + Mouse Click/Hover</span>
         </div>
 
         <!-- 2. PALETTE HOTKEY CONFIG -->
@@ -259,7 +376,6 @@
     let currentConfig = {capture: {}, palette: {}};
     let isRecordingKey = false;
 
-    // ✨ FIX: Updated fetch path to /api/v1/config/hotkeys
     fetch('/api/v1/config/hotkeys').then(r => r.json()).then(data => {
         currentConfig = data;
         renderUI();
@@ -308,7 +424,6 @@
         const btn = document.querySelector('.save-btn');
         btn.innerText = "Syncing with Extension...";
 
-        // ✨ FIX: Updated fetch path to /api/v1/config/hotkeys
         fetch('/api/v1/config/hotkeys', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -332,8 +447,8 @@
             setTimeout(() => {
                 killConfirmState = false;
                 killBtn.innerText = "Shutdown Server";
-                killBtn.style.background = "#21262d";
-                killBtn.style.color = "#f85149";
+                killBtn.style.background = "#18181b";
+                killBtn.style.color = "var(--danger-color)";
             }, 3000);
             return;
         }
@@ -342,7 +457,6 @@
         killBtn.disabled = true;
 
         try {
-            // ✨ FIX: Updated fetch path to /api/internal/shutdown
             const response = await fetch('/api/internal/shutdown', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -351,9 +465,9 @@
 
             if (response.ok) {
                 document.body.innerHTML = `
-                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; background:#0d1117;">
-                            <h1 style="color:#f85149; font-size:42px; margin-bottom:16px;">Server Terminated</h1>
-                            <p style="color:#8b949e; font-size:16px;">All instances have been successfully destroyed. You can safely close this tab.</p>
+                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; background:#09090b;">
+                            <h1 style="color:var(--danger-color); font-size:42px; margin-bottom:16px;">Server Terminated</h1>
+                            <p style="color:var(--text-muted); font-size:16px;">All instances have been successfully destroyed. You can safely close this tab.</p>
                         </div>
                     `;
             }

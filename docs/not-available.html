@@ -471,7 +471,8 @@
                 <h3>GitHub Release Package</h3>
                 <p>Load the extension directly into Chrome, Edge, or Firefox using our standalone ZIP package.</p>
             </div>
-            <a href="https://github.com/Patens-dev/Patens/releases/download/v1.1.2/extension.zip" target="_blank" class="btn btn-primary">
+            <!-- Updated with static fallback & ext-download-link class -->
+            <a href="https://github.com/Patens-dev/Patens/releases/latest/download/extension.zip" target="_blank" class="btn btn-primary ext-download-link">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
@@ -487,7 +488,7 @@
                         style="font-weight: 400; font-size: 14px; color: var(--text-muted);">OR</span> Standalone Server
                 </h3>
                 <p>The VS Code extension includes the full memory engine built-in. If you use VS Code/Cursor, grab the
-                    <code>.vsix</code>. Otherwise, run the standalone <code>.exe</code>.</p>
+                    extension directly. Otherwise, run the standalone installer.</p>
             </div>
             <div class="btn-group">
                 <a href="vscode:extension/patens-dev.patens" target="_blank"
@@ -499,10 +500,11 @@
 
                 <div class="or-divider"><span>OR</span></div>
 
-                <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn btn-secondary">
+                <!-- Updated with static fallback & exe-download-link class -->
+                <a href="https://download.patens.dev/latest/patens_installer.exe" class="btn btn-secondary exe-download-link">
                     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/windows11/windows11-original.svg"
                          alt="Windows 11" width="16" height="16">
-                    Microsoft Store
+                    Standalone .EXE Installer
                 </a>
             </div>
         </div>
@@ -557,12 +559,10 @@
                     <span style="color: var(--accent-blue);">Step 2:</span> How to Install Memory Engine
                 </div>
                 <ol class="step-list">
-                    <li><strong>Option A (VS Code / Cursor):</strong> Download <code>patens.vsix</code>, open VS Code,
-                        press <code>Ctrl+Shift+X</code>, click the <code>...</code> menu in the top-right corner of the
-                        Extensions panel, and select <strong>Install from VSIX...</strong>. (No .exe needed!)
+                    <li><strong>Option A (VS Code / Cursor):</strong> Open VS Code, press <code>Ctrl+Shift+X</code>, search for <code>Patens</code> and click install (or open the Marketplace deep link).
                     </li>
                     <li><strong>Option B (Standalone):</strong> Download and launch
-                        <code>patens_installer_1.1.1.exe</code>.
+                        <code>patens_installer.exe</code>.
                     </li>
                 </ol>
 
@@ -609,6 +609,38 @@
     if (storeParam && labelEl) {
         labelEl.textContent = `${storeParam} Store Review In Progress`;
     }
+
+    // --- Dynamic Manifest Resolver for Latest Artifacts ---
+    async function syncLatestDownloads() {
+        const MANIFEST_URL = 'https://download.patens.dev/latest.json';
+
+        try {
+            const response = await fetch(MANIFEST_URL);
+            if (!response.ok) throw new Error(`Manifest fetch HTTP error: ${response.status}`);
+
+            const data = await response.json();
+
+            // Update .EXE links
+            if (data.installerUrl) {
+                const exeLinks = document.querySelectorAll('.exe-download-link');
+                exeLinks.forEach(link => {
+                    link.href = data.installerUrl;
+                });
+            }
+
+            // Update Extension .ZIP links
+            if (data.extensionUrl) {
+                const extLinks = document.querySelectorAll('.ext-download-link');
+                extLinks.forEach(link => {
+                    link.href = data.extensionUrl;
+                });
+            }
+        } catch (err) {
+            console.warn('Could not fetch latest.json, using static fallback links:', err);
+        }
+    }
+
+    syncLatestDownloads();
 </script>
 </body>
 </html>

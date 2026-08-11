@@ -8,7 +8,7 @@ from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import threading
-from typing import Callable, Union, Any, Dict
+from typing import Callable, Union, Any, Dict, Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import FileResponse, HTMLResponse
@@ -121,6 +121,7 @@ def create_routers(
         db_manager: Any,
         embedder_model: Union[TextEmbedding, Callable[[], TextEmbedding]],
         image_dir: str,
+        on_sync_trigger: Optional[Callable[[], None]] = None,
 ) -> APIRouter:
     """Constructs API endpoints divided into logical, versioned routers."""
     ui_router = APIRouter(tags=["UI"])
@@ -138,6 +139,11 @@ def create_routers(
             return embedder_model()
         return embedder_model
 
+    def trigger_workspace_sync():
+        """Notifies the background sync engine if callback is present."""
+        if on_sync_trigger and callable(on_sync_trigger):
+            on_sync_trigger()
+
     # ---------------------------------------------------------
     # UI & STATIC ROUTES (Root level)
     # ---------------------------------------------------------
@@ -151,15 +157,10 @@ def create_routers(
         logger.debug("UI requested: /welcome")
         return HTMLResponse(content=get_template_html("welcome.html"))
 
+    # Under UI Router section:
     @ui_router.get("/dashboard", response_class=HTMLResponse)
     async def dashboard():
-        logger.debug("UI requested: /dashboard")
-        rows = "".join(
-            f"<tr><td>{a.get('ts', '')}</td><td>{a.get('tool', '')}</td>"
-            f"<td>{a.get('query', '')[:80]}</td><td>{a.get('approx_tokens', '?')}</td></tr>"
-            for a in recent_activity
-        )
-        return f"<table border=1><tr><th>Time</th><th>Tool</th><th>Query</th><th>~Tokens</th></tr>{rows}</table>"
+        return HTMLResponse(content=get_template_html("dashboard.html"))
 
     @ui_router.get("/image", response_class=FileResponse)
     async def get_image(path: str):
@@ -243,6 +244,9 @@ def create_routers(
             tokens = len(final_content) // 4
             logger.info("Snippet ingested successfully (ID=%s, ~%d tokens)", content_id, tokens)
 
+            # Trigger immediate workspace sync so .md file materializes instantly
+            trigger_workspace_sync()
+
             smart_clipboard = (
                 f"> 📎 **Context Saved:** {payload.title}\n"
                 f"> 📏 **Size:** ~{tokens} tokens\n"
@@ -259,6 +263,34 @@ def create_routers(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to ingest context",
             )
+
+    @v1_router.get("/delete")
+    @v1_router.delete("/delete")
+    async def delete_context(ids: str = ""):
+        """Deletes items from memory by ID or comma-separated IDs and triggers context file pruning."""
+        if not ids:
+            return {"status": "success", "deleted": 0}
+
+        id_list = [i.strip() for i in ids.split(",") if i.strip()]
+        logger.info("Delete context requested for %d ID(s): %s", len(id_list), id_list)
+
+        deleted_count = 0
+        for item_id in id_list:
+            try:
+                # Try integer ID conversion first
+                target_id = int(item_id) if item_id.isdigit() else item_id
+                if db_manager.delete_snippet(target_id):
+                    deleted_count += 1
+            except Exception as e:
+                logger.error("Error deleting snippet ID %s: %s", item_id, e)
+
+        logger.info("Successfully deleted %d snippet(s) from DB.", deleted_count)
+
+        if deleted_count > 0:
+            # Instantly purge deleted files from local _context/ folder
+            trigger_workspace_sync()
+
+        return {"status": "success", "deleted": deleted_count}
 
     @v1_router.get("/search", response_model=SearchResponse)
     async def search_context(
@@ -379,11 +411,18 @@ def create_routers(
         return {"status": "ok"}
 
     @internal_router.post("/activity")
-    async def record_activity(request: Request):
+    async def record_activity(request: Request, state: ConnectionState = Depends(get_connection_state)):
         body = await request.json()
         logger.debug("Recording internal activity: %s", body)
         recent_activity.appendleft(body)
+
+        state.ide_connected = True
+
         return {"ok": True}
+
+    @internal_router.get("/activity-data")
+    def get_activity_data():
+        return {"activities": list(recent_activity)}
 
     @internal_router.post("/shutdown")
     async def shutdown_server(request: Request):
@@ -424,14 +463,11 @@ def create_routers(
 # APP INSTANTIATION
 # =====================================================================
 
-# =====================================================================
-# APP INSTANTIATION
-# =====================================================================
-
 def create_app(
         db_manager: Any,
         embedder_model: Union[TextEmbedding, Callable[[], TextEmbedding]],
         image_dir: str,
+        on_sync_trigger: Optional[Callable[[], None]] = None,
 ) -> FastAPI:
     """Factory function to create and configure the FastAPI application."""
     logger.info("Initializing Patens Unified API Server...")
@@ -469,7 +505,12 @@ def create_app(
         allow_headers=["*"],
     )
 
-    routers = create_routers(db_manager, embedder_model, image_dir)
+    routers = create_routers(
+        db_manager=db_manager,
+        embedder_model=embedder_model,
+        image_dir=image_dir,
+        on_sync_trigger=on_sync_trigger
+    )
     app.include_router(routers)
 
     logger.info("Patens Unified API initialized successfully")
