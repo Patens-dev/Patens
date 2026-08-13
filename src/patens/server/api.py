@@ -4,6 +4,7 @@ import time
 import logging
 import math
 import sys
+import uuid
 from collections import deque
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -18,6 +19,7 @@ from fastembed import TextEmbedding
 from patens.server import config
 from patens.server.models import IngestResponse, IngestPayload, SearchResponse, ConnectionState
 from patens.server.state import app_state
+from patens.server.routers.pdf_router import router as pdf_router  # Added PDF router import
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,10 @@ def save_base64_image(media_string: str, image_dir: Union[str, Path]) -> str:
     """
     logger.debug("Processing base64 image payload...")
     header, encoded = media_string.split(",", 1) if "," in media_string else ("", media_string)
-    filename = f"image_{int(time.time())}.png"
+
+    # FIX: Use UUID + timestamp to prevent overwriting images saved within the same second
+    unique_id = uuid.uuid4().hex[:8]
+    filename = f"image_{int(time.time())}_{unique_id}.png"
     filepath = Path(image_dir) / filename
 
     try:
@@ -129,6 +134,9 @@ def create_routers(
     internal_router = APIRouter(prefix="/api/internal", tags=["Internal"])
     main_router = APIRouter()
 
+    # Include PDF converter router under /api/v1/pdf
+    v1_router.include_router(pdf_router)
+
     def get_connection_state() -> ConnectionState:
         return app_state
 
@@ -157,7 +165,6 @@ def create_routers(
         logger.debug("UI requested: /welcome")
         return HTMLResponse(content=get_template_html("welcome.html"))
 
-    # Under UI Router section:
     @ui_router.get("/dashboard", response_class=HTMLResponse)
     async def dashboard():
         return HTMLResponse(content=get_template_html("dashboard.html"))
@@ -168,9 +175,12 @@ def create_routers(
         target_path = Path(path).resolve()
         base_dir = Path(image_dir).resolve()
 
-        # Path traversal guard: ensure image resides inside the configured image directory
-        if not str(target_path).startswith(str(base_dir)):
-            logger.warning("Path traversal attempt blocked for path: %s", path)
+        # FIX: Robust Path Traversal Guard using Python 3.9+ is_relative_to
+        try:
+            if not target_path.is_relative_to(base_dir):
+                logger.warning("Path traversal attempt blocked for path: %s", path)
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        except ValueError:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         if target_path.is_file():
@@ -186,10 +196,13 @@ def create_routers(
     def get_system_config():
         """System health and environment information."""
         logger.debug("System configuration requested")
+        # FIX: Include PID and db_path so main.py and welcome.html can verify instances
         return {
             "status": "running",
+            "pid": os.getpid(),
             "python_path": sys.executable,
             "module_path": "patens.server",
+            "db_path": str(getattr(config, "DB_PATH", ""))
         }
 
     @v1_router.get("/config/hotkeys")
@@ -264,7 +277,6 @@ def create_routers(
                 detail="Failed to ingest context",
             )
 
-    @v1_router.get("/delete")
     @v1_router.delete("/delete")
     async def delete_context(ids: str = ""):
         """Deletes items from memory by ID or comma-separated IDs and triggers context file pruning."""
@@ -277,7 +289,6 @@ def create_routers(
         deleted_count = 0
         for item_id in id_list:
             try:
-                # Try integer ID conversion first
                 target_id = int(item_id) if item_id.isdigit() else item_id
                 if db_manager.delete_snippet(target_id):
                     deleted_count += 1
@@ -287,7 +298,6 @@ def create_routers(
         logger.info("Successfully deleted %d snippet(s) from DB.", deleted_count)
 
         if deleted_count > 0:
-            # Instantly purge deleted files from local _context/ folder
             trigger_workspace_sync()
 
         return {"status": "success", "deleted": deleted_count}
@@ -308,7 +318,6 @@ def create_routers(
         try:
             start_utc_str, end_utc_str = None, None
 
-            # Time Boundary Translation
             if time_filter != "all":
                 user_tz = timezone(timedelta(minutes=-tz_offset))
                 now_local = datetime.now(user_tz)
@@ -330,7 +339,6 @@ def create_routers(
             fetch_limit = max(50, offset + limit * 2)
             now = datetime.now(timezone.utc)
 
-            # Database Fetch
             if not q.strip():
                 logger.debug("Executing non-vector recent items query")
                 raw_results = db_manager.get_latest(
@@ -354,7 +362,6 @@ def create_routers(
                     url_filter=url_filter,
                 )
 
-            # Normalization & Scoring
             safe_results = [normalize_db_record(r, now) for r in raw_results]
 
             for r in safe_results:
@@ -482,7 +489,8 @@ def create_app(
                 def delayed_open():
                     time.sleep(1.5)  # Give Uvicorn time to bind to the port
                     host = getattr(config, "API_HOST", "127.0.0.1")
-                    port = getattr(config, "API_PORT", 8000)
+                    # FIX: Read bound port from app.state if assigned dynamically during server run
+                    port = getattr(app.state, "active_port", getattr(config, "API_PORT", 8000))
                     webbrowser.open(f"http://{host}:{port}/welcome")
 
                 threading.Thread(target=delayed_open, daemon=True).start()
@@ -494,7 +502,6 @@ def create_app(
         # --- SHUTDOWN LOGIC ---
         logger.info("Patens Unified API Server shutting down...")
 
-    # Attach the lifespan to the FastAPI instance
     app = FastAPI(title="Patens Unified API", version="1.0.0", lifespan=lifespan)
 
     app.add_middleware(

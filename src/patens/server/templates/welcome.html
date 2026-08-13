@@ -49,7 +49,6 @@
             padding-bottom: 60px;
         }
 
-        /* NAVIGATION BAR */
         .app-navbar {
             position: fixed;
             top: 0;
@@ -294,6 +293,20 @@
             background: rgba(245, 158, 11, 0.1);
             color: var(--warning-color);
             border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .debug-console {
+            margin-top: 12px;
+            background: #000000;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #a5b4fc;
+            max-height: 120px;
+            overflow-y: auto;
+            display: block;
         }
 
         .option-grid {
@@ -766,7 +779,7 @@
 
                 <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <span class="status-pill warning" id="extension-status">🟡 Waiting for extension installation...</span>
-                    <button type="button" class="btn-manual" style="float: none;" onclick="onExtensionDetected()">I've Installed It ➔</button>
+                    <button type="button" class="btn-manual" style="float: none;" onclick="onExtensionDetected('Manual User Click')">I've Installed It ➔</button>
                 </div>
             </div>
         </div>
@@ -1022,8 +1035,19 @@
     const totalSteps = 6;
     let mcpPollingInterval = null;
     let extensionDetected = false;
+    let checkCount = 0;
 
-    // Detect browser family and reorder buttons so the active browser appears FIRST in the grid
+    function logDebug(msg) {
+        console.log(`[Patens Extension Detector] ${msg}`);
+        const consoleEl = document.getElementById('debug-console');
+        if (consoleEl) {
+            const time = new Date().toLocaleTimeString();
+            consoleEl.innerHTML += `<br>[${time}] ${msg}`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+    }
+
+    // Detect browser family and reorder buttons
     function detectBrowser() {
         const ua = navigator.userAgent;
         const grid = document.querySelector('.option-grid');
@@ -1037,57 +1061,73 @@
 
         if (ua.includes("Edg") || ua.includes("Edge")) {
             primaryBtn = btnEdge;
+            logDebug('Browser detected: Microsoft Edge');
         } else if (ua.includes("Firefox")) {
             primaryBtn = btnFirefox;
+            logDebug('Browser detected: Mozilla Firefox');
         } else {
             primaryBtn = btnChrome;
+            logDebug('Browser detected: Chrome / Chromium');
         }
 
-        // Highlight primary button
         primaryBtn.style.borderColor = 'var(--accent-blue)';
         primaryBtn.style.background = 'rgba(59, 130, 246, 0.1)';
-
-        // Prepend the active browser button to top of option-grid
         grid.prepend(primaryBtn);
     }
 
-    // Comprehensive Multi-Bridge Extension Detection Logic
+    // Diagnostic Multi-Bridge Detection Function
     function checkExtensionInstalled() {
         if (extensionDetected) return true;
+        checkCount++;
 
-        const isInstalled =
-            document.documentElement.hasAttribute('data-patens-extension') ||
-            document.documentElement.getAttribute('data-patens-installed') === 'true' ||
-            document.body.hasAttribute('data-patens-extension') ||
-            document.body.hasAttribute('data-patens-installed') ||
-            window.__PATENS_EXTENSION__ === true ||
-            document.getElementById('patens-context-cart-root') !== null ||
-            document.getElementById('patens-extension-root') !== null ||
-            document.querySelector('[data-patens-root]') !== null;
+        logDebug(`Poll #${checkCount}: Checking DOM attributes and broadcasting pings...`);
 
-        if (isInstalled) {
-            onExtensionDetected();
+        // 1. DOM Attribute Checks
+        const docAttrExt = document.documentElement.hasAttribute('data-patens-extension');
+        const docAttrInst = document.documentElement.getAttribute('data-patens-installed') === 'true';
+        const bodyAttrExt = document.body.hasAttribute('data-patens-extension');
+        const bodyAttrInst = document.body.hasAttribute('data-patens-installed');
+
+        // 2. Element Existence Checks
+        const cartRoot = document.getElementById('patens-context-cart-root') !== null;
+        const extRoot = document.getElementById('patens-extension-root') !== null;
+        const dataRoot = document.querySelector('[data-patens-root]') !== null;
+
+        // 3. Main-World Window Check (Usually undefined due to Isolated World)
+        const winGlobal = window.__PATENS_EXTENSION__ === true;
+
+        if (docAttrExt || docAttrInst || bodyAttrExt || bodyAttrInst || cartRoot || extRoot || dataRoot || winGlobal) {
+            const matchReason = docAttrExt ? 'html[data-patens-extension]' :
+                                docAttrInst ? 'html[data-patens-installed]' :
+                                cartRoot ? '#patens-context-cart-root' :
+                                extRoot ? '#patens-extension-root' :
+                                dataRoot ? '[data-patens-root]' : 'window.__PATENS_EXTENSION__';
+
+            logDebug(`SUCCESS: Found DOM marker via: ${matchReason}`);
+            onExtensionDetected(`DOM Marker (${matchReason})`);
             return true;
         }
 
-        // PostMessage Ping (Window messaging bridge)
+        // 4. PostMessage Ping (Window messaging bridge)
         window.postMessage({ source: 'patens-welcome', action: 'ping', type: 'PATENS_PING' }, '*');
 
-        // CustomEvent Pings (Bypasses Isolated World boundaries)
+        // 5. CustomEvent Pings (Isolated World bridge)
         window.dispatchEvent(new CustomEvent('PATENS_PING_EVENT', { detail: { source: 'welcome' } }));
         window.dispatchEvent(new CustomEvent('PATENS_CHECK_INSTALLED'));
 
         return false;
     }
 
-    function onExtensionDetected() {
+    function onExtensionDetected(method = 'Automatic Detection') {
         if (extensionDetected) return;
         extensionDetected = true;
+
+        logDebug(`🎉 Extension Verified! Detected by method: ${method}`);
 
         const statusEl = document.getElementById('extension-status');
         if (statusEl) {
             statusEl.className = 'status-pill success';
-            statusEl.innerText = '🟢 Browser Extension Detected!';
+            statusEl.innerText = '🟢 Browser Extension Verified!';
         }
 
         const extPill = document.getElementById('ext-verified-pill');
@@ -1096,13 +1136,11 @@
             extPill.innerText = '🟢 Extension Active';
         }
 
-        // Highlight matching option button
         const activeOptionBtn = document.querySelector('.option-btn[style*="accent-blue"]');
         if (activeOptionBtn) {
             activeOptionBtn.classList.add('detected');
         }
 
-        // Automatically move to Step 2 if user is currently on Step 1
         if (currentStep === 1) {
             setTimeout(() => advanceStep(2), 600);
         }
@@ -1111,16 +1149,19 @@
     // Listen for incoming extension pongs or custom events
     window.addEventListener('message', (e) => {
         if (e.data && (e.data.source === 'patens-extension' || e.data.type === 'PATENS_PONG' || e.data.patensInstalled === true)) {
-            onExtensionDetected();
+            logDebug(`SUCCESS: Received postMessage PONG from extension content script!`);
+            onExtensionDetected('postMessage PONG');
         }
     });
 
     window.addEventListener('PATENS_PONG_EVENT', () => {
-        onExtensionDetected();
+        logDebug(`SUCCESS: Received CustomEvent (PATENS_PONG_EVENT) from content script!`);
+        onExtensionDetected('CustomEvent PONG');
     });
 
     window.addEventListener('patens-extension-detected', () => {
-        onExtensionDetected();
+        logDebug(`SUCCESS: Received CustomEvent (patens-extension-detected) from content script!`);
+        onExtensionDetected('patens-extension-detected Event');
     });
 
     function copyActivationPrompt(el) {

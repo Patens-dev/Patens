@@ -3,10 +3,9 @@ window.Patens = window.Patens || {};
 // ==========================================
 // 1. CENTRAL LOGGER UTILITY
 // ==========================================
-Patens.LOG_LEVELS = {DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3};
+Patens.LOG_LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
 Patens.CURRENT_LOG_LEVEL = Patens.LOG_LEVELS.DEBUG;
 
-// Create a global factory on the Patens namespace
 Patens.LoggerFactory = (prefix) => ({
     debug: (msg, ...args) => {
         if (Patens.CURRENT_LOG_LEVEL <= Patens.LOG_LEVELS.DEBUG) console.debug(`${prefix} [DEBUG] ${msg}`, ...args);
@@ -24,12 +23,36 @@ Patens.LoggerFactory = (prefix) => ({
     }
 });
 
-// Create the local logger for this specific file
 const Logger = Patens.LoggerFactory("[Patens API & Utils]");
 Logger.info("Central Logger initialized. API Service & Utils loaded.");
 
 // ==========================================
-// 2. API SERVICE (Content Script -> Background)
+// 2. GLOBAL FOCUS TRACKER FOR INJECTOR
+// ==========================================
+document.addEventListener('focusin', (e) => {
+    const target = e.target;
+    if (!target) return;
+
+    const isEditable = (
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'INPUT' ||
+        target.isContentEditable ||
+        target.getAttribute('contenteditable') === 'true'
+    );
+
+    if (isEditable) {
+        // Exclude internal Patens extension UI elements from active input tracking
+        const isExtensionUI = target.closest('#patens-palette-overlay') || target.closest('#patens-context-cart-root');
+        if (!isExtensionUI) {
+            Patens.State = Patens.State || {};
+            Patens.State.editor = Patens.State.editor || {};
+            Patens.State.editor.activeInputElement = target;
+        }
+    }
+}, true);
+
+// ==========================================
+// 3. API SERVICE (Content Script -> Background)
 // ==========================================
 Patens.API = {
     /** Proxies requests through background.js to bypass CORS */
@@ -38,12 +61,14 @@ Patens.API = {
         const startTime = performance.now();
 
         return new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({action: "proxy_fetch", url, responseType}, (response) => {
+            chrome.runtime.sendMessage({ action: "proxy_fetch", url, responseType }, (response) => {
                 const duration = (performance.now() - startTime).toFixed(2);
 
+                // Read lastError immediately to satisfy Chrome runtime requirements
                 if (chrome.runtime.lastError) {
-                    Logger.error(`Proxy fetch messaging failed after ${duration}ms for ${url}:`, chrome.runtime.lastError);
-                    return reject(new Error(chrome.runtime.lastError.message));
+                    const lastErr = chrome.runtime.lastError.message || "Runtime messaging port closed";
+                    Logger.error(`Proxy fetch messaging failed after ${duration}ms for ${url}:`, null, lastErr);
+                    return reject(new Error(lastErr));
                 }
 
                 if (!response || !response.success) {
@@ -73,7 +98,7 @@ Patens.API = {
                         while (n--) {
                             u8arr[n] = bstr.charCodeAt(n);
                         }
-                        resolve(new Blob([u8arr], {type: mime}));
+                        resolve(new Blob([u8arr], { type: mime }));
                     } catch (blobErr) {
                         Logger.error("Failed to decode base64 string into Blob:", blobErr);
                         reject(new Error("Failed to decode base64 image"));
@@ -86,34 +111,36 @@ Patens.API = {
     },
 
     ingestBatch: (payload) => {
-        const itemCount = Array.isArray(payload) ? payload.length : 1;
-        Logger.info(`Sending batch ingestion request for ${itemCount} items...`);
+        const payloadArray = Array.isArray(payload) ? payload : [payload];
+        Logger.info(`Sending batch ingestion request for ${payloadArray.length} items...`);
         const startTime = performance.now();
 
-        const safePayload = payload.map(item => ({
-            id: item.id || Date.now().toString(),
+        // SANITIZE: Ensure only serializable primitives are sent over background IPC
+        const safePayload = payloadArray.map(item => ({
+            id: item.id || Date.now().toString() + Math.random().toString().slice(2, 6),
             hash: item.hash || "",
-            type: item.type || "text",
-            url: item.url || "unknown",
-            title: item.title || "Untitled",
-            content: item.content || "",
-            media: item.media || ""
+            type: item.type || (item.isImage ? "image" : "text"),
+            url: item.url || window.location.href,
+            title: item.title || document.title || "Untitled",
+            content: item.content || item.text || "",
+            media: item.media || item.base64Data || ""
         }));
 
         return new Promise((resolve) => {
             try {
-                chrome.runtime.sendMessage({action: "ingest_batch", payload: safePayload}, (response) => {
+                chrome.runtime.sendMessage({ action: "ingest_batch", payload: safePayload }, (response) => {
                     const duration = (performance.now() - startTime).toFixed(2);
 
                     if (chrome.runtime.lastError) {
-                        Logger.error(`Ingest batch runtime message failed after ${duration}ms:`, chrome.runtime.lastError);
-                        resolve({success: false, error: chrome.runtime.lastError.message});
+                        const lastErr = chrome.runtime.lastError.message || "Runtime messaging port closed";
+                        Logger.error(`Ingest batch runtime message failed after ${duration}ms:`, null, lastErr);
+                        resolve({ success: false, error: lastErr });
                         return;
                     }
 
                     if (!response) {
                         Logger.error(`Message sent, but background script returned no response after ${duration}ms.`);
-                        resolve({success: false, error: "Background script failed to respond."});
+                        resolve({ success: false, error: "Background script failed to respond." });
                         return;
                     }
 
@@ -122,14 +149,14 @@ Patens.API = {
                 });
             } catch (err) {
                 Logger.error("Failed to execute sendMessage:", err);
-                resolve({success: false, error: err.message});
+                resolve({ success: false, error: err.message });
             }
         });
     }
 };
 
 // ==========================================
-// 3. HELPER UTILITIES
+// 4. HELPER UTILITIES
 // ==========================================
 Patens.Utils = {
     fastHash: (str) => {
@@ -163,7 +190,7 @@ Patens.Utils = {
         yesterday.setDate(now.getDate() - 1);
         const isYesterday = date.toDateString() === yesterday.toDateString();
 
-        const timeStr = date.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
+        const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
         if (isToday) {
             if (diffMs < 60000) return `Just now`;
@@ -172,7 +199,7 @@ Patens.Utils = {
         }
         if (isYesterday) return `Yesterday at ${timeStr}`;
 
-        const opts = {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'};
+        const opts = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
         if (date.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
         return date.toLocaleDateString(undefined, opts);
     },
@@ -180,6 +207,10 @@ Patens.Utils = {
     getSmartTitle: () => {
         const url = window.location.href;
         try {
+            if (url.includes("arxiv.org")) {
+                const titleEl = document.querySelector('h1.title') || document.querySelector('title');
+                if (titleEl) return titleEl.innerText.replace(/^Title:\s*/i, '').trim();
+            }
             if (url.includes("chatgpt.com")) {
                 const el = document.querySelector('title');
                 if (el && el.innerText !== "ChatGPT") return el.innerText.replace(' | ChatGPT', '');
@@ -191,6 +222,10 @@ Patens.Utils = {
             if (url.includes("claude.ai")) {
                 const el = document.querySelector('title');
                 if (el && el.innerText !== "Claude") return el.innerText;
+            }
+            if (url.includes("deepseek.com")) {
+                const el = document.querySelector('title');
+                if (el) return el.innerText.replace(' - DeepSeek', '').trim();
             }
             if (url.includes("github.com") || url.includes("stackoverflow.com")) {
                 const el = document.querySelector('h1');
@@ -266,54 +301,52 @@ Patens.Utils = {
     },
 
     showNotification: (message, color = '#10b981', x, y) => {
-        Logger.debug(`Displaying notification tooltip: "${message}" at [${x}, ${y}]`);
+        const isCursorPos = (typeof x === 'number' && !isNaN(x) && typeof y === 'number' && !isNaN(y));
+        Logger.debug(`Displaying notification tooltip: "${message}"` + (isCursorPos ? ` at [${x}, ${y}]` : ''));
+
         const popup = document.createElement('div');
         popup.className = 'cc-toast-notification';
         popup.innerText = message;
 
-        const isCursorPos = (typeof x === 'number' && typeof y === 'number');
-
         if (isCursorPos) {
-            // Cursor-following mini tooltip (used when clipping text/images near mouse)
             popup.style.cssText = `
-            position: fixed;
-            left: ${x + 15}px;
-            top: ${y + 15}px;
-            background: ${color};
-            color: #ffffff;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            z-index: 2147483648;
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        `;
+                position: fixed;
+                left: ${x + 15}px;
+                top: ${y + 15}px;
+                background: ${color};
+                color: #ffffff;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                z-index: 2147483648;
+                pointer-events: none;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+                transition: opacity 0.3s ease, transform 0.3s ease;
+            `;
         } else {
-            // Bottom-center dark theme toast matching Patens UI
             popup.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #18181b;
-            border: 1px solid #27272a;
-            color: #f4f4f5;
-            padding: 10px 20px;
-            border-radius: 24px;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            z-index: 2147483648;
-            pointer-events: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        `;
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #18181b;
+                border: 1px solid #27272a;
+                color: #f4f4f5;
+                padding: 10px 20px;
+                border-radius: 24px;
+                font-size: 13px;
+                font-weight: 500;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                z-index: 2147483648;
+                pointer-events: none;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: opacity 0.3s ease, transform 0.3s ease;
+            `;
         }
 
         document.body.appendChild(popup);
@@ -324,53 +357,48 @@ Patens.Utils = {
             setTimeout(() => popup.remove(), 300);
         }, 1800);
 
-        return popup;}
-    };
+        return popup;
+    }
+};
+
 // ==========================================
-// 4. DECLARATIVE UI BUILDER
+// 5. DECLARATIVE UI BUILDER
 // ==========================================
-    Patens.UIBuilder = {
-        /**
-         * Safely and declaratively builds a DOM element.
-         * @param {string} tag - The HTML tag name (e.g., 'div', 'button')
-         * @param {Object} attrs - Attributes, styles, and event listeners
-         * @param  {...(Node|string)} children - Child nodes or text strings
-         * @returns {HTMLElement}
-         */
-        create: (tag, attrs = {}, ...children) => {
-            const el = document.createElement(tag);
+Patens.UIBuilder = {
+    create: (tag, attrs = {}, ...children) => {
+        const el = document.createElement(tag);
 
-            for (const [key, value] of Object.entries(attrs)) {
-                if (key.startsWith('on') && typeof value === 'function') {
-                    el.addEventListener(key.substring(2).toLowerCase(), value);
-                } else if (key === 'style') {
-                    if (typeof value === 'string') {
-                        el.style.cssText = value;
-                    } else if (value && typeof value === 'object') {
-                        Object.assign(el.style, value);
-                    }
-                } else if (key === 'className' || key === 'class') {
-                    el.className = value;
-                } else if (value !== null && value !== undefined) {
-                    el.setAttribute(key, value);
+        for (const [key, value] of Object.entries(attrs)) {
+            if (key.startsWith('on') && typeof value === 'function') {
+                el.addEventListener(key.substring(2).toLowerCase(), value);
+            } else if (key === 'style') {
+                if (typeof value === 'string') {
+                    el.style.cssText = value;
+                } else if (value && typeof value === 'object') {
+                    Object.assign(el.style, value);
                 }
+            } else if (key === 'className' || key === 'class') {
+                el.className = value;
+            } else if (value !== null && value !== undefined) {
+                el.setAttribute(key, value);
             }
-
-            for (const child of children) {
-                if (child == null || child === false) continue;
-
-                if (typeof child === 'string' || typeof child === 'number') {
-                    el.appendChild(document.createTextNode(child.toString()));
-                } else if (child instanceof Node) {
-                    el.appendChild(child);
-                } else {
-                    Logger.warn("Skipped invalid child node type passed to UIBuilder:", child);
-                }
-            }
-
-            return el;
         }
-    };
 
-// Expose a short alias for rapid UI development
-    Patens.h = Patens.UIBuilder.create;
+        for (const child of children) {
+            if (child == null || child === false) continue;
+
+            if (typeof child === 'string' || typeof child === 'number') {
+                el.appendChild(document.createTextNode(child.toString()));
+            } else if (child instanceof Node) {
+                el.appendChild(child);
+            } else {
+                Logger.warn("Skipped invalid child node type passed to UIBuilder:", child);
+            }
+        }
+
+        return el;
+    }
+};
+
+// Alias for UI builder
+Patens.h = Patens.UIBuilder.create;
