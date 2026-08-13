@@ -4,7 +4,8 @@ const API_CONFIG = {
   defaultHost: "127.0.0.1",
   startPort: 8000,
   maxPort: 8010,
-  timeoutMs: 15000,
+  timeoutMs: 15000, // Default timeout for fast JSON endpoints
+  pdfTimeoutMs: 60000, // Extended 60s timeout for heavy PDF downloads & conversion
   headers: { "Content-Type": "application/json" }
 };
 
@@ -37,7 +38,7 @@ async function discoverServer() {
     const testUrl = `http://${API_CONFIG.defaultHost}:${port}/api/v1`;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300);
+      const timeoutId = setTimeout(() => controller.abort(new Error("Port discovery timeout")), 300);
 
       const response = await fetch(`${testUrl}/config/system`, {
         signal: controller.signal,
@@ -60,16 +61,25 @@ async function discoverServer() {
 }
 
 async function coreFetch(endpoint, options = {}) {
+  const timeoutMs = options.timeout || API_CONFIG.timeoutMs;
+  const controller = new AbortController();
+  let isTimeout = false;
+
+  const timeoutId = setTimeout(() => {
+    isTimeout = true;
+    controller.abort(new Error(`Request timed out after ${timeoutMs}ms`));
+  }, timeoutMs);
+
   try {
     const baseUrl = await discoverServer();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeoutMs);
-
     const method = options.method || "GET";
     const url = endpoint.startsWith("http") ? endpoint : `${baseUrl}${endpoint}`;
 
+    // Clean options object before sending to native fetch
+    const { responseType, timeout, ...fetchOptions } = options;
+
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
       headers: { ...API_CONFIG.headers, ...options.headers },
       signal: controller.signal
     });
@@ -80,11 +90,18 @@ async function coreFetch(endpoint, options = {}) {
       throw new Error(`Server returned ${response.status}: ${errText}`);
     }
 
-    if (options.responseType === 'blob') return await response.blob();
-    if (options.responseType === 'text') return await response.text();
+    if (responseType === 'blob') return await response.blob();
+    if (responseType === 'text') return await response.text();
     return await response.json();
 
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (isTimeout || error.name === 'AbortError') {
+      throw new Error(`Request to ${endpoint} timed out after ${timeoutMs / 1000}s. The PDF may be large or the server is processing complex math/figures.`);
+    }
+
+    // Reset active server URL only on actual connection dropouts, not timeouts
     if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
       activeBaseUrl = null;
     }
@@ -122,7 +139,8 @@ const PatensAPI = {
       url: pdfUrl,
       title: title || "PDF Document"
     }),
-    responseType: 'text'
+    responseType: 'text',
+    timeout: API_CONFIG.pdfTimeoutMs // Extended 60s timeout
   }),
   getSpatialIndex: (pdfUrl, title) => coreFetch("/pdf/spatial-index-url", {
     method: "POST",
@@ -130,7 +148,8 @@ const PatensAPI = {
       url: pdfUrl,
       title: title || "PDF Document"
     }),
-    responseType: 'json'
+    responseType: 'json',
+    timeout: API_CONFIG.pdfTimeoutMs // Extended 60s timeout
   }),
   proxyFetch: (url, responseType = 'json') => coreFetch(url, { responseType })
 };

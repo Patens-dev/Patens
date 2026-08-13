@@ -87,9 +87,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function enableSwitchBadge(switchBadge, badgeSpinner, badgeText) {
+  const badgeIcon = document.getElementById('badge-icon');
+
   if (badgeSpinner) badgeSpinner.remove();
+  if (badgeIcon) badgeIcon.style.display = 'block';
   if (switchBadge) switchBadge.classList.add('ready');
-  if (badgeText) badgeText.innerHTML = "⚡ Switch to Patens Mode";
+  if (badgeText) badgeText.textContent = "Switch Mode";
 
   switchBadge.addEventListener('click', toggleViewMode);
 }
@@ -98,6 +101,7 @@ function toggleViewMode() {
   const pdfEmbed = document.getElementById('pdf-embed');
   const htmlContainer = document.getElementById('html-container');
   const badgeText = document.getElementById('badge-text');
+  const badgeIcon = document.getElementById('badge-icon');
 
   if (currentViewMode === 'native') {
     currentViewMode = 'interactive';
@@ -108,13 +112,15 @@ function toggleViewMode() {
       renderConvertedHtml(convertedHtmlCache);
     }
 
-    badgeText.innerHTML = "📄 Back to Native PDF";
+    if (badgeIcon) badgeIcon.style.display = 'none';
+    badgeText.textContent = "📄 Back to Native PDF";
   } else {
     currentViewMode = 'native';
     htmlContainer.style.display = 'none';
     pdfEmbed.style.display = 'block';
 
-    badgeText.innerHTML = "⚡ Switch to Patens Mode";
+    if (badgeIcon) badgeIcon.style.display = 'block';
+    badgeText.textContent = "Switch Mode";
   }
 }
 
