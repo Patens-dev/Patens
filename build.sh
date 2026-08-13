@@ -505,21 +505,40 @@ TIME_EXE_INSTALLER=$(stop_timer)
 SIZE_EXE_INSTALLER=$(get_size "$EXE_INSTALLER_OUTPUT")
 
 # ===================================================================
-# 7. BROWSER EXTENSION PACKAGING
+# 7. BROWSER EXTENSION BUILD & PACKAGING (VITE)
 # ===================================================================
+log_info "⚡ Compiling browser extension using Vite..."
 start_timer
+
+if command -v npm &> /dev/null; then
+    npm run build || {
+        log_error "Failed to build browser extension with Vite/npm."
+        exit 1
+    }
+else
+    log_error "npm command not found. Required for building the browser extension with Vite."
+    exit 1
+fi
+
+BUILD_EXT_DIR="dist/extension"
 EXTENSION_ZIP_OUTPUT="${VERSION_DIR}/extension_${EXT_VERSION}.zip"
+
+if [ ! -d "$BUILD_EXT_DIR" ]; then
+    log_error "Vite extension build directory '$BUILD_EXT_DIR' not found."
+    exit 1
+fi
+
+log_info "📦 Zipping compiled extension bundle from ${BUILD_EXT_DIR}..."
 "$PYTHON_BIN" -c '
 import sys, os, zipfile
-ext_dir, ext_version, zip_filename = sys.argv[1], sys.argv[2], sys.argv[3]
+ext_dir, zip_filename = sys.argv[1], sys.argv[2]
 if os.path.exists(ext_dir):
     with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(ext_dir):
             for file in files:
-                if not file.startswith(".") and not file.endswith((".zip", ".git")):
-                    file_path = os.path.join(root, file)
-                    zipf.write(file_path, os.path.relpath(file_path, ext_dir))
-' "$EXT_DIR" "$EXT_VERSION" "$EXTENSION_ZIP_OUTPUT"
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, os.path.relpath(file_path, ext_dir))
+' "$BUILD_EXT_DIR" "$EXTENSION_ZIP_OUTPUT"
 
 # ===================================================================
 # 7.1 LOCAL HARDLINK CREATION (ZERO DISK SPACE DUPLICATION)
@@ -606,7 +625,7 @@ printf "%-35s | %-12s | %-15s\n" "3. FastEmbed Model Cache" "${TIME_FASTEMBED}s"
 printf "%-35s | %-12s | %-15s\n" "4. PyInstaller Spec & Build" "${TIME_PYINSTALLER}s" "Dir: ${SIZE_PYINSTALLER_EXE}"
 printf "%-35s | %-12s | %-15s\n" "5. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
 printf "%-35s | %-12s | %-15s\n" "6. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
-printf "%-35s | %-12s | %-15s\n" "7. Extension Packaging" "${TIME_EXTENSION}s" "Zip: $(get_size "$EXTENSION_ZIP_OUTPUT")"
+printf "%-35s | %-12s | %-15s\n" "7. Extension Build (Vite)" "${TIME_EXTENSION}s" "Zip: $(get_size "$EXTENSION_ZIP_OUTPUT")"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "TOTAL RUNTIME" "${TIME_TOTAL}s" ""
 echo -e "${CYAN}===================================================================${NC}"

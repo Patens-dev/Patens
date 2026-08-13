@@ -1,66 +1,60 @@
 {
   "manifest_version": 3,
   "name": "patens",
-  "version": "1.1.3",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "extension@patens.dev",
-      "data_collection_permissions": {
-        "required": [
-          "none"
-        ]
-      },
-      "strict_min_version": "109.0"
-    }
-  },
+  "version": "1.1.5",
   "description": "Sends web context to your local AI database.",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "icons": {
-    "16": "assets/icon16.png",
-    "32": "assets/icon32.png",
-    "48": "assets/icon48.png",
-    "128": "assets/icon128.png"
+    "16": "extension/assets/icon16.png",
+    "32": "extension/assets/icon32.png",
+    "48": "extension/assets/icon48.png",
+    "128": "extension/assets/icon128.png"
   },
   "action": {
+    "default_title": "Capture PDF to Patens",
     "default_icon": {
-      "16": "assets/icon16.png",
-      "32": "assets/icon32.png",
-      "48": "assets/icon48.png",
-      "128": "assets/icon128.png"
-    }
-  },
-  "permissions": [
-    "storage"
-  ],
-  "commands": {
-    "toggle_search_palette": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+Space",
-        "mac": "Command+Shift+Space"
-      },
-      "description": "Search and paste from patens"
+      "16": "extension/assets/icon16.png",
+      "32": "extension/assets/icon32.png",
+      "48": "extension/assets/icon48.png",
+      "128": "extension/assets/icon128.png"
     }
   },
   "background": {
-    "service_worker": "background.js",
-    "scripts": [
-      "background.js"
-    ]
+    "service_worker": "extension/background/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"
+        "http://*/*",
+        "https://*/*",
+        "file:///*/*"
       ],
+      "run_at": "document_start",
       "css": [
-        "content.css"
+        "extension/content/content.css"
       ],
       "js": [
-        "config.js",
-        "utils.js",
-        "cart.js",
-        "palette.js",
-        "injector.js",
-        "main.js"
+        "extension/content/main.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "extension/assets/*",
+        "extension/viewer/*",
+        "extension/content/*"
+      ],
+      "matches": [
+        "<all_urls>"
       ]
     }
   ]

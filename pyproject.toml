@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Patens"
-version = "1.1.3"
+version = "1.1.5"
 authors = [
     {name = "Patens"}
 ]
@@ -21,7 +21,10 @@ dependencies = [
     "fastmcp",
     "pyyaml",
     "fastembed",
-    "sqlite-vec"
+    "sqlite-vec",
+    "pymupdf",          # Required for PDF extraction & rendering (fitz)
+    "python-multipart", # Required by FastAPI to handle PDF file uploads (UploadFile)
+    "requests"          # Required to fetch arXiv/remote PDFs by URL in the endpoint
 ]
 
 [project.scripts]

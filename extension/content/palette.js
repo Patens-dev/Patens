@@ -25,37 +25,27 @@
         blockHover: false,
         hoverTimeout: null,
 
-        executeInjection: (items) => {
-            if (!items || items.length === 0) return;
 
-            // Re-order items chronologically (FIFO / Queue order: 1, 2, 3)
-            const queueOrderedItems = [...items].sort((a, b) => {
-                const timeA = new Date(a.created_at || a.timestamp || 0).getTime();
-                const timeB = new Date(b.created_at || b.timestamp || 0).getTime();
+        executeInjection: async (selectedItems) => {
+            if (!selectedItems || selectedItems.length === 0) return;
 
-                if (timeA && timeB && timeA !== timeB) {
-                    return timeA - timeB;
+            Logger.info(`Executing queue-ordered injection for ${selectedItems.length} item(s)...`);
+
+            // 1. Ensure Patens.State.editor.activeInputElement has a fallback target on welcome.html
+            if (!Patens.State?.editor?.activeInputElement) {
+                const onboardingBox = document.querySelector('#mock-chat-box');
+                if (onboardingBox) {
+                    Patens.State = Patens.State || {};
+                    Patens.State.editor = Patens.State.editor || {};
+                    Patens.State.editor.activeInputElement = onboardingBox;
                 }
-                return 0;
-            });
-
-            if (JSON.stringify(queueOrderedItems) === JSON.stringify(items)) {
-                queueOrderedItems.reverse();
             }
 
-            Logger.info(`Executing queue-ordered injection for ${queueOrderedItems.length} item(s)...`);
-
-            // 1. Perform context injection
-            Patens.Injector?.injectContextsToAI(queueOrderedItems);
-
-            // 2. Unmount palette overlay first
-            Patens.Palette.toggle();
-
-            // 3. Trigger bottom-centered toast
-            const count = queueOrderedItems.length;
-            const message = count === 1 ? '✨ Pasted context to editor' : `✨ Pasted ${count} items to editor`;
-            if (Patens.Utils?.showNotification) {
-                Patens.Utils.showNotification(message);
+            // 2. Pass items to Patens.Injector
+            if (Patens.Injector?.injectContextsToAI) {
+                await Patens.Injector.injectContextsToAI(selectedItems);
+            } else {
+                Logger.error("❌ Patens.Injector.injectContextsToAI is undefined!");
             }
         },
 
@@ -73,7 +63,7 @@
         // Helper to save "Don't ask me again" preference
         setDeletePreference: (val) => {
             if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
-                chrome.storage.local.set({ dontAskDeleteContext: val });
+                chrome.storage.local.set({dontAskDeleteContext: val});
             }
         },
 
@@ -100,7 +90,9 @@
                             type: 'checkbox',
                             id: 'cc-delete-dont-ask',
                             style: 'cursor: pointer; accent-color: #ef4444;',
-                            onchange: (e) => { dontAskChecked = e.target.checked; }
+                            onchange: (e) => {
+                                dontAskChecked = e.target.checked;
+                            }
                         }),
                         "Don't ask me again"
                     ),

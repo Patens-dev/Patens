@@ -482,16 +482,17 @@ def run_mcp():
         logger.critical("Fatal error in MCP server execution: %s", e, exc_info=True)
 
 
-def run_fastapi():
+def run_fastapi(port: Optional[int] = None):
     """Launches the background FastAPI server for browser integration."""
-    logger.info("Starting FastAPI Uvicorn runner on %s:%s", API_HOST, API_PORT)
+    target_port = port or API_PORT
+    logger.info("Starting FastAPI Uvicorn runner on %s:%s", API_HOST, target_port)
     start_sync_daemon()
 
     try:
         uvicorn.run(
             fastapi_app,
             host=API_HOST,
-            port=API_PORT,
+            port=target_port,
             log_level="error",  # Silence non-critical logs on standard output
             access_log=False,  # Prevents console/I/O congestion
         )
