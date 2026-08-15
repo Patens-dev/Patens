@@ -1,268 +1,158 @@
 <div align="center">
-  <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="Patens.dev Logo" width="180" />
+  <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="Patens Logo" width="220" />
 
-  <h1>Patens</h1>
-  <p><strong>Stop copy-pasting web docs into your IDE — or any AI chat.</strong></p>
+  <h1>patens</h1>
+  <p><strong>The Zero-Friction Research & Synthesis Layer for AI.</strong></p>
+  <p><em>Gather research in 1-click. Feed pure signal to AI.</em></p>
 
   <p>
-    <a href="https://patens.dev"><img src="https://img.shields.io/badge/Extension-Chrome%20%7C%20Firefox%20%7C%20Edge-3b82f6?style=for-the-badge&logo=googlechrome" alt="Browser Extension" /></a>
+    <a href="https://patens.dev"><img src="https://img.shields.io/badge/Extension-Chrome%20%7C%20Edge%20%7C%20Firefox-3b82f6?style=for-the-badge&logo=googlechrome" alt="Browser Extension" /></a>
     <a href="https://patens.dev"><img src="https://img.shields.io/badge/Backend-MS%20Store%20%7C%20VS%20Code%20%7C%20EXE-10b981?style=for-the-badge&logo=windows" alt="Backend Engine" /></a>
     <br/>
-    <img src="https://img.shields.io/badge/100%25-Local_&_Private-success?style=flat-square" alt="100% Local" />
+    <img src="https://img.shields.io/badge/100%25-Local_&_Air--Gapped-success?style=flat-square" alt="100% Local" />
     <img src="https://img.shields.io/badge/Protocol-MCP-blue?style=flat-square" alt="MCP Compatible" />
+    <img src="https://img.shields.io/badge/Vector_DB-SQLite--vec-orange?style=flat-square" alt="SQLite-vec" />
     <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License" />
   </p>
 
-  <p><em>Never explain your context twice. 1-click browser context straight to Cursor, VS Code, and Cline — or pasted directly into ChatGPT, Claude, Gemini, and even WhatsApp Web.</em></p>
-
-  <p><a href="https://patens.dev"><strong>patens.dev</strong></a></p>
+  <p><a href="https://patens.dev"><strong>patens.dev</strong></a> • <a href="guide.html"><strong>Setup Guide</strong></a></p>
 </div>
 
 ---
 <div align="center">
-  <video 
-    src="https://raw.githubusercontent.com/Patens-dev/Patens/main/assets/patens-hero.gif" 
-    autoplay 
-    loop 
-    muted 
-    playsinline 
-    width="100%" 
-    style="border-radius: 8px;">
-  </video>
+  <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.mp4" controls="controls" width="100%"></video>
 </div>
 
-## ❌ The Broken Workflow vs ✨ The Patens Workflow
+## ❌ The Tab-Thrashing Agony vs ✨ The Patens Flow
 
-| ❌ The Old Copy-Paste Grind | ✨ The Patens Workflow |
+| ❌ The Old Tab-Thrashing Grind | ✨ The Patens Flow State |
 | :--- | :--- |
-| **Pasting docs into prompts** wastes half your context window. | **Highlight text in browser** and hit `Ctrl+Shift+C`. |
-| **Standard `@docs` scrapers fail** on gated pages, Notion, or SPAs. | **Captures rendered DOM** directly from active browser tabs. |
-| **LLMs hallucinate methods** from outdated training data. | **Auto-mounts physical Markdown** straight into `_context/`. |
-| **Copying one clip at a time between tabs.** | **Context Cart:** select clips from multiple sources, inject all at once. |
-| **Re-typing the same context in every new chat.** | **Command Palette** injects saved memory into any chat input, anywhere. |
-| **Result:** Broken builds, lost flow state, and repeated prompts. | **Result:** 100% accurate AI code generation on the first try. |
+| **35 open tabs:** Competitor pages, Reddit reviews, SEC filings, and pricing matrices. | **1-Click capture:** Highlight text or figures as you browse with `Ctrl+Shift+Click`. |
+| **Clipboard hell:** `Ctrl+C` ➔ `Alt+Tab` ➔ `Ctrl+V` × 60 into messy scratchpads. | **40s Undo Safety Ring:** Forgiving grace window to inspect, pause, or prune clips without breaking flow. |
+| **Context pollution:** Pasting web pages into LLMs dumps navbars, ads, and cookie banners. | **Auto-Clustering:** Auto-coalesces snippets by source URL into a structured document tree. |
+| **Lost provenance:** 2 hours later, you can't find which specific page had that vital stat. | **Automatic Citations:** Every paragraph retains its exact source URL, title, and timestamp. |
+| **LLMs hallucinate** numbers from outdated training data or corrupted context. | **1-Key AI Injection:** Stream clean, token-optimized context directly into chatboxes or IDEs. |
+| **Result:** Mental friction, token waste, and hours spent formatting raw text. | **Result:** Deep, multi-source synthesis in minutes with 100% verified source traceability. |
 
 ---
 
 ## ⚡ Core Features
 
-- ⚡ **Zero-Friction Capture:** Highlight text or images on any web page and press `Ctrl+Shift+C`. It vectorizes directly to your local database, even behind logins, Notion specs, or SPAs.
-- 🎛️ **Command Palette, Anywhere:** Summon a spotlight-style search overlay on *any* website — search your saved memory with plain text or `from:domain.com` filters, preview the full clip, and inject it straight into whatever text field is focused: a ChatGPT prompt, a Claude.ai chat, a Notion doc, even a WhatsApp Web message box.
-- 🛒 **Context Cart (Multi-Select Injection):** Don't want to inject one clip at a time? Shift+click or Shift+↑↓ to stage multiple saved snippets — pulled from different tabs or sources — into a cart, then hit **Paste Items** to inject them all into the current conversation in one shot.
-- ⏪ **Instant Recall:** Hit Enter on an empty palette search to grab and inject your most recently saved clip — no searching required.
-- 📂 **Physical File Mounting:** Patens writes vector-indexed Markdown files directly into your project's `_context/` directory. Tag them in Cursor, Copilot, or Cline using simple `@` file references.
-- 🔎 **Query With or Without `_context`:** Your AI assistant isn't limited to reading the synced Markdown files — an MCP tool lets it search your local vector memory on demand at query time, so you can ask for relevant context even if it was never written to disk as a file.
-- 🧠 **Two-Way IDE Memory:** It's not just browser → IDE. Your AI can *write back* — saving an architectural decision or debugging insight from inside your editor straight into the same searchable memory, so it resurfaces later in the browser or another project.
-- 🔒 **100% Private & Local:** Powered by local **SQLite-vec** and **FastEmbed**. Your code and research never leave your hardware. Zero cloud dependencies, zero tracking, zero telemetry.
-- 🤝 **Git-Native Context Sharing:** Commit your `_context/` folder to Git. When teammates pull your repository, their AI assistants instantly inherit your research without re-googling.
+- ⚡ **Zero-Friction Harvest:** Highlight paragraphs, tables, or quotes across 20+ tabs with `Ctrl+Shift+Click`. Patens silently indexes them in the background with a 40-second undo safety ring.
+- 🖼️ **Multimodal Image Support:** Harvest diagrams, screenshots, and visual specs. Injected into AI chatboxes (ChatGPT, Claude, Gemini) as native image file attachments rather than raw Base64 text.
+- 📚 **Automatic Citation Engine:** Every harvested paragraph retains its exact source URL, page title, and timestamp. When streamed to an LLM, it formats bibliographies and ground-truth citations automatically.
+- 🎛️ **Hierarchical Command Palette (`Ctrl+Shift+Space`):** Summon a spotlight-style memory overlay anywhere. Search across local memory, expand documents into individual paragraphs with `←→`, and preview full clips with token counts.
+- 🛒 **Multi-Select Context Staging:** Hold `Shift` while navigating with `↑↓` (or shift-click) to stage multiple snippets across disparate sources, then inject them all in one shot.
+- 📂 **Physical Workspace Sync:** Auto-generates clean, human-readable `_context/` Markdown files directly inside your active workspace for Cursor, Obsidian, or Windsurf.
+- 🤖 **Model Context Protocol (MCP):** Connects to Claude Desktop, Cursor, and JetBrains Copilot. Ask: *"Synthesize the competitor pricing models I gathered this morning"* to query local vector memory autonomously.
+- 🔒 **100% Local & Air-Gapped:** Powered by local **FastEmbed** ONNX vectors and **SQLite-vec**. Research notes, internal wikis, and credentials never leave your machine. Zero cloud dependencies, zero telemetry.
+
+---
+
+## ⌨️ Shortcuts Reference
+
+| Shortcut | Action | Scope |
+| :--- | :--- | :--- |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Click</kbd> | **1-Click Harvest:** Capture highlighted text or image with source provenance | Browser |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> | **Command Palette:** Open search overlay to browse memory | Anywhere |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | **Navigate:** Move between documents and clips | Palette |
+| <kbd>Shift</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd> | **Multi-Select:** Select a range of items to inject together | Palette |
+| <kbd>→</kbd> / <kbd>←</kbd> | **Expand / Collapse:** Drill into granular paragraphs within a document | Palette |
+| <kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd> | **Inject Context:** Stream structured Markdown / images directly into active input | Palette |
+| <kbd>Delete</kbd> | **Prune Memory:** Delete document or specific paragraph from database and disk | Palette |
 
 ---
 
 ## 🚀 How It Works (3 Steps)
 
-### Step 1: Ditch the old way, full of hallucinations
-Stop relying on LLM training data for fast-moving frameworks or private internal APIs.
+### 1. Harvest As You Browse
+Highlight any text snippet, table, or figure and press `Ctrl+Shift+Click`. Patens automatically vectorizes and stores it locally with full origin metadata.
 
-### Step 2: Capture context with 1-click
-Highlight any documentation page, StackOverflow thread, or Notion spec in Chrome, Firefox, or Edge, then press `Ctrl+Shift+C`. Capturing multiple pages? Stage them in the **Context Cart** and send them together.
+### 2. Organize with Hierarchical Palette
+Press `Ctrl+Shift+Space` to summon the palette. Search with keywords or filter by domain (`from:stripe.com`). Expand document trees to review individual paragraphs, token counts, and images.
 
-### Step 3: Use it wherever you're working
-- **In your IDE:** A physical `_context/` folder auto-mounts in your workspace. Prompt Cursor, Copilot, or Cline:
-  > *"Implement auth flow using `@00_Context_Index.md`"*
-- **In any browser chat:** Open the Command Palette on ChatGPT, Claude.ai, or wherever you're typing, search your memory, and inject it directly into the message box — no `_context` folder needed.
-
----
-
-## 🎛️ Command Palette & Context Cart
-
-The browser extension isn't just a capture button — it's a searchable memory palette you can summon on top of any page, including AI chat UIs and messaging apps.
-
-- **Search syntax:** type plain text to full-text/semantic search your saved clips, or narrow results to a single source with `from:docs.com`.
-- **Live preview:** hover or arrow through results to preview the full saved content before injecting anything.
-- **Multi-select:** hold `Shift` while navigating with `↑↓` (or shift-click) to select a range of clips at once — they're staged in the Context Cart at the bottom of the palette.
-- **One-shot injection:** hit **Paste Items** (or `Enter`) to inject every staged clip into whatever input field was focused when you opened the palette — a ChatGPT/Claude/Gemini prompt box, a Notion block, a WhatsApp Web message, or any other editable field on the page.
-- **Instant recall:** press `Enter` with an empty search to inject your single most recent clip immediately, no typing required.
-
-This means Patens' memory isn't locked to IDE workflows — the same captured docs, specs, and saved insights can be dropped straight into any AI product you use in the browser, or any other text box, without leaving the page.
+### 3. Stream Pure Signal to AI
+Press `Enter` to stream cited Markdown directly into your active input—whether in ChatGPT, Claude, Gemini, Cursor, or VS Code.
 
 ---
 
 ## 📦 Installation & Setup
 
-Setup takes less than 2 minutes and consists of two lightweight components:
 ### Step 1: Install Browser Extension
-Select your browser to enable 1-click capturing and the Command Palette:
-- 🌐 [Chrome Web Store](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB)
-- 🦊 [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/patens/)
-- 🌀 [Edge Add-ons](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB)
+- 🌐 **Chrome / Edge / Brave:** [Download Extension (.zip)](https://download.patens.dev/latest/extension.zip) *(Load unpacked via `chrome://extensions`)*[cite: 2]
+- 🦊 **Firefox:** [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/patens/)
 
 ### Step 2: Install Local Memory Engine
-Select your preferred distribution to launch the local vector indexer and MCP bridge:
-- 🏪 [Microsoft Store](ms-windows-store://pdp/?productid=9PM9R44F0RXV)
-- 💻 [VS Code Extension](vscode:extension/patens-dev.patens)
-- 📦 [Executable Installer (.EXE, v1.1.2)](https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe)
-
-### Step 3: Start Using It
-
-That's it — no manual configuration or terminal commands needed. Launching the installed backend (double-click the `.exe`, or the Store/VS Code Ext handles it for you) auto-detects your IDE, starts the local MCP + sync bridge, and materializes the `_context` folder in your open workspace on its own.
-
-1. Restart your IDE
-2. Open your AI Chat panel (Copilot or Cursor)
-3. Enable the Patens tool
-4. Start highlighting text in Chrome with `Ctrl+Shift+C`
+Choose your preferred distribution:
+- 🏪 **Microsoft Store:** [Get on MS Store](ms-windows-store://pdp/?productid=9PM9R44F0RXV) *(Sandboxed desktop background app)*
+- 💻 **VS Code / Cursor Extension:** [Install Marketplace Extension](vscode:extension/patens-dev.patens) *(Auto-spins up local background engine)*
+- 📦 **Direct .EXE Installer:** [Download .EXE Installer](https://download.patens.dev/latest/patens_installer.exe) *(For standalone setups, Obsidian, & offline dev)*
 
 ---
 
-## ⚙️ Manual MCP Configuration (Optional)
+## ⚙️ Model Context Protocol (MCP) Configuration
 
-Most people never need this section — it's for manually wiring up the MCP connection (e.g. an unsupported IDE) or for running Patens **from source** instead of the installer.
+The background engine exposes a local FastMCP stdio server sharing the same SQLite vector memory.
 
-The backend runs a unified local engine: an MCP server over stdio for your IDE, and a FastAPI server for the browser extension, sharing the same vector memory.
-
-### For Cursor (`.cursor/mcp.json`)
+### Cursor (`.cursor/mcp.json`)
 ```json
 {
   "mcpServers": {
     "patens": {
-      "type": "stdio",
-      "command": "C:\\Path\\To\\Patens.exe",
-      "args": ["--mcp"]
+      "command": "patens",
+      "args": ["mcp"]
     }
   }
 }
 ```
 
-**For VS Code (`.vscode/settings.json`):**
+### Claude Desktop (`claude_desktop_config.json`)
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "patens": {
-      "type": "stdio",
-      "command": "C:\\Path\\To\\Patens.exe",
-      "args": ["--mcp"]
+      "command": "patens",
+      "args": ["mcp"]
     }
   }
 }
 ```
 
-### Running from Source
-
-If you've cloned the repo instead of using the installer, initialize the workspace manually:
-
-```bash
-python -m patens --setup
-```
-
-The `_context` folder will materialize in your file explorer.
-
-### Available MCP Tools
-
-Your IDE's AI assistant has direct access to these tools, in addition to reading `_context/*.md` files:
-
-| Tool | What it does |
-|------|---------------|
-| `query_browser_context` | Searches your local vector memory on demand — works even for clips that were never synced to a physical file. |
-| `memorize_ide_insight` | Saves a conclusion or architectural decision made *during* a coding session back into memory, so it's searchable later. |
-| `forget_memory` | Deletes an outdated or deprecated saved clip and purges it from the synced `_context/` files. |
-| `mount_workspace_context` | Redirects where the `_context/` folder is written — useful when switching between projects/repos. |
+### JetBrains / Visual Studio 2022 (GitHub Copilot)
+1. Install **GitHub Copilot** in your editor.
+2. Run the Patens desktop background engine (MS Store or `.EXE`).[cite: 1, 2]
+3. Enable Agent mode in Copilot settings to query Patens vector memory autonomously.
 
 ---
 
-## Architecture
+## 📁 The `_context/` Workspace Directory
 
-Patens is built for absolute speed and privacy with these core technologies:
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Backend** | Python, FastAPI, Uvicorn | Manages MCP server & sync engine |
-| **Protocol** | Model Context Protocol (MCP) | Native IDE integration via fastmcp |
-| **Vector DB** | sqlite-vec | Ultra-fast, local-only RAG (Retrieval-Augmented Generation) |
-| **Embedding Model** | FastEmbed | Runs entirely on CPU, no GPU required |
-| **Data Format** | Markdown Files | Auto-synced `_context` folder in your workspace |
-| **Browser UI** | Command Palette | In-page search & multi-select injection overlay, works on any site |
-
----
-
-## 📁 The _context Folder
-
-Once activated, Patens automatically generates and maintains a `_context` folder in your workspace:
+When running inside an IDE workspace, Patens automatically writes and maintains a physical context directory:
 
 ```
 _context/
-├── 00_Context_Index.md          # Master index of all your research
-├── YAML_Configuration_*.md      # Your saved clips (auto-grouped by source)
+├── 00_Context_Index.md          # Master index of all research sources
+├── Pricing_Specs_Stripe_*.md    # Auto-coalesced clips by source URL
 ├── API_Documentation_*.md
-├── GitHub_Issues_*.md
-└── .gitignore                   # Prevents Git from tracking local context
+└── .gitignore                   # Keeps research local if preferred
 ```
 
-Each file is:
-- **Auto-grouped by source URL** (merges clips from the same page)
-- **Named intelligently** (reflects content + token count)
-- **Updated in real-time** (as you save new clips)
-- **Searchable** (AI uses these files, or the `query_browser_context` tool, to enhance code generation)
-
-Prefer not to litter your workspace with files at all? You don't have to — anything saved is also queryable directly through the MCP tool or the browser Command Palette without ever touching disk.
+Each document is:
+- **Auto-grouped by source URL** (merges clips from the same page).
+- **Token-calculated** (provides estimated prompt token counts).
+- **Physical & Portable** (point Cursor, Obsidian, or Copilot directly to files with `@` mentions).
 
 ---
 
 ## 🔐 Privacy & Security
 
-✅ **100% Local Execution:** No data leaves your machine  
-✅ **No Telemetry:** We don't track your browsing  
-✅ **No Cloud Storage:** SQLite database stays on your disk  
-✅ **Workspace Guardrails:** The sync engine refuses to write `_context/` into your home folder, system directories, or the app's own install path  
-✅ **MIT Licensed:** Open source, inspect the code yourself  
-
----
-
-## 🚀 Getting Started
-
-1. **Download** the Chrome Extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB)
-2. **Download** the Desktop Server from the [Microsoft Store](ms-windows-store://pdp/?productid=9PM9R44F0RXV), [VS Code Marketplace](vscode:extension/patens-dev.patens), or as the [.EXE Installer](https://download.patens.dev/v.1.1.2/patens_installer_1.1.2.exe)
-3. **Configure** your IDE (2-minute setup)
-4. **Highlight** docs in Chrome → `Ctrl+Shift+C`
-5. **Search & inject** with the Command Palette in your IDE, ChatGPT, Claude, or any other chat — one clip or a whole cart at once
-
----
-
-## 💡 Use Cases
-
-- 📚 **API Documentation:** Save API reference docs, instantly access in IDE
-- 🐛 **Debugging:** Capture StackOverflow answers, apply solutions with AI
-- 🏗️ **Architecture:** Save design patterns, let AI follow them in generated code
-- 📖 **Learning:** Research tutorials, let AI build projects aligned with your research
-- 🤖 **Web Model Workflows:** Bring captured, verified context into ChatGPT, Claude, or DeepSeek without re-explaining yourself in every new chat
-- 🛒 **Multi-Source Research Dumps:** Clip five different docs pages across tabs, stage them in the Context Cart, and inject all five into one prompt at once
-- 💬 **Beyond Coding:** Recall a saved spec, quote, or note and paste it into any message box — including WhatsApp Web, Notion, or email
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](#) for details on:
-- Setting up the dev environment
-- Building the `.exe`
-- Submitting pull requests
+- ✅ **100% Local Execution:** FastEmbed CPU embeddings & SQLite-vec run entirely on your hardware.
+- ✅ **Zero Telemetry:** No user tracking, analytics, or remote API pings.
+- ✅ **Air-Gapped Ready:** Works fully offline with local vector databases.
+- ✅ **Open Source:** Licensed under the MIT License.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](#) file for details.
-
----
-
-## 📞 Support
-
-- 🐛 **Found a bug?** [Open an issue](https://github.com/Patens-dev/Patens/issues)
-- 💬 **Have a feature request?** [Discussions](https://github.com/Patens-dev/Patens/discussions)
-- 📧 **Need help?** Check our [FAQ](#) or start a [GitHub Discussion](https://github.com/Patens-dev/Patens/discussions)
-
----
-
-<div align="center">
-  <strong>Made with ❤️ for developers who value speed and privacy</strong>
-  <br/>
-  <a href="https://patens.dev"><strong>Get Started Now →</strong></a>
-</div>
+Distributed under the **MIT License**. See `LICENSE` for more information.

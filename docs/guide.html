@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Patens Setup Guide | JetBrains & Visual Studio</title>
     <style>
         :root {
@@ -10,14 +10,15 @@
             --bg-card: #121214;
             --bg-card-hover: #18181b;
             --border-color: #27272a;
+            --border-light: rgba(255, 255, 255, 0.08);
             --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
 
             --accent-blue: #3b82f6;
             --accent-blue-hover: #2563eb;
-            --accent-glow: rgba(59, 130, 246, 0.15);
             --accent-green: #10b981;
             --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
 
             --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
@@ -27,96 +28,242 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         body {
             font-family: var(--font-sans);
             background-color: var(--bg-base);
             color: var(--text-main);
-            line-height: 1.6;
+            line-height: 1.55;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            background-image: radial-gradient(circle at 50% -10%, var(--accent-glow) 0%, transparent 50%),
-            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
             background-position: center top;
         }
 
-        /* Navigation */
-        nav {
+        /* ==========================================
+           SMOKED OBSIDIAN GLASS (SQUARE & MONOCHROME)
+        ========================================== */
+        .liquid-glass {
+            background: linear-gradient(180deg, rgba(24, 24, 27, 0.72) 0%, rgba(9, 9, 11, 0.88) 100%);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            box-shadow:
+                0 16px 36px -4px rgba(0, 0, 0, 0.65),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            position: relative;
+        }
+
+        .liquid-glass::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           FULL-WIDTH TOP BAR NAVIGATION
+        ========================================== */
+        .nav-wrapper {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(20, 20, 23, 0.85) 0%, rgba(9, 9, 11, 0.95) 100%);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border-bottom: 1px solid var(--border-light);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        }
+
+        nav.nav-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 24px 48px;
-            max-width: 1100px;
+            padding: 12px 24px;
+            max-width: 1600px;
             margin: 0 auto;
             width: 100%;
+            position: relative;
+        }
+
+        .logo a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
         }
 
         .logo img {
-            height: 32px;
+            height: 34px;
             width: auto;
+            max-width: 100%;
+            object-fit: contain;
         }
 
-        .nav-links a {
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 7px 14px;
             color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: color 0.2s;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            cursor: pointer;
         }
 
-        .nav-links a:hover {
-            color: var(--text-main);
+        .nav-btn:hover, .nav-btn:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .nav-mobile-toggle {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            width: 40px;
+            height: 40px;
+            padding: 9px;
+            cursor: pointer;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-mobile-toggle span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: #f4f4f5;
+            border-radius: 2px;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .nav-mobile-toggle.active span:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+        .nav-mobile-toggle.active span:nth-child(2) {
+            opacity: 0;
+            transform: scale(0.2);
+        }
+        .nav-mobile-toggle.active span:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* ==========================================
+           TACTILE KEYCAPS & SHORTCUT BADGES
+        ========================================== */
+        kbd, .kbd-key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: #f4f4f5;
+            background: linear-gradient(180deg, #202023 0%, #121214 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 2px solid #3f3f46;
+            border-radius: 4px;
+            padding: 2px 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            margin: 0 1px;
+            vertical-align: baseline;
+            letter-spacing: 0.2px;
+            cursor: help;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        kbd:active, .kbd-key:active {
+            transform: translateY(1px);
+            border-bottom-width: 1px;
         }
 
         /* Main Container */
         .container {
-            max-width: 1000px;
-            margin: 20px auto 80px;
+            max-width: 1040px;
+            margin: 32px auto 80px;
             padding: 0 24px;
             width: 100%;
         }
 
         .page-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 36px;
         }
 
         .page-header h1 {
-            font-size: clamp(28px, 4vw, 42px);
+            font-size: clamp(26px, 4vw, 40px);
             font-weight: 800;
             letter-spacing: -1px;
             margin-bottom: 12px;
             color: #ffffff;
+            line-height: 1.2;
         }
 
         .page-header p {
-            font-size: 16px;
+            font-size: clamp(14px, 2vw, 15.5px);
             color: var(--text-muted);
-            max-width: 620px;
+            max-width: 640px;
             margin: 0 auto;
+            line-height: 1.6;
         }
 
         /* Download Engine Requirement Callout */
         .engine-download-callout {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 24px 28px;
-            margin-bottom: 36px;
+            border-radius: 8px;
+            padding: 22px 24px;
+            margin-bottom: 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 20px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         }
 
         .callout-text h3 {
-            font-size: 16px;
+            font-size: 15.5px;
             font-weight: 700;
             color: #ffffff;
             margin-bottom: 4px;
@@ -132,7 +279,7 @@
 
         .callout-btn-group {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             flex-shrink: 0;
         }
 
@@ -140,8 +287,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 18px;
-            border-radius: 8px;
+            padding: 9px 16px;
+            border-radius: 6px;
             font-size: 13px;
             font-weight: 600;
             text-decoration: none;
@@ -151,49 +298,51 @@
 
         .btn-callout.store {
             background: rgba(16, 185, 129, 0.12);
-            color: var(--accent-green);
+            color: #6ee7b7;
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
         .btn-callout.store:hover {
-            background: rgba(16, 185, 129, 0.25);
+            background: rgba(16, 185, 129, 0.22);
             border-color: var(--accent-green);
         }
 
         .btn-callout.exe {
-            background: #09090b;
+            background: #18181b;
             color: #ffffff;
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(255, 255, 255, 0.14);
         }
 
         .btn-callout.exe:hover {
-            background: #18181b;
-            border-color: #60a5fa;
+            background: #27272a;
+            border-color: rgba(255, 255, 255, 0.3);
         }
 
         /* IDE Tab Selector Bar */
         .ide-tab-bar {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 32px;
+            gap: 10px;
+            margin-bottom: 24px;
+            width: 100%;
         }
 
         .ide-tab-btn {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 18px 20px;
+            border-radius: 8px;
+            padding: 14px 16px;
             color: var(--text-muted);
             font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 700;
+            font-size: 13.5px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            min-height: 48px;
         }
 
         .ide-tab-btn:hover {
@@ -203,15 +352,15 @@
         }
 
         .ide-tab-btn.active {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: var(--accent-blue);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.25);
             color: #ffffff;
-            box-shadow: 0 0 0 1px var(--accent-blue);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .ide-tab-btn img, .ide-tab-btn svg {
-            width: 22px;
-            height: 22px;
+            width: 20px;
+            height: 20px;
             flex-shrink: 0;
         }
 
@@ -220,10 +369,10 @@
             display: none;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 36px;
+            border-radius: 8px;
+            padding: 32px 28px;
             box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.25s ease;
         }
 
         .ide-panel.active {
@@ -232,12 +381,12 @@
 
         .panel-header {
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 18px;
-            margin-bottom: 28px;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
         }
 
         .panel-header h2 {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 700;
             color: #ffffff;
             margin-bottom: 6px;
@@ -249,11 +398,11 @@
         }
 
         .guide-steps {
-            margin-left: 20px;
+            padding-left: 20px;
             color: var(--text-muted);
-            font-size: 14.5px;
-            line-height: 1.8;
-            margin-bottom: 28px;
+            font-size: 14px;
+            line-height: 1.75;
+            margin-bottom: 24px;
         }
 
         .guide-steps li {
@@ -267,29 +416,29 @@
 
         .guide-steps code {
             background: #000000;
-            padding: 3px 8px;
+            padding: 2px 7px;
             border-radius: 4px;
             font-family: var(--font-mono);
-            font-size: 13px;
-            color: #60a5fa;
+            font-size: 12.5px;
+            color: #d4d4d8;
             border: 1px solid var(--border-color);
         }
 
         /* GitHub Feature Request Banner Box */
         .github-issue-callout {
-            background: rgba(59, 130, 246, 0.05);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-bottom: 28px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 20px;
+            gap: 16px;
         }
 
         .github-issue-text h3 {
-            font-size: 15px;
+            font-size: 14.5px;
             font-weight: 700;
             color: #ffffff;
             margin-bottom: 4px;
@@ -299,7 +448,7 @@
         }
 
         .github-issue-text p {
-            font-size: 13.5px;
+            font-size: 13px;
             color: var(--text-muted);
             line-height: 1.5;
         }
@@ -310,10 +459,10 @@
             gap: 8px;
             background: #18181b;
             color: #ffffff;
-            border: 1px solid var(--border-color);
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            padding: 9px 16px;
+            border-radius: 6px;
+            font-size: 12.5px;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s ease;
@@ -323,32 +472,14 @@
 
         .btn-github-issue:hover {
             background: #27272a;
-            border-color: #60a5fa;
+            border-color: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
 
         .btn-github-issue svg {
-            width: 16px;
-            height: 16px;
+            width: 15px;
+            height: 15px;
             fill: currentColor;
-        }
-
-        /* Video Wrapper */
-        .gif-wrapper {
-            width: 100%;
-            background: #000;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
-            margin-bottom: 28px;
-        }
-
-        .gif-wrapper video {
-            width: 100%;
-            height: auto;
-            display: block;
-            object-fit: cover;
         }
 
         /* Code Block Component */
@@ -357,12 +488,13 @@
             border: 1px solid var(--border-color);
             padding: 20px;
             padding-top: 28px;
-            border-radius: 10px;
+            border-radius: 8px;
             font-family: var(--font-mono);
-            font-size: 13px;
-            color: #a5b4fc;
+            font-size: 12.5px;
+            color: #d4d4d8;
             overflow-x: auto;
             position: relative;
+            margin-top: 14px;
         }
 
         .code-block::before {
@@ -372,12 +504,13 @@
             left: 14px;
             background: var(--bg-card-hover);
             padding: 0 8px;
-            font-size: 11px;
+            font-size: 10.5px;
             color: var(--text-muted);
             font-family: var(--font-sans);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
+            border-radius: 2px;
         }
 
         .copy-btn {
@@ -405,10 +538,10 @@
 
         footer {
             border-top: 1px solid var(--border-color);
-            padding: 30px 24px;
+            padding: 32px 24px;
             text-align: center;
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 13px;
         }
 
         @keyframes fadeIn {
@@ -422,9 +555,50 @@
             }
         }
 
-        @media (max-width: 860px) {
-            nav {
-                padding: 16px 20px;
+        @media (max-width: 768px) {
+            nav.nav-container {
+                padding: 10px 16px;
+            }
+
+            .logo img {
+                height: 30px;
+            }
+
+            .nav-mobile-toggle {
+                display: flex;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                width: 100vw;
+                background: rgba(14, 14, 17, 0.98);
+                backdrop-filter: blur(24px) saturate(180%);
+                -webkit-backdrop-filter: blur(24px) saturate(180%);
+                border-top: 1px solid var(--border-light);
+                border-bottom: 1px solid var(--border-color);
+                padding: 14px 16px;
+                flex-direction: column;
+                gap: 8px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95);
+                z-index: 9999;
+                box-sizing: border-box;
+            }
+
+            .nav-links.mobile-open {
+                display: flex !important;
+                animation: fadeIn 0.2s ease forwards;
+            }
+
+            .nav-btn {
+                width: 100%;
+                justify-content: flex-start;
+                padding: 11px 16px;
+                font-size: 14px;
+                background: rgba(255, 255, 255, 0.04);
             }
 
             .container {
@@ -434,13 +608,13 @@
 
             .ide-tab-bar {
                 grid-template-columns: 1fr;
-                gap: 10px;
+                gap: 8px;
             }
 
             .engine-download-callout {
                 flex-direction: column;
-                align-items: flex-start;
-                padding: 20px;
+                align-items: stretch;
+                padding: 18px;
             }
 
             .callout-btn-group {
@@ -455,7 +629,7 @@
 
             .github-issue-callout {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
             }
 
             .btn-github-issue {
@@ -464,41 +638,51 @@
             }
 
             .ide-panel {
-                padding: 24px 18px;
+                padding: 20px 16px;
             }
         }
     </style>
 </head>
 <body>
 
-<nav>
-    <div class="logo">
-        <a href="index.html">
-            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
-                 alt="Patens Icon">
-        </a>
-    </div>
-    <div class="nav-links">
-        <a href="index.html">← Back to Main Site</a>
-    </div>
-</nav>
+<div class="nav-wrapper">
+    <nav class="nav-container">
+        <div class="logo">
+            <a href="index.html">
+                <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="Patens Logo">
+            </a>
+        </div>
+
+        <button class="nav-mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation menu" onclick="toggleMobileNav(event)">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <div class="nav-links" id="nav-menu">
+            <a href="index.html" class="nav-btn" onclick="closeMobileNav()">← Back to Main Site</a>
+            <a href="index.html#features" class="nav-btn" onclick="closeMobileNav()">Why Patens</a>
+            <a href="index.html#install" class="nav-btn" onclick="closeMobileNav()">Downloads</a>
+            <a href="https://github.com/Patens-dev/Patens" target="_blank" rel="noopener" class="nav-btn" onclick="closeMobileNav()">GitHub</a>
+        </div>
+    </nav>
+</div>
 
 <main class="container">
     <header class="page-header">
         <h1>Patens MCP Engine Setup Guide</h1>
-        <p>Pair GitHub Copilot inside JetBrains or Visual Studio with Patens local memory layer.</p>
+        <p>Pair GitHub Copilot inside JetBrains, Visual Studio, or other MCP clients with the Patens local memory layer.</p>
     </header>
 
     <!-- Download Engine Requirement Callout -->
-    <div class="engine-download-callout">
+    <div class="engine-download-callout liquid-glass">
         <div class="callout-text">
             <h3><span>⚡</span> Step 1: Download & Install Background Engine</h3>
             <p>Non-VS Code environments require running the standalone Patens background engine.</p>
         </div>
         <div class="callout-btn-group">
             <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn-callout store">
-                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg" alt="MS Store"
-                     style="width: 14px; filter: invert(1);">
+                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg" alt="MS Store" style="width: 14px; filter: invert(1);">
                 Microsoft Store
             </a>
             <a href="https://download.patens.dev/latest/patens_installer.exe" class="btn-callout exe exe-download-link">
@@ -510,20 +694,17 @@
     <!-- IDE Tab Bar -->
     <div class="ide-tab-bar">
         <button type="button" class="ide-tab-btn active" id="tab-btn-jetbrains" onclick="switchTab('jetbrains')">
-            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/intellij/intellij-original.svg"
-                 alt="JetBrains">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/intellij/intellij-original.svg" alt="JetBrains">
             JetBrains (GitHub Copilot)
         </button>
 
         <button type="button" class="ide-tab-btn" id="tab-btn-visualstudio" onclick="switchTab('visualstudio')">
-            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/visualstudio/visualstudio-plain.svg"
-                 alt="Visual Studio">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/visualstudio/visualstudio-plain.svg" alt="Visual Studio">
             Visual Studio 2022
         </button>
 
         <button type="button" class="ide-tab-btn" id="tab-btn-other" onclick="switchTab('other')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #a1a1aa;">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
                 <line x1="12" y1="17" x2="12" y2="21"></line>
@@ -536,24 +717,23 @@
     <div class="ide-panel active" id="panel-jetbrains">
         <div class="panel-header">
             <h2>JetBrains Setup: GitHub Copilot + Patens MCP</h2>
-            <p>Replace JetBrains' native AI with GitHub Copilot while giving Copilot access to your Patens local vector
-                memory.</p>
+            <p>Replace JetBrains' native AI with GitHub Copilot while giving Copilot access to your Patens local vector memory.</p>
         </div>
 
         <ol class="guide-steps">
             <li>
                 <strong>Install GitHub Copilot Plugin in JetBrains:</strong>
-                <br>Open Settings (<code>Ctrl+Alt+S</code> on Windows/Linux or <code>Cmd+,</code> on macOS) → <strong>Plugins</strong>
-                → Search <code>GitHub Copilot</code> → Click <strong>Install</strong> → Restart IDE and sign into your
-                GitHub account.
+                <br>Open Settings (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> on Windows/Linux or <kbd>Cmd</kbd>+<kbd>,</kbd> on macOS) ➔ <strong>Plugins</strong> ➔ Search <code>GitHub Copilot</code> ➔ Click <strong>Install</strong> ➔ Restart IDE and sign into your GitHub account.
             </li>
             <li>
                 <strong>Install Patens Background Engine:</strong>
-                <br>Download and run the <strong>Microsoft Store App</strong> or the <strong>.EXE Installer</strong>
-                above. This places <code>Patens.exe</code> on your machine at <code>%LOCALAPPDATA%\Programs\Patens\Patens.exe</code>.
+                <br>Download and run the <strong>Microsoft Store App</strong> or the <strong>.EXE Installer</strong> above. This places <code>Patens.exe</code> on your machine at <code>%LOCALAPPDATA%\Programs\Patens\Patens.exe</code>.
+            </li>
+            <li>
+                <strong>Trigger Palette & Stream Memory:</strong>
+                <br>Highlight research in your browser, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to inspect the command palette, and ask Copilot in JetBrains to synthesize active memory clips autonomously.
             </li>
         </ol>
-
     </div>
 
     <!-- PANEL 2: VISUAL STUDIO 2022 -->
@@ -565,32 +745,26 @@
 
         <ol class="guide-steps">
             <li>Ensure you are running <strong>Visual Studio 2022 v17.14 or later</strong>.</li>
-            <li>Install the Patens background engine via <strong>Microsoft Store</strong> or <strong>.EXE
-                installer</strong> above.
-            </li>
+            <li>Install the Patens background engine via <strong>Microsoft Store</strong> or <strong>.EXE installer</strong> above.</li>
             <li>Open your Visual Studio solution.</li>
-            <li>Enable Agent mode in <strong>Tools &gt; Options &gt; GitHub &gt; Copilot &gt; Copilot Chat</strong>.
-            </li>
+            <li>Enable Agent mode in <strong>Tools &gt; Options &gt; GitHub &gt; Copilot &gt; Copilot Chat</strong>.</li>
+            <li>Browse and select captured snippets anytime with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>.</li>
         </ol>
-
     </div>
 
-    <!-- PANEL 3: OTHER CLIENTS (WITH GITHUB ISSUES CALLOUT) -->
+    <!-- PANEL 3: OTHER CLIENTS -->
     <div class="ide-panel" id="panel-other">
         <div class="panel-header">
             <h2>Other MCP Clients (Claude Desktop, Windsurf, Cline, Zed)</h2>
             <p>Universal configuration snippet for any Model Context Protocol compliant application.</p>
         </div>
 
-        <!-- GitHub Request Callout -->
         <div class="github-issue-callout">
             <div class="github-issue-text">
                 <h3>💬 Don't see your browser or favorite editor listed?</h3>
-                <p>Request a dedicated integration, native plugin, or step-by-step setup guide by opening an issue on
-                    GitHub!</p>
+                <p>Request a dedicated integration, native plugin, or step-by-step setup guide by opening an issue on GitHub.</p>
             </div>
-            <a href="https://github.com/Patens-dev/Patens/issues/new?title=Request%3A+Integration+for+%5BClient%2FBrowser+Name%5D&labels=enhancement"
-               target="_blank" class="btn-github-issue">
+            <a href="https://github.com/Patens-dev/Patens/issues/new?title=Request%3A+Integration+for+%5BClient%2FBrowser+Name%5D&labels=enhancement" target="_blank" rel="noopener" class="btn-github-issue">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
@@ -607,7 +781,32 @@
 </footer>
 
 <script>
-    // Tab Switcher Engine
+    function toggleMobileNav(event) {
+        if (event) event.stopPropagation();
+        const menu = document.getElementById('nav-menu');
+        const toggle = document.getElementById('mobile-menu-toggle');
+        if (menu && toggle) {
+            menu.classList.toggle('mobile-open');
+            toggle.classList.toggle('active');
+        }
+    }
+
+    function closeMobileNav() {
+        const menu = document.getElementById('nav-menu');
+        const toggle = document.getElementById('mobile-menu-toggle');
+        if (menu && toggle) {
+            menu.classList.remove('mobile-open');
+            toggle.classList.remove('active');
+        }
+    }
+
+    document.addEventListener('click', (e) => {
+        const navWrapper = document.querySelector('.nav-wrapper');
+        if (navWrapper && !navWrapper.contains(e.target)) {
+            closeMobileNav();
+        }
+    });
+
     function switchTab(ideKey) {
         document.querySelectorAll('.ide-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.ide-panel').forEach(panel => panel.classList.remove('active'));
@@ -621,7 +820,6 @@
         }
     }
 
-    // Inspect URL parameters (e.g., guide.html?ide=jetbrains)
     function initTabFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const ideParam = urlParams.get('ide') || urlParams.get('editor');
@@ -635,7 +833,6 @@
         }
     }
 
-    // Copy Snippet Logic
     function copySnippet(btn) {
         const pre = btn.parentElement.querySelector('pre');
         navigator.clipboard.writeText(pre.innerText).then(() => {
@@ -650,7 +847,6 @@
         });
     }
 
-    // R2 Manifest Sync
     async function syncLatestDownloads() {
         const MANIFEST_URL = 'https://download.patens.dev/latest.json';
         try {
