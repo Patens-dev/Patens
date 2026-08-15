@@ -1,3 +1,5 @@
+// extension/content/utils.js
+
 window.Patens = window.Patens || {};
 
 // ==========================================
@@ -64,7 +66,6 @@ Patens.API = {
             chrome.runtime.sendMessage({ action: "proxy_fetch", url, responseType }, (response) => {
                 const duration = (performance.now() - startTime).toFixed(2);
 
-                // Read lastError immediately to satisfy Chrome runtime requirements
                 if (chrome.runtime.lastError) {
                     const lastErr = chrome.runtime.lastError.message || "Runtime messaging port closed";
                     Logger.error(`Proxy fetch messaging failed after ${duration}ms for ${url}:`, null, lastErr);
@@ -156,7 +157,7 @@ Patens.API = {
 };
 
 // ==========================================
-// 4. HELPER UTILITIES
+// 4. HELPER & EXTRACTION UTILITIES
 // ==========================================
 Patens.Utils = {
     fastHash: (str) => {
@@ -238,6 +239,95 @@ Patens.Utils = {
             .replace(/ - Google Search$/, '')
             .replace(/ - YouTube$/, '')
             .replace(/ \| ChatGPT$/, '');
+    },
+
+    /**
+     * Resolves the nearest cohesive semantic unit (e.g. pricing feature rows, cards, tables).
+     */
+    getSemanticContainer: (target) => {
+        if (!target || target === document.body || target === document.documentElement) {
+            return null;
+        }
+
+        // 1. Specific Feature / Pricing row level (e.g. Stripe, Paddle, LemonSqueezy)
+        const featureUnit = target.closest(
+            '.PricingProductFeature, ' +
+            '.PricingGridPrice, ' +
+            '[class*="PricingTier"], ' +
+            '[class*="PricingCard"], ' +
+            '[class*="pricing-row"], ' +
+            '[class*="plan-card"], ' +
+            '[data-testid*="pricing"], ' +
+            'tr, li.ListItem, li.List__item'
+        );
+        if (featureUnit) return featureUnit;
+
+        // 2. Cohesive Product Card / Section level
+        const cardUnit = target.closest(
+            '.PricingProductCard, ' +
+            '.ProductGroupDisplay__productSection, ' +
+            '[class*="Card--"], ' +
+            'article, section[id], ' +
+            '.patens-pdf-block, .patens-pdf-figure'
+        );
+        if (cardUnit) return cardUnit;
+
+        // 3. Fallback: Search parent for balanced semantic text block
+        let current = target;
+        while (current && current !== document.body) {
+            const textLen = (current.innerText || '').trim().length;
+            if (textLen > 30 && textLen < 1200) {
+                return current;
+            }
+            current = current.parentElement;
+        }
+
+        return target;
+    },
+
+    /**
+     * Serializes complex pricing containers or UI cards into clean, readable Markdown.
+     */
+    extractStructuredText: (container) => {
+        if (!container) return "";
+
+        // PDF Block extraction support
+        if (container.classList && container.classList.contains('patens-pdf-block')) {
+            return container.dataset.cleanText || container.getAttribute('data-clean-text') || container.innerText.trim();
+        }
+
+        // Detect structured pricing unit (e.g. Stripe / SaaS pricing feature rows)
+        const titleEl = container.querySelector('[class*="title"], h1, h2, h3, h4, strong');
+        const descEl = container.querySelector('[class*="body"], [class*="desc"], [class*="copy"] p, p');
+        const amountEl = container.querySelector('[class*="amount"], [class*="Price"], [class*="price"]');
+        const labelEl = container.querySelector('[class*="label"], [class*="caption"]');
+        const subprices = Array.from(container.querySelectorAll('[class*="Subprice"], [class*="disclaimer"], [class*="footnote"]'));
+
+        if (titleEl && (amountEl || descEl)) {
+            let output = `### ${titleEl.innerText.trim()}\n`;
+            if (descEl && descEl !== titleEl) {
+                output += `*Description:* ${descEl.innerText.trim()}\n`;
+            }
+            if (amountEl) {
+                const labelText = labelEl ? ` ${labelEl.innerText.trim()}` : '';
+                output += `**Base Rate:** ${amountEl.innerText.trim()}${labelText}\n`;
+            }
+
+            if (subprices.length > 0) {
+                output += `**Additional Fees & Modifiers:**\n`;
+                subprices.forEach(sub => {
+                    const cleanSub = sub.innerText.trim().replace(/\n+/g, ' ');
+                    if (cleanSub) output += `• ${cleanSub}\n`;
+                });
+            }
+            return output.trim();
+        }
+
+        // Fallback: Clean innerText collapsing excess newlines
+        return (container.innerText || "")
+            .replace(/\r\n/g, '\n')
+            .replace(/\n\s*\n\s*\n+/g, '\n\n')
+            .trim();
     },
 
     getBase64Image: async (imgElement) => {
@@ -400,5 +490,4 @@ Patens.UIBuilder = {
     }
 };
 
-// Alias for UI builder
 Patens.h = Patens.UIBuilder.create;

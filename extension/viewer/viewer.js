@@ -8,6 +8,50 @@ import '../content/main.js';
 let convertedHtmlCache = null;
 let currentViewMode = 'native';
 
+// ==========================================
+// DIRECT SERVER DISCOVERY (Bypasses IPC collisions)
+// ==========================================
+async function getBaseUrl() {
+  const hosts = ["127.0.0.1", "localhost"];
+
+  // Fast Path: Test default port 8000 first
+  for (const host of hosts) {
+    const defaultUrl = `http://${host}:8000/api/v1`;
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 1200);
+      const resp = await fetch(`${defaultUrl}/config/system`, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.status === "running") return defaultUrl;
+      }
+    } catch (e) {}
+  }
+
+  // Fallback Sweep: Check ports 8001 to 8010
+  for (const host of hosts) {
+    for (let port = 8001; port <= 8010; port++) {
+      const testUrl = `http://${host}:${port}/api/v1`;
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 800);
+        const resp = await fetch(`${testUrl}/config/system`, { signal: ctrl.signal });
+        clearTimeout(tid);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.status === "running") return testUrl;
+        }
+      } catch (e) {}
+    }
+  }
+
+  throw new Error("Could not find active Patens server on ports 8000-8010");
+}
+
+// ==========================================
+// VIEWER CONTROLLER
+// ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const pdfUrl = params.get('url');
@@ -36,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pdfEmbed.src = pdfUrl;
   }
 
-  // 2. Client-Side Session Storage Cache Check (Instant load on refresh)
+  // 2. Client-Side Session Storage Cache Check
   const cacheKey = `patens_html_cache_${btoa(pdfUrl).slice(0, 32)}`;
   const cachedHtml = sessionStorage.getItem(cacheKey);
 
@@ -47,35 +91,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 3. Request Background Conversion (Server checks MD5 checksum)
-  chrome.runtime.sendMessage(
-    { action: "convert_pdf_url", url: pdfUrl, title: fileName },
-    (response) => {
-      // Consume lastError first to prevent hanging promises & port closure errors
-      if (chrome.runtime.lastError) {
-        console.warn("[Patens Viewer] Background conversion IPC error:", chrome.runtime.lastError.message);
-        if (badgeSpinner) badgeSpinner.remove();
-        if (badgeText) badgeText.innerText = "⚠️ Conversion Failed";
-        return;
+  // 3. Direct HTTP Conversion
+  (async () => {
+    try {
+      const baseUrl = await getBaseUrl();
+      console.log(`[Patens Viewer] Connected directly to Patens server at: ${baseUrl}`);
+
+      let htmlContent = null;
+
+      // Attempt A: Server-side URL fetch
+      try {
+        console.log(`[Patens Viewer] Requesting conversion via server URL -> ${pdfUrl}`);
+        const response = await fetch(`${baseUrl}/pdf/convert-url`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: pdfUrl, title: fileName })
+        });
+
+        if (response.ok) {
+          htmlContent = await response.text();
+        } else {
+          console.warn(`[Patens Viewer] Server returned ${response.status}. Attempting browser download fallback...`);
+        }
+      } catch (e) {
+        console.warn("[Patens Viewer] Server URL fetch failed, falling back to browser download...", e);
       }
 
-      if (response && response.success && response.html) {
-        convertedHtmlCache = response.html;
+      // Attempt B: Browser-side download fallback (for sites blocking backend with 403)
+      if (!htmlContent) {
+        console.info("[Patens Viewer] Downloading PDF via browser context...");
+        const fileResp = await fetch(pdfUrl);
+        if (!fileResp.ok) throw new Error(`Browser download failed with HTTP ${fileResp.status}`);
+        const pdfBlob = await fileResp.blob();
 
-        // Save in sessionStorage for zero-latency page refreshes
+        const formData = new FormData();
+        formData.append("file", pdfBlob, fileName);
+
+        const uploadResp = await fetch(`${baseUrl}/pdf/convert-file`, {
+          method: "POST",
+          body: formData
+        });
+
+        if (!uploadResp.ok) {
+          const errText = await uploadResp.text();
+          throw new Error(`Server returned ${uploadResp.status}: ${errText}`);
+        }
+        htmlContent = await uploadResp.text();
+      }
+
+      if (htmlContent) {
+        convertedHtmlCache = htmlContent;
+
         try {
-          sessionStorage.setItem(cacheKey, response.html);
+          sessionStorage.setItem(cacheKey, htmlContent);
         } catch (e) {
-          console.warn("[Patens Viewer] sessionStorage quota exceeded, skipping local cache.");
+          console.warn("[Patens Viewer] sessionStorage quota exceeded, keeping in JS memory.");
         }
 
         enableSwitchBadge(switchBadge, badgeSpinner, badgeText);
-      } else {
-        if (badgeSpinner) badgeSpinner.remove();
-        if (badgeText) badgeText.innerText = "⚠️ Conversion Failed";
       }
+    } catch (err) {
+      console.error("[Patens Viewer] Conversion failed:", err);
+      if (badgeSpinner) badgeSpinner.remove();
+      if (badgeText) badgeText.textContent = "⚠️ Conversion Failed";
     }
-  );
+  })();
 
   // Shortcut (Ctrl + Space) to toggle view
   window.addEventListener('keydown', (e) => {
@@ -134,9 +214,9 @@ function renderConvertedHtml(rawHtml) {
 
   const documentViewer = doc.querySelector('#document-viewer');
   if (documentViewer) {
-    container.appendChild(documentViewer);
+    container.replaceChildren(documentViewer);
   } else {
-    container.innerHTML = doc.body.innerHTML;
+    container.replaceChildren(...Array.from(doc.body.childNodes));
   }
 
   setTimeout(() => {

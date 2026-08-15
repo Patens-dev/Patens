@@ -192,7 +192,48 @@ fi
 TIME_TESTS=$(stop_timer)
 
 # ===================================================================
-# 3. DYNAMIC FASTEMBED MODEL CACHING
+# 3. BROWSER EXTENSION BUILD & PACKAGING (VITE)
+# ===================================================================
+log_info "⚡ Compiling browser extension using Vite..."
+start_timer
+
+if command -v npm &> /dev/null; then
+    npm run build || {
+        log_error "Failed to build browser extension with Vite/npm."
+        exit 1
+    }
+else
+    log_error "npm command not found. Required for building the browser extension with Vite."
+    exit 1
+fi
+
+BUILD_EXT_DIR="dist/extension"
+EXTENSION_ZIP_OUTPUT="${VERSION_DIR}/extension_${EXT_VERSION}.zip"
+
+if [ ! -d "$BUILD_EXT_DIR" ]; then
+    log_error "Vite extension build directory '$BUILD_EXT_DIR' not found."
+    exit 1
+fi
+
+mkdir -p "$VERSION_DIR"
+
+log_info "📦 Zipping compiled extension bundle from ${BUILD_EXT_DIR}..."
+"$PYTHON_BIN" -c '
+import sys, os, zipfile
+ext_dir, zip_filename = sys.argv[1], sys.argv[2]
+if os.path.exists(ext_dir):
+    os.makedirs(os.path.dirname(os.path.abspath(zip_filename)), exist_ok=True)
+    with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(ext_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, os.path.relpath(file_path, ext_dir))
+' "$BUILD_EXT_DIR" "$EXTENSION_ZIP_OUTPUT"
+
+TIME_EXTENSION=$(stop_timer)
+
+# ===================================================================
+# 4. DYNAMIC FASTEMBED MODEL CACHING
 # ===================================================================
 log_info "📥 Synchronizing FastEmbed model from config..."
 start_timer
@@ -205,15 +246,13 @@ from fastembed import TextEmbedding
 
 cache_path = os.path.abspath("fastembed_cache")
 print(f"Resolving configured model: {MODEL_NAME} -> {cache_path}")
-
-# Download and cache cleanly without deleting blobs
 TextEmbedding(model_name=MODEL_NAME, cache_dir=cache_path)
 '
 TIME_FASTEMBED=$(stop_timer)
 SIZE_MODEL_CACHE=$(get_size "fastembed_cache")
 
 # ===================================================================
-# 4. PYINSTALLER COMPILATION (DYNAMIC SPEC GENERATION)
+# 5. PYINSTALLER COMPILATION (DYNAMIC SPEC GENERATION)
 # ===================================================================
 log_info "📝 Generating dynamic Patens.spec with complete C-extension hooks..."
 start_timer
@@ -316,7 +355,7 @@ TIME_PYINSTALLER=$(stop_timer)
 SIZE_PYINSTALLER_EXE=$(get_size "dist/Patens")
 
 # ===================================================================
-# 4.1 RUNTIME DLL SMOKE TEST (FAIL-FAST GUARD)
+# 5.1 RUNTIME DLL SMOKE TEST (FAIL-FAST GUARD)
 # ===================================================================
 log_info "🔍 Verifying binary integrity and dynamic C-extension DLLs..."
 
@@ -339,7 +378,7 @@ except Exception as e:
 log_success "✅ Compiled binary booted successfully! All dynamic C-extensions and DLLs loaded."
 
 # ===================================================================
-# 5. MSIX PACKAGE GENERATION & SIGNING
+# 6. MSIX PACKAGE GENERATION & SIGNING
 # ===================================================================
 log_info "📦 Creating MSIX package layout..."
 start_timer
@@ -411,6 +450,7 @@ cat << EOF > msix_layout/AppxManifest.xml
 EOF
 
 log_info "🔨 Packing MSIX package..."
+mkdir -p "$VERSION_DIR"
 MSIX_OUTPUT="${VERSION_DIR}/patens_${APP_VERSION}.msix"
 MSYS_NO_PATHCONV=1 "$MAKEAPPX_CMD" pack /d msix_layout /p "$MSIX_OUTPUT" /o
 
@@ -423,7 +463,7 @@ TIME_MSIX=$(stop_timer)
 SIZE_MSIX=$(get_size "$MSIX_OUTPUT")
 
 # ===================================================================
-# 6. EXE INSTALLER GENERATION (INNO SETUP + VC++ REDISTRIBUTABLE)
+# 7. EXE INSTALLER GENERATION (INNO SETUP + VC++ REDISTRIBUTABLE)
 # ===================================================================
 log_info "⚙️ Generating standalone EXE installer..."
 start_timer
@@ -505,49 +545,12 @@ TIME_EXE_INSTALLER=$(stop_timer)
 SIZE_EXE_INSTALLER=$(get_size "$EXE_INSTALLER_OUTPUT")
 
 # ===================================================================
-# 7. BROWSER EXTENSION BUILD & PACKAGING (VITE)
-# ===================================================================
-log_info "⚡ Compiling browser extension using Vite..."
-start_timer
-
-if command -v npm &> /dev/null; then
-    npm run build || {
-        log_error "Failed to build browser extension with Vite/npm."
-        exit 1
-    }
-else
-    log_error "npm command not found. Required for building the browser extension with Vite."
-    exit 1
-fi
-
-BUILD_EXT_DIR="dist/extension"
-EXTENSION_ZIP_OUTPUT="${VERSION_DIR}/extension_${EXT_VERSION}.zip"
-
-if [ ! -d "$BUILD_EXT_DIR" ]; then
-    log_error "Vite extension build directory '$BUILD_EXT_DIR' not found."
-    exit 1
-fi
-
-log_info "📦 Zipping compiled extension bundle from ${BUILD_EXT_DIR}..."
-"$PYTHON_BIN" -c '
-import sys, os, zipfile
-ext_dir, zip_filename = sys.argv[1], sys.argv[2]
-if os.path.exists(ext_dir):
-    with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(ext_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                zipf.write(file_path, os.path.relpath(file_path, ext_dir))
-' "$BUILD_EXT_DIR" "$EXTENSION_ZIP_OUTPUT"
-
-# ===================================================================
 # 7.1 LOCAL HARDLINK CREATION (ZERO DISK SPACE DUPLICATION)
 # ===================================================================
 log_info "🔗 Creating local 'dist/latest/' hardlinks (0 bytes wasted)..."
 mkdir -p dist/latest
 rm -rf dist/latest/*
 
-# Create hardlinks locally
 ln "$EXE_INSTALLER_OUTPUT" "dist/latest/patens_installer.exe" 2>/dev/null || cp "$EXE_INSTALLER_OUTPUT" "dist/latest/patens_installer.exe"
 ln "$MSIX_OUTPUT" "dist/latest/patens.msix" 2>/dev/null || cp "$MSIX_OUTPUT" "dist/latest/patens.msix"
 ln "$EXTENSION_ZIP_OUTPUT" "dist/latest/extension.zip" 2>/dev/null || cp "$EXTENSION_ZIP_OUTPUT" "dist/latest/extension.zip"
@@ -583,19 +586,16 @@ if [[ "$GIT_BRANCH" == "release" ]] || [[ "$GIT_BRANCH" == release/* ]]; then
     : "${R2_BUCKET:?Need to set R2_BUCKET environment variable}"
     : "${R2_ENDPOINT:?Need to set R2_ENDPOINT environment variable}"
 
-    # 1. Upload ALL 3 artifacts to versioned folder ONLY (No duplicate binary uploads!)
     log_info "☁️ Uploading v${APP_VERSION} directory artifacts to R2..."
     aws s3 cp "${VERSION_DIR}/" "s3://${R2_BUCKET}/v${APP_VERSION}/" \
       --recursive \
       --endpoint-url "$R2_ENDPOINT"
 
-    # 2. Upload latest.json manifest to root
     log_info "📝 Updating root latest.json manifest on R2..."
     aws s3 cp dist/latest.json "s3://${R2_BUCKET}/latest.json" \
       --endpoint-url "$R2_ENDPOINT" \
       --cache-control "no-cache, no-store, must-revalidate"
 
-    # 3. Cache Purge
     if [ -n "${CLOUDFLARE_ZONE_ID:-}" ] && [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
         log_info "🧹 Purging Cloudflare CDN cache..."
         curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
@@ -609,7 +609,6 @@ else
     log_warn "⏭️ Skipping R2 upload. Current branch ('$GIT_BRANCH') is not 'release'."
 fi
 
-TIME_EXTENSION=$(stop_timer)
 rm -rf dist/Patens
 TIME_TOTAL=$(( $(date +%s) - PIPELINE_START ))
 
@@ -621,11 +620,11 @@ printf "%-35s | %-12s | %-15s\n" "Build Phase" "Duration" "Artifact Size"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "1. Metadata Parsing" "${TIME_METADATA}s" "N/A"
 printf "%-35s | %-12s | %-15s\n" "2. Test Suite Execution" "${TIME_TESTS}s" "Passed ✅"
-printf "%-35s | %-12s | %-15s\n" "3. FastEmbed Model Cache" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
-printf "%-35s | %-12s | %-15s\n" "4. PyInstaller Spec & Build" "${TIME_PYINSTALLER}s" "Dir: ${SIZE_PYINSTALLER_EXE}"
-printf "%-35s | %-12s | %-15s\n" "5. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
-printf "%-35s | %-12s | %-15s\n" "6. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
-printf "%-35s | %-12s | %-15s\n" "7. Extension Build (Vite)" "${TIME_EXTENSION}s" "Zip: $(get_size "$EXTENSION_ZIP_OUTPUT")"
+printf "%-35s | %-12s | %-15s\n" "3. Extension Build (Vite)" "${TIME_EXTENSION}s" "Zip: $(get_size "$EXTENSION_ZIP_OUTPUT")"
+printf "%-35s | %-12s | %-15s\n" "4. FastEmbed Model Cache" "${TIME_FASTEMBED}s" "Cache: ${SIZE_MODEL_CACHE}"
+printf "%-35s | %-12s | %-15s\n" "5. PyInstaller Spec & Build" "${TIME_PYINSTALLER}s" "Dir: ${SIZE_PYINSTALLER_EXE}"
+printf "%-35s | %-12s | %-15s\n" "6. MSIX Packaging" "${TIME_MSIX}s" "MSIX: ${SIZE_MSIX}"
+printf "%-35s | %-12s | %-15s\n" "7. EXE Installer Generation" "${TIME_EXE_INSTALLER}s" "EXE: ${SIZE_EXE_INSTALLER}"
 echo "-------------------------------------------------------------------"
 printf "%-35s | %-12s | %-15s\n" "TOTAL RUNTIME" "${TIME_TOTAL}s" ""
 echo -e "${CYAN}===================================================================${NC}"

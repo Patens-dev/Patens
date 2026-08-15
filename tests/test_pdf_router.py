@@ -1,7 +1,7 @@
 import hashlib
 from typing import Any, Dict, List
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, ANY
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 import requests
@@ -58,13 +58,11 @@ def test_convert_pdf_url_to_html_success(client, mocker):
     mock_pdf_bytes = b"%PDF-1.4 dummy pdf bytes"
     mock_html = "<html><body>Converted PDF</body></html>"
 
-    # Mock external HTTP request
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.content = mock_pdf_bytes
     mock_get = mocker.patch("requests.get", return_value=mock_response)
 
-    # Mock HTML converter service
     mock_convert = mocker.patch(
         "patens.server.routers.pdf_router.html_converter.convert_pdf_to_html",
         return_value=mock_html
@@ -77,10 +75,14 @@ def test_convert_pdf_url_to_html_success(client, mocker):
     assert response.text == mock_html
     assert response.headers["content-type"].startswith("text/html")
 
-    mock_get.assert_called_once_with("https://example.com/sample.pdf", timeout=15)
+    mock_get.assert_called_once_with(
+        "https://example.com/sample.pdf",
+        headers=ANY,
+        timeout=ANY,
+        allow_redirects=True,
+    )
     mock_convert.assert_called_once_with(pdf_input=mock_pdf_bytes, document_title="Sample PDF")
 
-    # Verify result was stored in server cache
     checksum = _compute_url_checksum("https://example.com/sample.pdf")
     assert _html_conversion_cache[checksum] == mock_html
 
@@ -126,7 +128,7 @@ def test_convert_pdf_url_to_html_network_exception_http_500(client, mocker):
 
 
 def test_convert_pdf_url_to_html_invalid_url_validation(client):
-    """Tests Pydantic HttpUrl validation failure returning 422."""
+    """Tests Pydantic scheme validation failure returning 422."""
     response = client.post("/pdf/convert-url", json={"url": "invalid-url-string"})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -164,10 +166,9 @@ def test_get_pdf_spatial_index_url_success(client, mocker):
     assert response.status_code == 200
     assert response.json() == mock_spatial_data
 
-    mock_get.assert_called_once_with(url, timeout=15)
+    mock_get.assert_called_once_with(url, headers=ANY, timeout=ANY, allow_redirects=True)
     mock_indexer.assert_called_once_with(pdf_input=mock_pdf_bytes)
 
-    # Verify cached
     checksum = _compute_url_checksum(url)
     assert _spatial_index_cache[checksum] == mock_spatial_data
 
@@ -241,7 +242,6 @@ def test_convert_pdf_file_to_html_success(client, mocker):
     assert response.text == mock_html
     mock_convert.assert_called_once_with(pdf_input=pdf_bytes, document_title="document.pdf")
 
-    # Verify byte MD5 cached
     checksum = hashlib.md5(pdf_bytes).hexdigest()
     assert _html_conversion_cache[checksum] == mock_html
 

@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>patens | The Local Memory Layer for AI Coding</title>
+    <title>patens | The Zero-Friction Research & Synthesis Layer for AI</title>
     <style>
         :root {
             --bg-base: #09090b;
             --bg-card: #121214;
             --bg-card-hover: #18181b;
             --border-color: #27272a;
+            --border-light: rgba(255, 255, 255, 0.08);
             --text-main: #f4f4f5;
             --text-muted: #a1a1aa;
 
             --accent-blue: #3b82f6;
             --accent-blue-hover: #2563eb;
-            --accent-glow: rgba(59, 130, 246, 0.15);
             --accent-green: #10b981;
             --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
 
             --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
@@ -35,11 +36,79 @@
             color: var(--text-main);
             line-height: 1.6;
             overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% -10%, var(--accent-glow) 0%, transparent 50%),
-            linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
             background-position: center top;
+        }
+
+        /* ==========================================
+           SMOKED OBSIDIAN GLASS (SQUARE & MONOCHROME)
+        ========================================== */
+        .liquid-glass {
+            background: linear-gradient(180deg, rgba(24, 24, 27, 0.72) 0%, rgba(9, 9, 11, 0.88) 100%);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            box-shadow:
+                0 16px 36px -4px rgba(0, 0, 0, 0.65),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .liquid-glass::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+            pointer-events: none;
+        }
+
+        /* ==========================================
+           TACTILE KEYCAPS & SHORTCUT BADGES
+        ========================================== */
+        kbd, .kbd-key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: #f4f4f5;
+            background: linear-gradient(180deg, #202023 0%, #121214 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 2px solid #3f3f46;
+            border-radius: 4px;
+            padding: 2px 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            margin: 0 2px;
+            vertical-align: baseline;
+            letter-spacing: 0.2px;
+            cursor: help;
+            transition: all 0.15s ease;
+        }
+
+        kbd:hover, .kbd-key:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: #27272a;
+            transform: translateY(-1px);
+        }
+
+        .shortcut-badge-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 3px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         /* Navigation */
@@ -54,7 +123,7 @@
         }
 
         .logo img {
-            height: 48px;
+            height: 44px;
             width: auto;
         }
 
@@ -80,12 +149,12 @@
         .hero {
             max-width: 1600px;
             margin: 0 auto;
-            padding: 30px 16px 80px 48px;
+            padding: 24px 16px 70px 48px;
         }
 
         .hero-grid {
             display: grid;
-            grid-template-columns: 0.85fr 1.35fr;
+            grid-template-columns: 0.9fr 1.3fr;
             gap: 36px;
             align-items: center;
         }
@@ -97,15 +166,13 @@
             padding-right: 12px;
         }
 
-        /* Mode Switcher Bar */
+        /* Mode Switcher */
         .mode-switcher {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            background: #121214;
-            border: 1px solid var(--border-color);
-            padding: 4px;
-            border-radius: 30px;
+            gap: 4px;
+            padding: 3px;
+            border-radius: 8px;
             width: fit-content;
             margin-bottom: 24px;
             max-width: 100%;
@@ -113,35 +180,40 @@
 
         .mode-btn {
             background: transparent;
-            border: none;
+            border: 1px solid transparent;
             color: var(--text-muted);
             font-family: var(--font-sans);
             font-size: 13px;
             font-weight: 500;
-            padding: 6px 16px;
-            border-radius: 20px;
+            padding: 6px 14px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             gap: 6px;
             white-space: nowrap;
         }
 
+        .mode-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
         .mode-btn.active {
-            background: var(--bg-card-hover);
+            background: rgba(255, 255, 255, 0.08);
             color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
         }
 
         .hero-eyebrow {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            font-style: italic;
-            color: #60a5fa;
+            color: #d4d4d8;
             margin-bottom: 12px;
             height: 22px;
+            letter-spacing: 0.2px;
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
@@ -157,7 +229,7 @@
         }
 
         .hero-title span {
-            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -165,7 +237,7 @@
         .hero-desc {
             font-size: 15px;
             color: var(--text-muted);
-            max-width: 500px;
+            max-width: 520px;
             margin-bottom: 32px;
             line-height: 1.6;
             min-height: 72px;
@@ -186,8 +258,21 @@
 
         .hero-cta {
             display: flex;
+            align-items: center;
             gap: 14px;
             flex-wrap: wrap;
+        }
+
+        .cta-divider {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: lowercase;
+            user-select: none;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn {
@@ -195,7 +280,7 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            padding: 14px 24px;
+            padding: 13px 22px;
             border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
@@ -203,20 +288,20 @@
             transition: all 0.2s ease;
             cursor: pointer;
             border: none;
-            min-height: 46px;
+            min-height: 44px;
         }
 
         .btn-primary-white {
             background: #ffffff;
             color: #09090b;
-            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 16px rgba(255, 255, 255, 0.12);
             font-weight: 700;
         }
 
         .btn-primary-white:hover {
             background: #e4e4e7;
             transform: translateY(-1px);
-            box-shadow: 0 6px 24px rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
         }
 
         .btn-secondary {
@@ -249,7 +334,7 @@
         .demo-panel {
             background: #09090b;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -271,29 +356,27 @@
         }
 
         .header-status-badge {
-            background: rgba(18, 18, 20, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 4px 12px;
+            border-radius: 6px;
+            padding: 4px 10px;
             display: flex;
             align-items: center;
             gap: 10px;
             font-size: 12px;
             font-weight: 500;
-            color: #ffffff;
+            color: #f4f4f5;
             white-space: nowrap;
             overflow: hidden;
         }
 
         .badge-step-num {
-            background: var(--accent-blue);
+            background: #27272a;
             color: #ffffff;
-            border-radius: 10px;
-            padding: 1px 7px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+            padding: 1px 6px;
             font-size: 10px;
             font-weight: 700;
             font-family: var(--font-mono);
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
             flex-shrink: 0;
         }
 
@@ -307,15 +390,15 @@
         .step-dot {
             width: 5px;
             height: 5px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.25);
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.2);
             transition: all 0.3s ease;
         }
 
         .step-dot.active {
-            background: var(--accent-blue);
-            box-shadow: 0 0 6px var(--accent-blue);
-            transform: scale(1.2);
+            background: #ffffff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+            transform: scale(1.1);
         }
 
         .demo-header-right {
@@ -326,15 +409,15 @@
         }
 
         .demo-title {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
             margin-right: 8px;
             font-family: var(--font-mono);
         }
 
         .window-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
         }
 
@@ -358,10 +441,49 @@
             display: block;
         }
 
-        /* Story Section */
+        /* Keyboard Reference Bar */
+        .keyboard-reference-bar {
+            max-width: 1100px;
+            margin: 32px auto 0;
+            padding: 14px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .kb-ref-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #d4d4d8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kb-ref-items {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .kb-ref-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #d4d4d8;
+        }
+
+        /* Story Section: Agony vs Flow */
         .story-section {
-            max-width: 1000px;
-            margin: 100px auto;
+            max-width: 1100px;
+            margin: 60px auto 100px;
             padding: 0 24px;
         }
 
@@ -371,28 +493,28 @@
             gap: 1px;
             background: var(--border-color);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
         }
 
         .story-card {
             background: var(--bg-card);
-            padding: 40px;
+            padding: 36px;
         }
 
         .story-card h3 {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 18px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
         }
 
         .story-card.bad h3 {
-            color: #ef4444;
+            color: var(--accent-red);
         }
 
         .story-card.good h3 {
@@ -401,8 +523,9 @@
 
         .story-card p {
             color: var(--text-muted);
-            font-size: 15px;
-            margin-bottom: 16px;
+            font-size: 14.5px;
+            margin-bottom: 14px;
+            line-height: 1.6;
         }
 
         .story-card strong {
@@ -413,9 +536,9 @@
         /* Features Bento Grid */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            max-width: 1000px;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 20px;
+            max-width: 1100px;
             margin: 0 auto 100px;
             padding: 0 24px;
         }
@@ -423,41 +546,44 @@
         .feature-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 32px;
-            transition: border-color 0.2s ease;
+            border-radius: 8px;
+            padding: 30px;
+            transition: border-color 0.2s ease, transform 0.2s ease;
         }
 
         .feature-card:hover {
             border-color: #52525b;
+            transform: translateY(-2px);
         }
 
         .feature-icon {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             background: #000;
             border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            color: var(--accent-blue);
-            font-size: 20px;
+            margin-bottom: 18px;
+            color: #d4d4d8;
+            font-size: 18px;
         }
 
         .feature-card h3 {
-            font-size: 18px;
-            margin-bottom: 12px;
+            font-size: 17px;
+            margin-bottom: 10px;
             color: #ffffff;
+            font-weight: 700;
         }
 
         .feature-card p {
             color: var(--text-muted);
-            font-size: 15px;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
-        /* SETUP SECTION WITH IDE SELECTOR */
+        /* SETUP SECTION WITH SELECTOR */
         .setup-section {
             max-width: 1100px;
             margin: 0 auto 100px;
@@ -481,20 +607,19 @@
             font-size: 16px;
         }
 
-        /* IDE Selector Bar Component */
         .ide-selector-container {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 20px 24px;
-            margin-bottom: 28px;
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
         }
 
         .ide-selector-label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
@@ -507,52 +632,50 @@
         .ide-selector-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: 10px;
         }
 
         .ide-select-btn {
             background: #09090b;
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 14px 16px;
+            border-radius: 6px;
+            padding: 12px 14px;
             color: var(--text-muted);
             font-family: var(--font-sans);
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .ide-select-btn:hover {
             border-color: #52525b;
             color: var(--text-main);
-            background: #18181b;
+            background: #141416;
         }
 
         .ide-select-btn.active {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: var(--accent-blue);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.25);
             color: #ffffff;
-            box-shadow: 0 0 0 1px var(--accent-blue);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .ide-select-btn img, .ide-select-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             flex-shrink: 0;
         }
 
-        /* Dynamic Redirect/Guide Callout Banner */
+        /* Clean Monochrome Liquid Glass Banner */
         .guide-callout-banner {
             display: none;
-            background: rgba(245, 158, 11, 0.08);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            border-radius: 10px;
-            padding: 14px 20px;
+            border-radius: 8px;
+            padding: 14px 18px;
             margin-bottom: 24px;
             align-items: center;
             justify-content: space-between;
@@ -566,31 +689,43 @@
 
         .guide-callout-text {
             font-size: 13.5px;
-            color: #fbbf24;
+            color: #f4f4f5;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
+        .tip-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #f4f4f5;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
         .btn-callout-redirect {
-            background: #09090b;
-            border: 1px solid rgba(245, 158, 11, 0.4);
+            background: #18181b;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             color: #ffffff;
-            padding: 8px 16px;
+            padding: 7px 14px;
             border-radius: 6px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
             text-decoration: none;
             white-space: nowrap;
             transition: all 0.2s;
         }
 
         .btn-callout-redirect:hover {
-            background: rgba(245, 158, 11, 0.2);
-            border-color: #fbbf24;
+            background: #27272a;
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
         }
 
-        /* SETUP MATRIX (3 COLUMNS) */
         .setup-matrix-3col {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -600,8 +735,8 @@
         .setup-step-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 28px 24px;
+            border-radius: 8px;
+            padding: 26px 22px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -615,12 +750,11 @@
         }
 
         .setup-step-card.featured {
-            border-color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.03);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%), var(--bg-card);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
         }
 
-        /* GREYED OUT / DISABLED CARD STATE */
         .setup-step-card.disabled-card {
             opacity: 0.35;
             pointer-events: none;
@@ -630,41 +764,42 @@
             box-shadow: none !important;
         }
 
+        /* Square Step Tags */
         .step-tag {
             font-family: var(--font-mono);
             font-size: 10px;
             font-weight: 700;
-            color: var(--accent-blue);
-            background: rgba(59, 130, 246, 0.12);
-            border: 1px solid rgba(59, 130, 246, 0.25);
-            padding: 3px 8px;
+            color: #f4f4f5;
+            background: #27272a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2px 7px;
             border-radius: 4px;
             width: fit-content;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .step-tag.green {
-            color: var(--accent-green);
-            background: rgba(16, 185, 129, 0.12);
+            color: #6ee7b7;
+            background: rgba(16, 185, 129, 0.1);
             border-color: rgba(16, 185, 129, 0.25);
         }
 
         .step-tag.neutral {
             color: var(--text-muted);
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             border-color: var(--border-color);
         }
 
         .step-tag.not-supported {
-            color: #ef4444;
-            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.1);
             border-color: rgba(239, 68, 68, 0.25);
         }
 
         .setup-step-card h3 {
-            font-size: 18px;
+            font-size: 17px;
             margin-bottom: 8px;
             color: #ffffff;
             font-weight: 700;
@@ -674,13 +809,13 @@
             color: var(--text-muted);
             font-size: 13px;
             line-height: 1.5;
-            margin-bottom: 24px;
+            margin-bottom: 22px;
             flex-grow: 1;
         }
 
         .card-bullet-list {
             list-style: none;
-            margin-bottom: 24px;
+            margin-bottom: 22px;
             font-size: 12px;
             color: #d4d4d8;
             display: flex;
@@ -719,7 +854,6 @@
             }
         }
 
-        /* Mobile Responsive Overrides */
         @media (max-width: 1024px) {
             nav {
                 padding: 16px 20px;
@@ -759,6 +893,11 @@
             .story-grid {
                 grid-template-columns: 1fr;
             }
+
+            .keyboard-reference-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
 
         @media (max-width: 640px) {
@@ -786,13 +925,12 @@
                 width: 100%;
                 justify-content: flex-start;
                 overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
                 padding: 3px;
-                border-radius: 24px;
+                border-radius: 8px;
             }
 
             .mode-btn {
-                padding: 6px 12px;
+                padding: 6px 10px;
                 font-size: 12px;
             }
 
@@ -828,9 +966,9 @@
             }
 
             .header-status-badge {
-                padding: 4px 10px;
+                padding: 4px 8px;
                 font-size: 11px;
-                gap: 8px;
+                gap: 6px;
             }
 
             .story-section, .features-grid, .setup-section {
@@ -867,8 +1005,8 @@
         </a>
     </div>
     <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#install">Install Options</a>
+        <a href="#features">Why Patens</a>
+        <a href="#install">Downloads</a>
         <a href="guide.html">📖 Setup Guide</a>
         <a href="https://github.com/Patens-dev/Patens" target="_blank">GitHub</a>
     </div>
@@ -878,38 +1016,41 @@
     <div class="hero-grid">
         <!-- Left Hero Content -->
         <div class="hero-left">
-            <div class="mode-switcher">
+            <div class="mode-switcher liquid-glass">
                 <button type="button" class="mode-btn active" onclick="switchMode(0)">
-                    <span>🌐</span> In Browser
+                    <span>🔍</span> Market Research
                 </button>
                 <button type="button" class="mode-btn" onclick="switchMode(1)">
-                    <span>💻</span> In IDE
+                    <span>📑</span> Multi-Source Intel
                 </button>
                 <button type="button" class="mode-btn" onclick="switchMode(2)">
-                    <span>🤖</span> Web Models
+                    <span>🧠</span> Clean AI Synthesis
                 </button>
             </div>
 
-            <div class="hero-eyebrow" id="hero-eyebrow">🌐 In Your Browser</div>
-            <h1 class="hero-title" id="hero-title">Clip live docs in <span>1-click</span>.</h1>
-            <p class="hero-desc" id="hero-desc">Highlight any API doc, GitHub issue, or StackOverflow thread. Hit
-                Ctrl+Shift+C to capture exactly what's on your screen—even behind login walls.</p>
+            <div class="hero-eyebrow" id="hero-eyebrow">🔍 Stop Drowning in 30 Open Tabs</div>
+            <h1 class="hero-title" id="hero-title">Gather research in <span>1-click</span>. Feed pure signal to AI.</h1>
+            <p class="hero-desc" id="hero-desc">Kill the endless Ctrl+C tab-thrashing. Highlight competitor pricing,
+                specs, and papers across 20 tabs—instantly assembled into cited, hallucination-proof memory.</p>
 
             <div class="hero-cta-group">
                 <div class="hero-cta">
                     <a href="vscode:extension/patens-dev.patens" class="btn btn-primary-white">
-                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
-                             alt="VS Code Icon" style="width: 20px; height: 20px;">
-                        <span>Get Extension for VS Code / Cursor</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             style="width: 18px; height: 18px; color:#09090b;">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
+                        </svg>
+                        <span>Install in Visual Studio Code</span>
                     </a>
+                    <span class="cta-divider">or</span>
                     <a href="#install" class="btn btn-secondary">
-                        All Downloads
+                        See other options
                     </a>
                 </div>
                 <div class="hero-subtext">
-                    <span>✓ No Telemetry</span>
-                    <span>✓ Zero Cloud Dependencies</span>
-                    <span>✓ Free Forever</span>
+                    <span>✓ 100% Air-Gapped & Local</span>
+                    <span>✓ Auto-Preserves URLs & Citations</span>
+                    <span>✓ Zero Token Waste</span>
                 </div>
             </div>
         </div>
@@ -918,9 +1059,9 @@
         <div class="hero-right">
             <div class="demo-panel">
                 <div class="demo-header">
-                    <div class="header-status-badge" id="video-badge">
+                    <div class="header-status-badge liquid-glass" id="video-badge">
                         <span class="badge-step-num" id="badge-step-num">STEP 1</span>
-                        <span id="badge-text">Ditch the old way, full of hallucinations</span>
+                        <span id="badge-text">Kill 30-tab context switching</span>
                         <div class="step-dots" id="step-dots">
                             <span class="step-dot active"></span>
                             <span class="step-dot"></span>
@@ -929,7 +1070,7 @@
                     </div>
 
                     <div class="demo-header-right">
-                        <div class="demo-title">patens-end-to-end-demo.mp4</div>
+                        <div class="demo-title">patens-research-synthesis.mp4</div>
                         <div class="window-dot" style="background:#ef4444"></div>
                         <div class="window-dot" style="background:#f59e0b"></div>
                         <div class="window-dot" style="background:#10b981"></div>
@@ -958,22 +1099,51 @@
     </div>
 </header>
 
-<!-- Old vs New Workflow -->
+<!-- Keyboard Shortcuts Bar (Smoked Obsidian Glass) -->
+<div class="keyboard-reference-bar liquid-glass">
+    <div class="kb-ref-title">
+        <span>⚡</span> Shortcuts Quick Reference
+    </div>
+    <div class="kb-ref-items">
+        <div class="kb-ref-item">
+            <span class="shortcut-badge-group">
+                <kbd title="Control Key">Ctrl</kbd>+<kbd title="Shift Key">Shift</kbd>+<kbd title="Left Mouse Click">Click</kbd>
+            </span>
+            <span>Harvest Context</span>
+        </div>
+        <div class="kb-ref-item">
+            <span class="shortcut-badge-group">
+                <kbd title="Control Key">Ctrl</kbd>+<kbd title="Shift Key">Shift</kbd>+<kbd title="Letter K">K</kbd>
+            </span>
+            <span>Command Palette</span>
+        </div>
+        <div class="kb-ref-item">
+            <span class="shortcut-badge-group">
+                <kbd title="Shift Key">Shift</kbd>+<kbd title="Enter / Return">Enter</kbd>
+            </span>
+            <span>Instant AI Stream</span>
+        </div>
+    </div>
+</div>
+
+<!-- Old vs New Workflow: Agony vs Flow -->
 <section class="story-section">
     <div class="story-grid">
         <div class="story-card bad">
-            <h3>❌ The Broken Workflow</h3>
-            <p>• Copying docs into prompts wastes half your context window.</p>
-            <p>• Standard <code>@docs</code> web scrapers fail on gated pages, Notion, or SPAs.</p>
-            <p>• LLMs hallucinate methods from outdated training data.</p>
-            <p><strong>Result:</strong> Broken builds, lost flow state, and repeated prompts tomorrow.</p>
+            <h3>❌ The Agony of Tab-Thrashing</h3>
+            <p>• <strong>35 open tabs:</strong> Competitor pages, Reddit reviews, SEC filings, and pricing matrices.</p>
+            <p>• <strong>Clipboard hell:</strong> <kbd title="Copy to Clipboard">Ctrl</kbd>+<kbd>C</kbd> ➔ <kbd title="Switch Active Windows">Alt</kbd>+<kbd>Tab</kbd> ➔ <kbd title="Paste Excerpt">Ctrl</kbd>+<kbd>V</kbd> × 60 into a messy scratchpad.</p>
+            <p>• <strong>Context pollution:</strong> Pasting whole web pages into Claude/ChatGPT dumps cookie banners, headers, and navigation garbage.</p>
+            <p>• <strong>Lost provenance:</strong> 2 hours later, you can't find which specific competitor page had that vital stat.</p>
+            <p><strong>Result:</strong> Exhausting mental friction, prompt hallucinations, and hours wasted formatting raw text.</p>
         </div>
         <div class="story-card good">
-            <h3>✨ The Patens Workflow</h3>
-            <p>• Highlight any web page and press <strong>Ctrl+Shift+C</strong>.</p>
-            <p>• Physical Markdown mounts straight to your workspace <code>_context/</code>.</p>
-            <p>• Cursor, Copilot & Cline read local vectors instantly with zero lag.</p>
-            <p><strong>Result:</strong> 100% accurate AI code generation on the first try.</p>
+            <h3>✨ The Patens Flow State</h3>
+            <p>• <strong>1-Click capture:</strong> Highlight exact key paragraphs as you browse with <kbd title="Harvest Excerpt">Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Click</kbd>. Auto-ingested with origin URLs attached.</p>
+            <p>• <strong>Forgiving Undo Window:</strong> 40-second grace window to inspect, pause, or prune clips without breaking flow.</p>
+            <p>• <strong>Hierarchical Command Palette:</strong> Hit <kbd title="Open Patens Palette">Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> to browse clustered documents or granular paragraphs.</p>
+            <p>• <strong>1-Key AI Injection:</strong> Press <kbd title="Stream to Chatbox">Enter</kbd> to stream structured, cited Markdown directly into Claude, ChatGPT, or your IDE.</p>
+            <p><strong>Result:</strong> Deep, multi-source synthesis in minutes with 100% verified source traceability.</p>
         </div>
     </div>
 </section>
@@ -982,42 +1152,54 @@
 <section id="features" class="features-grid">
     <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>Zero-Friction Capture</h3>
-        <p>Highlight text or images on any web page, press <code style="color:#60a5fa">Ctrl+Shift+C</code>, and it
-            instantly vectorizes to your local database—even behind logins.</p>
+        <h3>Zero-Friction Harvest</h3>
+        <p>Never break your reading flow. Highlight data, tables, or quotes across 20 tabs. Patens silently indexes them in the background with a 40s undo safety ring.</p>
     </div>
     <div class="feature-card">
-        <div class="feature-icon">📂</div>
-        <h3>Physical File Mounting</h3>
-        <p>Patens writes Markdown files directly to your workspace's <code style="color:#60a5fa">_context/</code>
-            directory. Works natively with Cursor, Copilot, or Cline via simple @ tags.</p>
+        <div class="feature-icon">📚</div>
+        <h3>Automatic Citation Engine</h3>
+        <p>Every single paragraph retains its exact source URL, page title, and timestamp. When injected into an LLM, it automatically formats citations and bibliographies.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Hierarchical Document Tree</h3>
+        <p>Browse your research basket with keyboard precision. Inject an entire 80-paragraph competitive teardown or drill down to a single bullet point with arrow keys.</p>
     </div>
     <div class="feature-card">
         <div class="feature-icon">🔒</div>
-        <h3>100% Private & Local</h3>
-        <p>Powered by local SQLite-vec and FastEmbed. Your code and research never leave your machine. Zero cloud, no
-            tracking.</p>
+        <h3>100% Local & Air-Gapped</h3>
+        <p>Powered by local FastEmbed ONNX vectors and SQLite-vec. Confidential market specs, internal wiki docs, and research notes never leave your machine.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">📂</div>
+        <h3>Physical Workspace Sync</h3>
+        <p>Auto-generates clean, human-readable <code>_context/</code> Markdown files straight into your active workspace. Point Cursor, Obsidian, or Claude Desktop directly at them.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>Model Context Protocol (MCP)</h3>
+        <p>Ask your AI agent in Cursor, Windsurf, or Claude: <em>"Synthesize the competitor pricing models I gathered this morning"</em> and it queries local vector memory autonomously.</p>
     </div>
 </section>
 
-<!-- REFACTORED INSTALLATION SECTION WITH IDE SELECTOR -->
+<!-- INSTALLATION SECTION -->
 <section id="install" class="setup-section">
     <div class="section-header">
-        <h2>Choose Your Installation Method</h2>
-        <p>Select your code editor below to highlight compatible installation options.</p>
+        <h2>Deploy Your Local Memory Engine</h2>
+        <p>Install the background daemon and browser extension to unlock instant research synthesis.</p>
     </div>
 
-    <!-- IDE Selector Bar -->
+    <!-- IDE & Tool Selector Bar -->
     <div class="ide-selector-container">
         <div class="ide-selector-label">
-            <span>⚙️ Select Your Primary Editor:</span>
+            <span>⚙️ Select Your Primary AI / Workspace Setup:</span>
         </div>
 
         <div class="ide-selector-grid">
             <button type="button" class="ide-select-btn active" id="ide-btn-vscode" onclick="selectIDE('vscode')">
                 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
                      alt="VS Code">
-                VS Code / Cursor
+                VS Code / Cursor / Windsurf
             </button>
 
             <button type="button" class="ide-select-btn" id="ide-btn-jetbrains" onclick="selectIDE('jetbrains')">
@@ -1027,36 +1209,38 @@
             </button>
 
             <button type="button" class="ide-select-btn" id="ide-btn-visualstudio" onclick="selectIDE('visualstudio')">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/visualstudio/visualstudio-plain.svg"
-                     alt="Visual Studio">
-                Visual Studio / Other
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     style="width: 18px; height: 18px; color:#a1a1aa;">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                Claude / ChatGPT / Standalone
             </button>
         </div>
     </div>
 
-    <!-- Redirect/Guide Callout Banner for Non-VS Code Editors -->
-    <div class="guide-callout-banner" id="guide-callout-banner">
+    <!-- Smoked Obsidian Glass Callout Banner -->
+    <div class="guide-callout-banner liquid-glass" id="guide-callout-banner">
         <div class="guide-callout-text">
-            <span>💡</span>
-            <span id="guide-callout-msg">JetBrains editors require manual MCP server configuration. Read the JetBrains Setup Guide:</span>
+            <span class="tip-pill">TIP</span>
+            <span id="guide-callout-msg">Connecting Claude Desktop or JetBrains? Read the Quick Setup Guide:</span>
         </div>
-        <a href="guide.html" class="btn-callout-redirect" id="guide-callout-link">Open JetBrains Guide ➔</a>
+        <a href="guide.html" class="btn-callout-redirect" id="guide-callout-link">Open Guide ➔</a>
     </div>
 
-    <!-- 3 Installation Option Cards -->
+    <!-- Installation Matrix -->
     <div class="setup-matrix-3col">
-
-        <!-- Channel 1: VS Code & Cursor Extension -->
+        <!-- Channel 1: Extension -->
         <div class="setup-step-card featured" id="card-vscode-ext">
             <div>
                 <div class="step-tag" id="tag-vscode-ext">RECOMMENDED</div>
-                <h3>VS Code / Cursor</h3>
-                <p>Seamless Marketplace extension. Automatically launches and updates the background Patens memory
-                    engine directly inside your IDE.</p>
+                <h3>Cursor & VS Code Extension</h3>
+                <p>One-click marketplace install. Automatically spins up the background vector memory layer inside your IDE workspace.</p>
                 <ul class="card-bullet-list">
+                    <li>Auto-syncs physical <code>_context/</code> files</li>
+                    <li>Supports Cursor, Windsurf, Copilot</li>
                     <li>Zero-config background engine</li>
-                    <li>Supports Cursor, VS Code, Copilot</li>
-                    <li>Auto-updates via Marketplace</li>
                 </ul>
             </div>
 
@@ -1068,46 +1252,44 @@
             </a>
         </div>
 
-        <!-- Channel 2: Microsoft Store -->
+        <!-- Channel 2: MS Store -->
         <div class="setup-step-card" id="card-ms-store">
             <div>
                 <div class="step-tag green" id="tag-ms-store">MICROSOFT STORE</div>
-                <h3>Windows Store App</h3>
-                <p>One-click installation via the official Microsoft Store. Fully sandboxed desktop application with
-                    native Windows auto-updates.</p>
+                <h3>Windows Desktop App</h3>
+                <p>Sandboxed background desktop application with native auto-updates for standalone browser and Claude research sessions.</p>
                 <ul class="card-bullet-list">
-                    <li>Verified & sandboxed build</li>
-                    <li>Works without VS Code extension</li>
-                    <li>Native Windows background task</li>
+                    <li>Verified Microsoft Store sandbox</li>
+                    <li>Works without opening an IDE</li>
+                    <li>Native background tray process</li>
                 </ul>
             </div>
 
             <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn btn-secondary" style="width: 100%;"
                id="btn-ms-store">
-                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg"
-                     alt="Microsoft Store" style="width: 18px; height: 18px; filter: invert(1);">
+                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg" alt="MS Store"
+                     style="width: 18px; height: 18px; filter: invert(1);">
                 <span>Get on MS Store</span>
             </a>
         </div>
 
-        <!-- Channel 3: Direct .EXE Installer -->
+        <!-- Channel 3: Direct Standalone -->
         <div class="setup-step-card" id="card-exe-installer">
             <div>
                 <div class="step-tag neutral" id="tag-exe-installer">STANDALONE</div>
-                <h3>Direct .EXE Setup</h3>
-                <p>Standalone Inno Setup installer for custom environments, offline machines, or manual directory
-                    installations.</p>
+                <h3>Direct .EXE Installer</h3>
+                <p>Standalone local binary for custom research environments, Obsidian vaults, and offline development setups.</p>
                 <ul class="card-bullet-list">
-                    <li>Custom install folder support</li>
-                    <li>Standalone background daemon</li>
-                    <li>Offline setup friendly</li>
+                    <li>Custom workspace mount paths</li>
+                    <li>Full offline vector embeddings</li>
+                    <li>FastMCP stdio server included</li>
                 </ul>
             </div>
 
             <a href="https://download.patens.dev/latest/patens_installer.exe"
                class="btn btn-secondary exe-download-link" style="width: 100%;" id="btn-exe-installer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                     stroke-linejoin="round" style="width: 18px; height: 18px; color: #60a5fa;">
+                     stroke-linejoin="round" style="width: 18px; height: 18px; color: #d4d4d8;">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                     <path d="M6 8l4 4-4 4"/>
                     <line x1="12" y1="16" x2="18" y2="16"/>
@@ -1115,12 +1297,11 @@
                 <span class="exe-link-label">Download .EXE</span>
             </a>
         </div>
-
     </div>
 </section>
 
 <footer>
-    <p>Patens is open source under the MIT License. Built with the Model Context Protocol (MCP).</p>
+    <p>Patens is open source under the MIT License. Built with FastEmbed & the Model Context Protocol (MCP).</p>
 </footer>
 
 <script>
@@ -1142,7 +1323,6 @@
         const guideLink = document.getElementById('guide-callout-link');
 
         if (ideType === 'vscode') {
-            // Restore VS Code Extension Card
             cardVscode.classList.remove('disabled-card');
             cardVscode.classList.add('featured');
             tagVscode.textContent = 'RECOMMENDED';
@@ -1158,13 +1338,11 @@
 
             guideBanner.classList.remove('active');
         } else if (ideType === 'jetbrains') {
-            // Grey out VS Code card
             cardVscode.classList.add('disabled-card');
             cardVscode.classList.remove('featured');
             tagVscode.textContent = 'NOT APPLICABLE';
             tagVscode.className = 'step-tag not-supported';
 
-            // Highlight MS Store and Standalone EXE
             cardMsStore.classList.add('featured');
             tagMsStore.textContent = 'RECOMMENDED STORE APP';
             tagMsStore.className = 'step-tag green';
@@ -1173,19 +1351,16 @@
             tagExe.textContent = 'STANDALONE';
             tagExe.className = 'step-tag neutral';
 
-            // Show JetBrains Guide Callout
-            guideMsg.textContent = 'JetBrains editors (PyCharm, IntelliJ) require adding Patens as an MCP Server. Follow the JetBrains guide:';
+            guideMsg.textContent = 'JetBrains editors (PyCharm, IntelliJ) require adding Patens as an MCP Server. Read the guide:';
             guideLink.href = 'guide.html?ide=jetbrains';
             guideLink.textContent = 'Open JetBrains Guide ➔';
             guideBanner.classList.add('active');
         } else if (ideType === 'visualstudio') {
-            // Grey out VS Code card
             cardVscode.classList.add('disabled-card');
             cardVscode.classList.remove('featured');
             tagVscode.textContent = 'NOT APPLICABLE';
             tagVscode.className = 'step-tag not-supported';
 
-            // Highlight BOTH Microsoft Store AND Standalone EXE
             cardMsStore.classList.add('featured');
             tagMsStore.textContent = 'RECOMMENDED STORE APP';
             tagMsStore.className = 'step-tag green';
@@ -1194,29 +1369,23 @@
             tagExe.textContent = 'STANDALONE';
             tagExe.className = 'step-tag neutral';
 
-            // Show Visual Studio Guide Callout
-            guideMsg.textContent = 'For Visual Studio or custom environments, install the Background Engine (Store or .EXE) and configure your MCP client:';
+            guideMsg.textContent = 'For Standalone, Claude Desktop, or custom research setups, run the Background Engine (.EXE or Store):';
             guideLink.href = 'guide.html?ide=visualstudio';
-            guideLink.textContent = 'Open Visual Studio Guide ➔';
+            guideLink.textContent = 'Open Setup Guide ➔';
             guideBanner.classList.add('active');
         }
     }
 
-    // --- Dynamic Manifest Resolver for R2 Bucket latest.json ---
     async function syncLatestDownloads() {
         const MANIFEST_URL = 'https://download.patens.dev/latest.json';
-
         try {
             const response = await fetch(MANIFEST_URL, {cache: 'no-store'});
             if (!response.ok) throw new Error(`Manifest fetch HTTP error: ${response.status}`);
-
             const data = await response.json();
-
             if (data.installerUrl) {
                 const exeLinks = document.querySelectorAll('.exe-download-link');
                 exeLinks.forEach(link => {
                     link.href = data.installerUrl;
-
                     const labelSpan = link.querySelector('.exe-link-label');
                     if (labelSpan && data.version) {
                         labelSpan.textContent = `Download .EXE (v${data.version})`;
@@ -1224,26 +1393,25 @@
                 });
             }
         } catch (err) {
-            console.warn('Could not fetch latest.json from R2, using static fallback URL:', err);
+            console.warn('Using static fallback URL:', err);
         }
     }
 
-    // --- Dynamic Hero Mode Switcher ---
     const heroModes = [
         {
-            eyebrow: "🌐 In Your Browser",
-            title: "Clip live docs in <span>1-click</span>.",
-            desc: "Highlight any API doc, GitHub issue, or StackOverflow thread. Hit Ctrl+Shift+C to capture exactly what's on your screen—even behind login walls."
+            eyebrow: "🔍 Market & Competitor Teardowns",
+            title: "Gather research in <span>1-click</span>.",
+            desc: "Stop copy-pasting pricing tables, reviews, and features across 25 tabs. Highlight any paragraph and let Patens cluster it with origin citations."
         },
         {
-            eyebrow: "💻 In Your IDE Workspace",
-            title: "Auto-mount physical <span>_context/</span> files.",
-            desc: "Patens writes vector-indexed Markdown files straight into your project folder. Tag them in Cursor, Copilot, or Cline using simple @ files."
+            eyebrow: "📑 Multi-Source Intel Assembly",
+            title: "Auto-cluster into <span>structured docs</span>.",
+            desc: "No more 50 disjointed clips. Patens automatically coalesces paragraphs by source URL into a clean, collapsible document hierarchy."
         },
         {
-            eyebrow: "🤖 Across Web Models",
-            title: "Zero hallucinations on <span>any LLM</span>.",
-            desc: "Feed verified local memory to ChatGPT, Claude, or DeepSeek without blown context windows or repeated prompt engineering."
+            eyebrow: "🧠 Instant AI Synthesis",
+            title: "Feed pure signal to <span>Claude & ChatGPT</span>.",
+            desc: "Press Enter in the Command Palette to stream cited, token-optimized context straight into your AI chatbox with zero token degradation."
         }
     ];
 
@@ -1287,10 +1455,9 @@
         modeInterval = setInterval(() => {
             const nextIdx = (currentModeIdx + 1) % heroModes.length;
             switchMode(nextIdx);
-        }, 4000);
+        }, 4500);
     }
 
-    // --- Real-time Video Overlay Sync Engine ---
     function initVideoSync() {
         const video = document.getElementById('demo-video');
         const badgeStep = document.getElementById('badge-step-num');
@@ -1298,9 +1465,9 @@
         const dotsContainer = document.getElementById('step-dots');
 
         const timeline = [
-            {time: 0.0, step: 1, text: "Ditch the old way, full of hallucinations"},
-            {time: 3.8, step: 2, text: "Capture context with 1-click"},
-            {time: 8.8, step: 3, text: "Implement with minimal instructions"}
+            {time: 0.0, step: 1, text: "Kill 30-tab context switching"},
+            {time: 3.8, step: 2, text: "1-Click harvest with instant undo"},
+            {time: 8.8, step: 3, text: "Inject cited synthesis to Claude/ChatGPT"}
         ];
 
         if (video && badgeStep && badgeText && dotsContainer) {
@@ -1308,7 +1475,6 @@
 
             video.addEventListener('timeupdate', () => {
                 const currentTime = video.currentTime;
-
                 let activeIdx = 0;
                 for (let i = timeline.length - 1; i >= 0; i--) {
                     if (currentTime >= timeline[i].time) {
@@ -1335,7 +1501,6 @@
         }
     }
 
-    // Initialize scripts
     syncLatestDownloads();
     initVideoSync();
     startAutoSwitch();

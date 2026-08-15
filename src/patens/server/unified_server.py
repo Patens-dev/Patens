@@ -51,13 +51,11 @@ def resolve_model_cache_dir() -> Optional[Path]:
     Checks PyInstaller bundle directory (sys._MEIPASS) first, then local workspace.
     """
     if getattr(sys, "frozen", False):
-        # PyInstaller unpacks data to sys._MEIPASS at runtime
         bundle_dir = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
         cached_dir = bundle_dir / "fastembed_cache"
         if cached_dir.exists():
             return cached_dir
     else:
-        # Development environment check
         dev_cached_dir = Path.cwd().resolve() / "fastembed_cache"
         if dev_cached_dir.exists():
             return dev_cached_dir
@@ -152,7 +150,7 @@ def is_valid_workspace(path: Path) -> bool:
             logger.debug("Workspace path '%s' rejected: Contains system directory.", abs_path)
             return False
 
-        # Block AppData config folders, but allow temporary working dirs (e.g. AppData/Local/Temp)
+        # Block AppData config folders, but allow temporary working dirs
         if "appdata" in parts:
             last_appdata_idx = len(parts) - 1 - parts[::-1].index("appdata")
             if "temp" not in parts[last_appdata_idx:]:
@@ -172,9 +170,8 @@ def is_valid_workspace(path: Path) -> bool:
 
 
 def sync_workspace_files_loop():
-    """Background daemon that mirrors recent DB clips into local workspace .md files."""
+    """Background daemon that self-heals and mirrors recent DB clips into local workspace .md files."""
     logger.info("Starting workspace sync daemon loop...")
-    last_db_state: Optional[str] = None
     has_warned_invalid = False
 
     while True:
@@ -205,21 +202,8 @@ def sync_workspace_files_loop():
                 gitignore_path.write_text("*\n", encoding="utf-8")
 
             recent_clips = db_manager.get_recent_snippets(hours=24)
-            logger.debug("Fetched %d recent snippets from DB for workspace sync", len(recent_clips))
 
-            # 2. State Check: Skip computation and I/O if state hasn't changed
-            current_db_state = f"{context_dir}:" + "".join(str(c.get("id", "")) for c in recent_clips)
-
-            if current_db_state == last_db_state:
-                logger.debug("No state change detected in workspace sync. Sleeping.")
-                workspace_sync_event.wait(timeout=3)
-                workspace_sync_event.clear()
-                continue
-
-            logger.info("Workspace state changed. Synchronizing context files in: %s", context_dir)
-            last_db_state = current_db_state
-
-            # 3. Group and Merge Clips Chronologically
+            # 2. Group and Merge Clips Chronologically
             grouped_clips: Dict[str, Dict[str, Any]] = {}
 
             for clip in reversed(recent_clips):
@@ -235,13 +219,13 @@ def sync_workspace_files_loop():
                     }
                 else:
                     grouped_clips[key]["content"] += (
-                            f"\n\n---\n> **➕ Added on:** {clip.get('created_at', 'Unknown')}\n\n"
-                            + clip.get("content", "")
+                        f"\n\n---\n> **➕ Added on:** {clip.get('created_at', 'Unknown')}\n\n"
+                        + clip.get("content", "")
                     )
                     grouped_clips[key]["created_at"] = clip.get("created_at", "Unknown")
                     grouped_clips[key]["clip_count"] += 1
 
-            # 4. Generate Master Index and Markdown Documents
+            # 3. Generate Master Index and Markdown Documents
             active_filenames = {".gitignore"}
 
             index_content = "# 🧠 Patens Master Index\n\n"
@@ -279,8 +263,9 @@ def sync_workspace_files_loop():
                     f"{g_clip['content']}"
                 )
 
+                # Self-healing write: Triggers if file is missing or contents mismatch
                 if not filepath.exists() or filepath.read_text(encoding="utf-8") != content_md:
-                    logger.debug("Writing/Updating synced file: %s", filepath)
+                    logger.info("Writing/Restoring synced context file: %s", filepath.name)
                     filepath.write_text(content_md, encoding="utf-8")
 
             # Write Master Index
@@ -289,10 +274,10 @@ def sync_workspace_files_loop():
             active_filenames.add(index_filename)
 
             if not index_filepath.exists() or index_filepath.read_text(encoding="utf-8") != index_content:
-                logger.debug("Updating context index file: %s", index_filepath)
+                logger.info("Writing/Restoring context index file: %s", index_filepath.name)
                 index_filepath.write_text(index_content, encoding="utf-8")
 
-            # 5. Prune Stale Files (Unlink files deleted from DB)
+            # 4. Prune Stale Files (Unlink files deleted from DB)
             for file in context_dir.iterdir():
                 if file.is_file() and file.name not in active_filenames:
                     logger.info("Pruning deleted/stale context file from local workspace: %s", file.name)
@@ -314,8 +299,6 @@ def sync_workspace_files_loop():
 
 def notify_ide_activity(event: str = "tool_call", **meta):
     """Pings backend telemetry asynchronously when an IDE executes a tool."""
-
-    # Instantly flag MCP connection active in global app state
     app_state.ide_connected = True
 
     def _ping():
@@ -339,7 +322,6 @@ def notify_ide_activity(event: str = "tool_call", **meta):
 @mcp.tool()
 def query_browser_context(search_query: str, limit: int = 3) -> str:
     """
-    CRITICAL: Use this tool ANYTIME the user mentions "saved context", "memory", "clips", or "clipboard".
     Searches the global SQLite vector memory for saved web snippets.
     """
     logger.info("MCP Tool Called: query_browser_context (query='%s', limit=%d)", search_query, limit)
@@ -351,8 +333,6 @@ def query_browser_context(search_query: str, limit: int = 3) -> str:
         if not results:
             logger.info("No matching browser context found for query: '%s'", search_query)
             return "No matching browser context found."
-
-        logger.info("Found %d relevant web context entries", len(results))
 
         output = "Found relevant web context:\n\n"
         for r in results:
@@ -372,7 +352,7 @@ def query_browser_context(search_query: str, limit: int = 3) -> str:
 
 @mcp.tool()
 def forget_memory(memory_id: int) -> str:
-    """Deletes outdated or deprecated context from memory and purges synced local files."""
+    """Deletes outdated context from memory and triggers workspace resync."""
     logger.info("MCP Tool Called: forget_memory (ID=%d)", memory_id)
     notify_ide_activity(tool="forget_memory", memory_id=memory_id)
 
@@ -392,7 +372,7 @@ def forget_memory(memory_id: int) -> str:
 
 @mcp.tool()
 def memorize_ide_insight(title: str, insight: str) -> str:
-    """Saves an important conclusion or architectural decision into permanent vector memory."""
+    """Saves an architectural decision into permanent vector memory."""
     logger.info("MCP Tool Called: memorize_ide_insight (title='%s')", title)
     notify_ide_activity(tool="memorize_ide_insight", title=title)
 
@@ -417,7 +397,6 @@ def memorize_ide_insight(title: str, insight: str) -> str:
 def mount_workspace_context(absolute_project_path: str) -> str:
     """
     Redirects the context sync engine to write the _context folder into the project root.
-    Automatically resolves subdirectories up to the Git root or project manifest root.
     """
     logger.info("MCP Tool Called: mount_workspace_context (path='%s')", absolute_project_path)
     notify_ide_activity(tool="mount_workspace_context", path=absolute_project_path)
@@ -433,19 +412,16 @@ def mount_workspace_context(absolute_project_path: str) -> str:
     project_root = given_path
     curr = given_path
 
-    # Walk up parent directories while staying within a valid/safe workspace
     while curr != curr.parent and is_valid_workspace(curr):
-        # 1. Top Priority: Actual Git repository root
         if (curr / ".git").exists():
             project_root = curr
             logger.info("Resolved Git repository root at: '%s'", project_root)
             break
 
-        # 2. Secondary Priority: Project configuration or manifest files
         if any((curr / marker).exists() for marker in ROOT_MARKERS):
             project_root = curr
             logger.info("Resolved project root via manifest marker at: '%s'", project_root)
-            break  # <-- STOP traversal once project root marker is found
+            break
 
         curr = curr.parent
 
@@ -493,8 +469,8 @@ def run_fastapi(port: Optional[int] = None):
             fastapi_app,
             host=API_HOST,
             port=target_port,
-            log_level="error",  # Silence non-critical logs on standard output
-            access_log=False,  # Prevents console/I/O congestion
+            log_level="error",
+            access_log=False,
         )
     except Exception as e:
         logger.critical("Fatal error running Uvicorn FastAPI server: %s", e, exc_info=True)

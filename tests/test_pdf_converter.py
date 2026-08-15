@@ -1,3 +1,4 @@
+# tests/test_pdf_converter.py
 import base64
 from dataclasses import asdict
 import html
@@ -11,7 +12,7 @@ from patens.server.services.pdf_converter import (
     TextNode,
     FigureNode,
     PageSpatialIndex,
-    _cluster_page_blocks,
+    _extract_clean_paragraphs,
     FastPDFSpatialIndexer,
     PDFConverterService,
 )
@@ -54,7 +55,6 @@ def create_pdf_bytes():
                 for img_spec in p_data.get("images", []):
                     rect = fitz.Rect(img_spec.get("rect", (100, 100, 200, 200)))
                     w, h = int(rect.width), int(rect.height)
-                    # Use fitz.IRect for PyMuPDF compatibility
                     pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, w, h), False)
                     pix.clear_with(0xFF0000)  # Red background
                     page.insert_image(rect, pixmap=pix)
@@ -103,18 +103,18 @@ def test_bounding_box_and_node_dataclasses():
 
 
 # =====================================================================
-# 2. UNIT TESTS: _cluster_page_blocks
+# 2. UNIT TESTS: _extract_clean_paragraphs
 # =====================================================================
 
-def test_cluster_page_blocks_basic_text(create_pdf_bytes):
-    """Tests block extraction for simple plain text paragraphs without formulas."""
+def test_extract_clean_paragraphs_basic_text(create_pdf_bytes):
+    """Tests paragraph extraction for simple plain text paragraphs without formulas."""
     pdf_bytes = create_pdf_bytes([
         {"texts": [{"pos": (50, 50), "text": "First line of paragraph."}]}
     ])
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     page = doc[0]
 
-    blocks = _cluster_page_blocks(page)
+    blocks = _extract_clean_paragraphs(page)
     doc.close()
 
     assert len(blocks) == 1
@@ -122,7 +122,7 @@ def test_cluster_page_blocks_basic_text(create_pdf_bytes):
     assert blocks[0]["is_formula"] is False
 
 
-def test_cluster_page_blocks_formula_keyword_detection(create_pdf_bytes):
+def test_extract_clean_paragraphs_formula_keyword_detection(create_pdf_bytes):
     """Tests that math keywords trigger is_formula flag on blocks."""
     pdf_bytes = create_pdf_bytes([
         {"texts": [{"pos": (50, 50), "text": "E = mc^2 where \\sum x = 10"}]}
@@ -130,14 +130,14 @@ def test_cluster_page_blocks_formula_keyword_detection(create_pdf_bytes):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     page = doc[0]
 
-    blocks = _cluster_page_blocks(page)
+    blocks = _extract_clean_paragraphs(page)
     doc.close()
 
     assert len(blocks) == 1
     assert blocks[0]["is_formula"] is True
 
 
-def test_cluster_page_blocks_filters_short_garbage(create_pdf_bytes):
+def test_extract_clean_paragraphs_filters_short_garbage(create_pdf_bytes):
     """Tests filtering out isolated single-character blocks (< 2 chars)."""
     pdf_bytes = create_pdf_bytes([
         {"texts": [{"pos": (50, 50), "text": "a"}]}
@@ -145,36 +145,30 @@ def test_cluster_page_blocks_filters_short_garbage(create_pdf_bytes):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     page = doc[0]
 
-    blocks = _cluster_page_blocks(page)
+    blocks = _extract_clean_paragraphs(page)
     doc.close()
 
     assert len(blocks) == 0
 
 
-def test_cluster_page_blocks_fraction_drawing_bridge(create_pdf_bytes):
-    """Tests spatial clustering merging numerator and denominator across a fraction line."""
+def test_extract_clean_paragraphs_splits_multi_paragraph(create_pdf_bytes):
+    """Tests splitting blocks containing distinct paragraphs separated by blank lines."""
     pdf_bytes = create_pdf_bytes([
         {
             "texts": [
-                {"pos": (100, 100), "text": "\\frac numerator"},
-                {"pos": (100, 120), "text": "denominator"},
-            ],
-            "lines": [
-                ((95, 110), (150, 110))  # Fraction line in between
+                {"pos": (50, 50), "text": "First distinct paragraph.\n\nSecond distinct paragraph."}
             ]
         }
     ])
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     page = doc[0]
 
-    blocks = _cluster_page_blocks(page)
+    blocks = _extract_clean_paragraphs(page)
     doc.close()
 
-    # Should merge both texts into a single formula block
-    assert len(blocks) == 1
-    assert "numerator" in blocks[0]["text"]
-    assert "denominator" in blocks[0]["text"]
-    assert blocks[0]["is_formula"] is True
+    assert len(blocks) == 2
+    assert "First distinct paragraph." in blocks[0]["text"]
+    assert "Second distinct paragraph." in blocks[1]["text"]
 
 
 # =====================================================================
