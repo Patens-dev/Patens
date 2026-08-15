@@ -5,45 +5,69 @@ import './utils.js';
 import './cart.js';
 import './injector.js';
 import './palette.js';
-import './main.js';
 
 (() => {
     window.Patens = window.Patens || {};
 
-    // 0. IMMEDIATE EXTENSION DOM MARKERS (For welcome.html auto-detection)
+    // 0. IMMEDIATE EXTENSION DOM MARKERS
     try {
         if (document.documentElement) {
             document.documentElement.setAttribute('data-patens-extension', 'true');
             document.documentElement.setAttribute('data-patens-installed', 'true');
         }
         window.__PATENS_EXTENSION__ = true;
-    } catch (e) {
-        // Suppress safely if context is restricted
-    }
+    } catch (e) {}
 
     // 1. LOGGER INITIALIZATION
     const Logger = Patens.LoggerFactory
         ? Patens.LoggerFactory("[Patens Main Events]")
-        : {debug: console.debug, info: console.info, warn: console.warn, error: console.error};
+        : { debug: console.debug, info: console.info, warn: console.warn, error: console.error };
 
     Logger.info("Initializing Content Script Event Listeners...");
 
     // ==========================================
-    // 2. STORAGE & STATE INITIALIZATION
+    // 2. ACTIVE CARET & SELECTION SNAPSHOT HELPER
+    // ==========================================
+    const snapshotActiveCaretState = () => {
+        Patens.State = Patens.State || {};
+        Patens.State.editor = Patens.State.editor || {};
+
+        const activeEl = document.activeElement;
+        if (!activeEl) return;
+
+        if (activeEl.closest?.('.cc-palette-overlay') || activeEl.closest?.('.cc-cart-modal')) return;
+
+        if (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT') {
+            Patens.State.editor.activeInputElement = activeEl;
+            Patens.State.editor.selectionStart = activeEl.selectionStart;
+            Patens.State.editor.selectionEnd = activeEl.selectionEnd;
+            Patens.State.editor.savedRange = null;
+        } else if (activeEl.isContentEditable || activeEl.getAttribute('contenteditable') === 'true') {
+            Patens.State.editor.activeInputElement = activeEl;
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                try {
+                    Patens.State.editor.savedRange = sel.getRangeAt(0).cloneRange();
+                } catch (_) {}
+            }
+        }
+    };
+
+    document.addEventListener('selectionchange', snapshotActiveCaretState, { passive: true });
+    document.addEventListener('focusin', snapshotActiveCaretState, { passive: true });
+
+    // ==========================================
+    // 3. STORAGE & STATE INITIALIZATION
     // ==========================================
     try {
         Patens.State = Patens.State || {};
         Patens.State.hotkeys = Patens.State.hotkeys || {};
 
         chrome.storage.local.get(['hotkeys'], (res) => {
-            if (chrome.runtime.lastError) {
-                Logger.error("Failed to fetch initial hotkeys from storage:", chrome.runtime.lastError);
-                return;
-            }
+            if (chrome.runtime.lastError) return;
             if (res.hotkeys) {
                 Patens.State = Patens.State || {};
-                Patens.State.hotkeys = {...Patens.State.hotkeys, ...res.hotkeys};
-                Logger.debug("Hotkeys initialized from local storage.");
+                Patens.State.hotkeys = { ...Patens.State.hotkeys, ...res.hotkeys };
             }
         });
     } catch (initErr) {
@@ -52,21 +76,15 @@ import './main.js';
 
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace !== 'local') return;
-
         if (changes.hotkeys) {
             Patens.State = Patens.State || {};
-            Patens.State.hotkeys = {...(Patens.State.hotkeys || {}), ...changes.hotkeys.newValue};
-            Logger.info("Hotkeys state updated via storage listener.");
+            Patens.State.hotkeys = { ...(Patens.State.hotkeys || {}), ...changes.hotkeys.newValue };
         }
-
         if (changes.contextCart) {
             Patens.Cart?.renderUI?.();
         }
     });
 
-    // ==========================================
-    // 3. HELPER FUNCTIONS & CLEANUP
-    // ==========================================
     const clearHoverHighlights = () => {
         document.querySelectorAll('.cc-highlight-hover').forEach(el => {
             el.classList.remove('cc-highlight-hover');
@@ -85,15 +103,13 @@ import './main.js';
         if (request.target === 'offscreen') return false;
 
         if (request.action === "open_palette") {
+            snapshotActiveCaretState();
             if (Patens.Palette && typeof Patens.Palette.toggle === 'function') {
-                Logger.info("Command 'open_palette' received; toggling palette overlay.");
                 Patens.Palette.toggle();
-            } else {
-                Logger.warn("Received 'open_palette' but Patens.Palette is not loaded yet.");
             }
         }
         if (request.action === "ping" || request.type === "PATENS_PING") {
-            window.postMessage({source: 'patens-extension', type: 'PATENS_PONG', patensInstalled: true}, '*');
+            window.postMessage({ source: 'patens-extension', type: 'PATENS_PONG', patensInstalled: true }, '*');
         }
     });
 
@@ -112,30 +128,26 @@ import './main.js';
     window.addEventListener('keydown', (e) => {
         const isEnterKey = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
 
+        // Fast-Forward Cart Commit (Ctrl+Shift+Enter)
         if (e.ctrlKey && e.shiftKey && isEnterKey) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
 
-            const activeEl = document.activeElement;
-            if (activeEl && (activeEl.isContentEditable || typeof activeEl.blur === 'function')) {
-                activeEl.blur();
-            }
-
-            Logger.info("Hotkey triggered: Fast-Forward Cart Commit");
             chrome.storage.local.get(['contextCart'], async (result) => {
                 const cart = result.contextCart || [];
                 if (cart.length > 0) {
                     const response = await Patens.API?.ingestBatch(cart);
                     if (response?.success) {
                         Patens.Utils?.showNotification("✨ Context Committed!", '#006400', window.innerWidth / 2 - 50, window.innerHeight - 50);
-                        chrome.storage.local.set({contextCart: []});
+                        chrome.storage.local.set({ contextCart: [] });
                     }
                 }
             });
             return;
         }
 
+        // Toggle Palette Shortcut (Ctrl+Shift+K)
         const paletteHotkey = Patens.State?.hotkeys?.palette;
         if (paletteHotkey && Patens.Utils?.checkModifiers(e, paletteHotkey)) {
             const configuredKey = paletteHotkey.key?.toLowerCase();
@@ -144,123 +156,83 @@ import './main.js';
                 e.stopPropagation();
                 e.stopImmediatePropagation();
 
-                const activeEl = document.activeElement;
-                if (activeEl && (activeEl.isContentEditable || typeof activeEl.blur === 'function')) {
-                    activeEl.blur();
-                }
+                snapshotActiveCaretState();
 
                 if (Patens.Palette?.toggle) {
                     Logger.info("Hotkey triggered: Toggle Palette");
                     Patens.Palette.toggle();
-
-                    setTimeout(() => {
-                        const paletteInput = document.querySelector('#patens-palette-input')
-                            || Patens.Palette.shadowRoot?.querySelector('input');
-                        paletteInput?.focus();
-                    }, 50);
-                } else {
-                    Logger.warn("Palette toggle hotkey pressed, but Patens.Palette module is undefined.");
                 }
             }
         }
     }, true);
 
     // ==========================================
-    // 6. MOUSE INTERACTION LISTENERS
+    // 6. MOUSE CAPTURE & HOVER LISTENERS
     // ==========================================
     document.addEventListener('click', (e) => {
-        const captureHotkey = Patens.State?.hotkeys?.capture || {ctrl: true, shift: true, alt: false, meta: false};
+        const captureHotkey = Patens.State?.hotkeys?.capture || { ctrl: true, shift: true, alt: false, meta: false };
         if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey)) {
-            const validTags = Patens.Config?.VALID_TAGS || [];
-            const isLink = e.target?.closest?.('a');
-            const isValidTag = e.target?.tagName && (validTags.includes(e.target.tagName) || e.target.closest?.(validTags.join(',')));
-
-            if (isLink || isValidTag || e.target?.closest?.('.patens-pdf-block') || e.target?.closest?.('.patens-pdf-figure') || document.querySelector('.patens-pdf-block')) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
+            e.preventDefault();
+            e.stopPropagation();
         }
     }, true);
 
     document.addEventListener('mouseover', (e) => {
-        const captureHotkey = Patens.State?.hotkeys?.capture || {ctrl: true, shift: true, alt: false, meta: false};
-        const validTags = Patens.Config?.VALID_TAGS || [];
+        const captureHotkey = Patens.State?.hotkeys?.capture || { ctrl: true, shift: true, alt: false, meta: false };
+        if (!Patens.Utils?.checkModifiers(e, captureHotkey)) return;
 
-        if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey)) {
-            const pdfFigure = e.target?.closest?.('.patens-pdf-figure');
-            const pdfBlock = e.target?.closest?.('.patens-pdf-block');
+        const target = e.target;
+        if (!target || target.closest?.('.cc-cart-btn') || target.closest?.('.cc-cart-modal') || target.closest?.('.cc-palette-overlay')) return;
 
-            if (pdfFigure) {
-                pdfFigure.classList.add('cc-highlight-hover');
-            } else if (pdfBlock) {
-                pdfBlock.classList.add('cc-highlight-hover');
-            } else if (e.target?.tagName && validTags.includes(e.target.tagName)) {
-                e.target.classList.add('cc-highlight-hover');
-            }
+        const pdfFigure = target.closest?.('.patens-pdf-figure');
+        const pdfBlock = target.closest?.('.patens-pdf-block');
+        const semanticContainer = Patens.Utils?.getSemanticContainer?.(target);
+
+        if (pdfFigure) {
+            pdfFigure.classList.add('cc-highlight-hover');
+        } else if (pdfBlock) {
+            pdfBlock.classList.add('cc-highlight-hover');
+        } else if (semanticContainer) {
+            semanticContainer.classList.add('cc-highlight-hover');
+        } else {
+            target.classList.add('cc-highlight-hover');
         }
     }, true);
 
     document.addEventListener('mouseout', (e) => {
-        if (e.target && e.target.classList && e.target.classList.contains('cc-highlight-hover')) {
-            e.target.classList.remove('cc-highlight-hover');
+        if (e.target) {
+            e.target.classList?.remove('cc-highlight-hover');
+            const semanticContainer = Patens.Utils?.getSemanticContainer?.(e.target);
+            if (semanticContainer) semanticContainer.classList?.remove('cc-highlight-hover');
         }
-        const pdfFigure = e.target?.closest?.('.patens-pdf-figure');
-        if (pdfFigure && pdfFigure.classList.contains('cc-highlight-hover')) {
-            pdfFigure.classList.remove('cc-highlight-hover');
-        }
-        const pdfBlock = e.target?.closest?.('.patens-pdf-block');
-        if (pdfBlock && pdfBlock.classList.contains('cc-highlight-hover')) {
-            pdfBlock.classList.remove('cc-highlight-hover');
-        }
+        clearHoverHighlights();
     }, true);
 
     document.addEventListener('mousedown', async (e) => {
         if (!e.target || e.target.closest?.('.cc-cart-btn') || e.target.closest?.('.cc-cart-modal') || e.target.closest?.('.cc-palette-overlay')) return;
 
-        const captureHotkey = Patens.State?.hotkeys?.capture || {ctrl: true, shift: true, alt: false, meta: false};
+        const captureHotkey = Patens.State?.hotkeys?.capture || { ctrl: true, shift: true, alt: false, meta: false };
 
         if (captureHotkey && Patens.Utils?.checkModifiers(e, captureHotkey)) {
-            console.log("[Patens Main] 🎯 [STEP 1] Hotkey + Click intercepted!", {
-                targetTag: e.target.tagName,
-                currentUrl: window.location.href,
-                hasSelection: !!window.getSelection()?.toString().trim()
-            });
-
             e.preventDefault();
             e.stopPropagation();
 
-            const startTime = performance.now();
             let textSelection = window.getSelection() ? window.getSelection().toString().trim() : "";
-            const isPdfPage = Patens.DocumentParser?.isDocumentTarget(window.location.href);
-            const targetImg = Patens.Utils?.findUnderlyingImage(e.target);
+            const isPdfPage = Patens.DocumentParser?.isDocumentTarget?.(window.location.href);
+            const targetImg = Patens.Utils?.findUnderlyingImage?.(e.target);
             const targetLink = e.target?.closest?.('a');
             const linkUrl = targetLink ? targetLink.href : window.location.href;
 
             const pdfFigure = e.target?.closest?.('.patens-pdf-figure');
+            const pdfBlock = e.target?.closest?.('.patens-pdf-block');
             const hasPdfBlocks = !!document.querySelector('.patens-pdf-block');
 
             let itemsToSave = [];
 
-            // 📋 Clipboard Fallback for native PDF plugin pages
-            if (isPdfPage && !hasPdfBlocks && !textSelection && !pdfFigure) {
-                console.log("[Patens Main] Native PDF tab detected with empty selection. Attempting clipboard fallback...");
-                try {
-                    const clipboardText = await navigator.clipboard.readText();
-                    if (clipboardText && clipboardText.trim().length > 0) {
-                        textSelection = clipboardText.trim();
-                        console.log(`[Patens Main] ✅ Retrieved ${textSelection.length} chars from clipboard fallback.`);
-                    }
-                } catch (clipErr) {
-                    console.warn("[Patens Main] ⚠️ Clipboard read restricted:", clipErr.message);
-                }
-            }
-
-            // 🖼️ 1. SINGLE PDF FIGURE IMAGE CAPTURE
+            // 1. PDF FIGURE IMAGE CAPTURE
             if (pdfFigure) {
-                console.log("[Patens Main] Branch 0: Single PDF Figure overlay clicked!");
                 const imageB64 = pdfFigure.src;
-                const figureAlt = pdfFigure.alt || pdfFigure.title || `Figure from ${document.title}`;
-
+                const figureAlt = pdfFigure.alt || pdfFigure.title || `Figure from ${document.title || 'PDF'}`;
                 itemsToSave.push({
                     text: figureAlt,
                     title: document.title || "PDF Figure",
@@ -268,14 +240,27 @@ import './main.js';
                     base64Data: imageB64,
                     element: pdfFigure
                 });
-
-                Patens.Utils?.showNotification("🖼️ Figure Saved to Cart!", '#10b981', e.clientX, e.clientY);
+                Patens.Utils?.showNotification?.("🖼️ Figure Saved to Cart!", '#10b981', e.clientX, e.clientY);
             }
-            // 🔤 2. HIGHLIGHTED / CLIPBOARD TEXT SELECTION
-            else if (textSelection) {
-                const smartTitle = Patens.Utils?.getSmartTitle() || document.title || "PDF Excerpt";
-                console.log(`[Patens Main] Branch A: Processing text snippet selection (${textSelection.length} chars)`);
+            // 2. SPECIFIC PDF TEXT / FORMULA BLOCK
+            else if (pdfBlock) {
+                const blockText = pdfBlock.dataset.cleanText || pdfBlock.getAttribute('data-clean-text') || pdfBlock.innerText?.trim() || "";
+                const mediaB64 = pdfBlock.dataset.mediaB64 || pdfBlock.getAttribute('data-media-b64') || null;
+                const docTitle = document.title || Patens.Utils?.getSmartTitle?.() || "PDF Document";
 
+                if (blockText || mediaB64) {
+                    itemsToSave.push({
+                        text: blockText,
+                        title: docTitle,
+                        isImage: !!mediaB64,
+                        base64Data: mediaB64,
+                        element: pdfBlock
+                    });
+                }
+            }
+            // 3. HIGHLIGHTED TEXT SELECTION
+            else if (textSelection) {
+                const smartTitle = Patens.Utils?.getSmartTitle?.() || document.title || "Excerpt";
                 itemsToSave.push({
                     text: textSelection,
                     title: isPdfPage ? `📄 ${smartTitle} (Excerpt)` : smartTitle,
@@ -285,181 +270,148 @@ import './main.js';
 
                 try {
                     window.getSelection()?.removeAllRanges();
-                } catch (err) {
-                }
+                } catch (_) {}
             }
-            // 📄 3. DOCUMENT LINK CLICKED ON HTML PAGE
-            else if (targetLink && Patens.DocumentParser?.isDocumentTarget(linkUrl)) {
-                console.log(`[Patens Main] Branch B: Document link target clicked -> ${linkUrl}`);
-                Patens.Utils?.showNotification("📄 Parsing Document Content...", '#3b82f6', e.clientX, e.clientY);
-
+            // 4. DOCUMENT LINK CLICKED ON REGULAR HTML PAGE
+            else if (targetLink && Patens.DocumentParser?.isDocumentTarget?.(linkUrl)) {
+                Patens.Utils?.showNotification?.("📄 Parsing Document Content...", '#3b82f6', e.clientX, e.clientY);
                 try {
                     const parsedDoc = await Patens.DocumentParser.parseUrlOrFile(linkUrl);
                     if (parsedDoc && parsedDoc.text) {
                         itemsToSave.push({
                             text: parsedDoc.text,
-                            title: parsedDoc.title,
+                            title: parsedDoc.title || "Document",
                             isImage: false,
                             element: targetLink
                         });
-                        Patens.Utils?.showNotification("✨ Document Saved to Memory!", '#10b981', e.clientX, e.clientY);
+                        Patens.Utils?.showNotification?.("✨ Document Saved to Memory!", '#10b981', e.clientX, e.clientY);
                     }
                 } catch (docErr) {
-                    console.error("[Patens Main] ❌ Branch B failed to parse document link:", docErr);
-                    Patens.Utils?.showNotification("⚠️ Failed to parse document", '#ef4444', e.clientX, e.clientY);
+                    Logger.error("Failed to parse document link:", docErr);
+                    Patens.Utils?.showNotification?.("⚠️ Failed to parse document", '#ef4444', e.clientX, e.clientY);
                 }
             }
-            // 📑 4. CONVERTED PDF VIEWER PAGE INTERACTION (Has .patens-pdf-block elements)
+            // 5. CONVERTED PDF VIEWER PAGE - WHITESPACE BULK CAPTURE
             else if (hasPdfBlocks) {
-                const clickedBlock = e.target.closest('.patens-pdf-block');
-                const docTitle = document.title || Patens.Utils?.getSmartTitle() || "PDF Document";
+                const allDocElements = Array.from(document.querySelectorAll('.patens-pdf-block, .patens-pdf-figure'));
+                const docTitle = document.title || Patens.Utils?.getSmartTitle?.() || "PDF Document";
 
-                if (clickedBlock) {
-                    // Clicked a specific paragraph or math block
-                    const blockText = clickedBlock.dataset.cleanText || clickedBlock.innerText?.trim() || "";
-                    const mediaB64 = clickedBlock.dataset.mediaB64 || null; // Reads formula crop image attribute
-
-                    if (blockText || mediaB64) {
-                        console.log(`[Patens Main] Branch C1: Captured specific PDF paragraph block (${blockText.length} chars, Formula Image: ${!!mediaB64})`);
-                        itemsToSave.push({
-                            text: blockText,
-                            title: docTitle,
-                            isImage: !!mediaB64,
-                            base64Data: mediaB64,
-                            element: clickedBlock
-                        });
-                    }
-                } else {
-                    // Clicked white space / background -> Query BOTH text blocks AND figure images in DOM document order
-                    const allDocElements = Array.from(document.querySelectorAll('.patens-pdf-block, .patens-pdf-figure'));
-
-                    allDocElements.forEach(el => {
-                        if (el.classList.contains('patens-pdf-figure')) {
-                            const imageB64 = el.src;
-                            const figureAlt = el.alt || el.title || `Figure from ${docTitle}`;
-                            if (imageB64) {
-                                itemsToSave.push({
-                                    text: figureAlt,
-                                    title: docTitle,
-                                    isImage: true,
-                                    base64Data: imageB64,
-                                    element: el
-                                });
-                            }
-                        } else if (el.classList.contains('patens-pdf-block')) {
-                            const blockText = el.dataset.cleanText || el.innerText?.trim() || "";
-                            const mediaB64 = el.dataset.mediaB64 || null;
-
-                            if (blockText || mediaB64) {
-                                itemsToSave.push({
-                                    text: blockText,
-                                    title: docTitle,
-                                    isImage: !!mediaB64,
-                                    base64Data: mediaB64,
-                                    element: el
-                                });
-                            }
+                allDocElements.forEach(el => {
+                    if (el.classList.contains('patens-pdf-figure')) {
+                        const imageB64 = el.src;
+                        if (imageB64) {
+                            itemsToSave.push({
+                                text: el.alt || el.title || `Figure from ${docTitle}`,
+                                title: docTitle,
+                                isImage: true,
+                                base64Data: imageB64,
+                                element: el
+                            });
                         }
-                    });
-
-                    if (itemsToSave.length > 0) {
-                        console.log(`[Patens Main] Branch C2: Clicked white space. Bulk captured ${itemsToSave.length} total items (Text blocks + Figures).`);
-                        Patens.Utils?.showNotification(`✨ Captured Full PDF (${itemsToSave.length} Text & Figure Items)!`, '#3b82f6', e.clientX, e.clientY);
+                    } else if (el.classList.contains('patens-pdf-block')) {
+                        const blockText = el.dataset.cleanText || el.getAttribute('data-clean-text') || el.innerText?.trim() || "";
+                        const mediaB64 = el.dataset.mediaB64 || el.getAttribute('data-media-b64') || null;
+                        if (blockText || mediaB64) {
+                            itemsToSave.push({
+                                text: blockText,
+                                title: docTitle,
+                                isImage: !!mediaB64,
+                                base64Data: mediaB64,
+                                element: el
+                            });
+                        }
                     }
+                });
+
+                if (itemsToSave.length > 0) {
+                    Patens.Utils?.showNotification?.(`✨ Captured Full PDF (${itemsToSave.length} Items)!`, '#3b82f6', e.clientX, e.clientY);
                 }
             }
-            // 📑 5. CURRENT TAB IS DIRECT NATIVE PDF
+            // 6. NATIVE RAW PDF TAB
             else if (isPdfPage) {
-                console.log(`[Patens Main] Branch D: Current tab is direct native PDF. Triggering full document parse -> ${window.location.href}`);
-                Patens.Utils?.showNotification("📄 Parsing Full PDF Document...", '#3b82f6', e.clientX, e.clientY);
-
+                Patens.Utils?.showNotification?.("📄 Parsing PDF Document...", '#3b82f6', e.clientX, e.clientY);
                 try {
-                    const parsedDoc = await Patens.DocumentParser.parseUrlOrFile(window.location.href);
+                    const parsedDoc = await Patens.DocumentParser?.parseUrlOrFile?.(window.location.href);
                     if (parsedDoc && parsedDoc.text) {
                         itemsToSave.push({
                             text: parsedDoc.text,
-                            title: parsedDoc.title,
+                            title: parsedDoc.title || document.title || "PDF Document",
                             isImage: false,
                             element: document.body
                         });
-                        Patens.Utils?.showNotification("✨ Full PDF Saved!", '#10b981', e.clientX, e.clientY);
+                        Patens.Utils?.showNotification?.("✨ Full PDF Saved!", '#10b981', e.clientX, e.clientY);
                     }
                 } catch (docErr) {
-                    console.error("[Patens Main] ❌ Branch D failed to parse current PDF page:", docErr);
-                    Patens.Utils?.showNotification("⚠️ Failed to parse PDF", '#ef4444', e.clientX, e.clientY);
+                    Logger.error("Failed to parse PDF page:", docErr);
+                    Patens.Utils?.showNotification?.("⚠️ Failed to parse PDF", '#ef4444', e.clientX, e.clientY);
                 }
             }
-            // 🖼️ 6. REGULAR HTML IMAGE CAPTURE
+            // 7. REGULAR HTML IMAGE CAPTURE
             else if (targetImg) {
-                console.log("[Patens Main] Branch E: Processing standard HTML image element.");
                 try {
-                    const base64Data = await Patens.Utils?.getBase64Image(targetImg);
+                    const base64Data = await Patens.Utils?.getBase64Image?.(targetImg);
                     itemsToSave.push({
-                        text: targetImg.alt || targetImg.title || `Image snippet from ${Patens.Utils?.getSmartTitle()}`,
-                        title: Patens.Utils?.getSmartTitle(),
+                        text: targetImg.alt || targetImg.title || `Image from ${Patens.Utils?.getSmartTitle?.() || 'Webpage'}`,
+                        title: Patens.Utils?.getSmartTitle?.() || document.title,
                         isImage: true,
                         base64Data: base64Data,
                         element: targetImg
                     });
                 } catch (err) {
-                    console.error("[Patens Main] ❌ Branch E image capture failed:", err);
+                    Logger.error("Image capture error:", err);
                 }
             }
-            // 📦 7. STANDARD DOM ELEMENT FALLBACK
+            // 8. SEMANTIC CONTAINER CAPTURE (Stripe cards, pricing tables, feature units)
             else {
-                console.log("[Patens Main] Branch F: Fallback standard HTML element click processing.");
-                const tagName = e.target.tagName;
-                if (tagName) {
-                    const isCustomElement = tagName.includes('-');
-                    const containerTags = Patens.Config?.CONTAINER_TAGS || [];
-                    const readableTags = Patens.Config?.READABLE_TAGS || [];
-                    const minLength = Patens.Config?.MIN_TEXT_LENGTH || 0;
+                const semanticContainer = Patens.Utils?.getSemanticContainer?.(e.target);
+                const structuredText = Patens.Utils?.extractStructuredText?.(semanticContainer || e.target);
+                const minLength = Patens.Config?.MIN_TEXT_LENGTH || 0;
 
-                    if (containerTags.includes(tagName) || isCustomElement || e.target.isContentEditable) {
-                        const allReadable = Array.from(e.target.querySelectorAll(readableTags.join(',')));
-                        const topLevel = allReadable.filter(el => !allReadable.some(parent => parent.contains(el) && parent !== el));
+                if (structuredText && structuredText.length > minLength) {
+                    itemsToSave.push({
+                        text: structuredText,
+                        title: Patens.Utils?.getSmartTitle?.() || document.title,
+                        isImage: false,
+                        element: semanticContainer || e.target
+                    });
+                } else {
+                    // Fallback to DOM subtree scan
+                    const tagName = e.target.tagName;
+                    if (tagName) {
+                        const isCustomElement = tagName.includes('-');
+                        const containerTags = Patens.Config?.CONTAINER_TAGS || [];
+                        const readableTags = Patens.Config?.READABLE_TAGS || [];
 
-                        if (topLevel.length > 0) {
-                            topLevel.forEach(child => {
-                                const childText = child.innerText?.trim() || "";
-                                if (childText.length > minLength) itemsToSave.push({
-                                    text: childText,
-                                    title: Patens.Utils?.getSmartTitle(),
-                                    isImage: false,
-                                    element: child
+                        if (containerTags.includes(tagName) || isCustomElement || e.target.isContentEditable) {
+                            const allReadable = Array.from(e.target.querySelectorAll(readableTags.join(',')));
+                            const topLevel = allReadable.filter(el => !allReadable.some(parent => parent.contains(el) && parent !== el));
+
+                            if (topLevel.length > 0) {
+                                topLevel.forEach(child => {
+                                    const childText = child.innerText?.trim() || "";
+                                    if (childText.length > minLength) {
+                                        itemsToSave.push({
+                                            text: childText,
+                                            title: Patens.Utils?.getSmartTitle?.() || document.title,
+                                            isImage: false,
+                                            element: child
+                                        });
+                                    }
                                 });
-                            });
-                        } else {
-                            const text = e.target.innerText?.trim() || "";
-                            if (text.length > minLength) itemsToSave.push({
-                                text,
-                                title: Patens.Utils?.getSmartTitle(),
-                                isImage: false,
-                                element: e.target
-                            });
+                            }
                         }
-                    } else if (readableTags.includes(tagName) || tagName === 'SPAN') {
-                        const text = e.target.innerText?.trim() || "";
-                        if (text.length > minLength) itemsToSave.push({
-                            text,
-                            title: Patens.Utils?.getSmartTitle(),
-                            isImage: false,
-                            element: e.target
-                        });
                     }
                 }
             }
 
             if (itemsToSave.length > 0) {
-                console.log(`[Patens Main] 💾 [STEP 6] Saving ${itemsToSave.length} extracted items to storage cart... (${(performance.now() - startTime).toFixed(2)}ms)`);
                 Patens.Cart?.saveBulkToCartDirectly?.(itemsToSave, e.clientX, e.clientY);
                 clearHoverHighlights();
-            } else {
-                console.warn("[Patens Main] ⚠️ Click event processed, but 0 items were extracted to save.");
             }
         }
     }, true);
 
+    // Selection Tooltip Listener
     document.addEventListener('mouseup', (e) => {
         if (!e.target || e.target.closest?.('.cc-selection-tooltip') || e.target.closest?.('.cc-palette-overlay') || e.target.closest?.('.cc-cart-modal')) return;
 
@@ -488,7 +440,7 @@ import './main.js';
                     ev.stopPropagation();
                     Patens.Cart?.saveBulkToCartDirectly?.([{
                         text,
-                        title: Patens.Utils?.getSmartTitle(),
+                        title: Patens.Utils?.getSmartTitle?.() || document.title || "Excerpt",
                         isImage: false,
                         element: null
                     }], ev.clientX, ev.clientY);
@@ -500,14 +452,12 @@ import './main.js';
                         tooltip.remove();
                         try {
                             selection.removeAllRanges();
-                        } catch (err) {
-                        }
+                        } catch (_) {}
                     }, 800);
                 };
                 (document.body || document.documentElement).appendChild(tooltip);
             }
-        } catch (err) {
-        }
+        } catch (_) {}
     });
 
     // Boot UI

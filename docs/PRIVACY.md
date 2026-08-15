@@ -33,10 +33,8 @@ We believe developer tools should not spy on developers. We guarantee the follow
 ## 4. Chrome Extension Permissions Explained
 
 To maintain total transparency, here is exactly why the extension requests the following permissions:
-*   `activeTab` & `scripting`: Required to read the text you have highlighted on the page you are currently viewing.
 *   `tabs`: Required to fetch the URL and page title of your current tab for sourcing.
 *   `storage`: Required to save your current clip "cart" locally before you send it to your local server.
-*   `contextMenus`: Required to add the "Save to patens" option when you right-click on a webpage.
 *   `*://*/*` (All URLs): Required because developers research on a vast, unpredictable variety of websites (documentation, forums, GitHub, etc.). This permission allows the capture tool to work on any page you visit.
 
 ## 5. Contact Us
