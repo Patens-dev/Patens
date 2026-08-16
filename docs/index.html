@@ -19,6 +19,7 @@
             --accent-green: #10b981;
             --accent-amber: #f59e0b;
             --accent-red: #ef4444;
+            --accent-indigo: #6366f1;
 
             --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
@@ -29,6 +30,17 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y proximity;
+        }
+
+        @media (min-width: 1025px) {
+            html {
+                scroll-snap-type: y mandatory;
+            }
         }
 
         html, body {
@@ -42,11 +54,26 @@
             background-color: var(--bg-base);
             color: var(--text-main);
             line-height: 1.55;
-            background-image:
-                linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
             background-size: 40px 40px;
             background-position: center top;
+        }
+
+        /* ==========================================
+           SCROLL-SNAP SLIDESHOW ARCHITECTURE
+        ========================================== */
+        .snap-section {
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            scroll-margin-top: 75px;
+            min-height: calc(100vh - 75px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 24px;
+            width: 100%;
+            position: relative;
         }
 
         /* ==========================================
@@ -58,10 +85,9 @@
             -webkit-backdrop-filter: blur(20px) saturate(140%);
             border: 1px solid var(--border-light);
             border-radius: 8px;
-            box-shadow:
-                0 16px 36px -4px rgba(0, 0, 0, 0.65),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.65),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.02);
             position: relative;
         }
 
@@ -122,7 +148,6 @@
             gap: 8px;
         }
 
-        /* Buttonized Navigation Items */
         .nav-btn {
             display: inline-flex;
             align-items: center;
@@ -153,7 +178,6 @@
             background: rgba(255, 255, 255, 0.12);
         }
 
-        /* Mobile Hamburger Toggle Button */
         .nav-mobile-toggle {
             display: none;
             background: rgba(255, 255, 255, 0.05);
@@ -182,10 +206,12 @@
         .nav-mobile-toggle.active span:nth-child(1) {
             transform: translateY(7px) rotate(45deg);
         }
+
         .nav-mobile-toggle.active span:nth-child(2) {
             opacity: 0;
             transform: scale(0.2);
         }
+
         .nav-mobile-toggle.active span:nth-child(3) {
             transform: translateY(-7px) rotate(-45deg);
         }
@@ -232,17 +258,12 @@
         }
 
         /* HERO SECTION */
-        .hero {
+        .hero-grid {
             max-width: 1600px;
             margin: 0 auto;
-            padding: 32px 24px 60px;
-            width: 100%;
-        }
-
-        .hero-grid {
             display: grid;
             grid-template-columns: 0.95fr 1.25fr;
-            gap: 36px;
+            gap: 40px;
             align-items: center;
             width: 100%;
         }
@@ -254,7 +275,6 @@
             min-width: 0;
         }
 
-        /* Mode Switcher */
         .mode-switcher-container {
             width: 100%;
             position: relative;
@@ -518,6 +538,9 @@
             border-radius: 50%;
         }
 
+        /* ==========================================
+           CLICKABLE VIDEO WRAPPER & TOGGLE OVERLAY
+        ========================================== */
         .video-wrapper {
             position: relative;
             width: 100%;
@@ -527,68 +550,61 @@
             justify-content: center;
             aspect-ratio: 16 / 9;
             overflow: hidden;
+            cursor: pointer;
+            user-select: none;
         }
 
         .demo-video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scale(1.0);
-            transform-origin: center center;
             display: block;
         }
 
-        /* Keyboard Reference Bar */
-        .keyboard-reference-bar {
-            max-width: 1100px;
-            margin: 32px auto 0;
-            padding: 14px 20px;
-            border-radius: 8px;
+        .video-overlay-btn {
+            position: absolute;
+            width: 58px;
+            height: 58px;
+            background: rgba(18, 18, 22, 0.85);
+            backdrop-filter: blur(12px) saturate(160%);
+            -webkit-backdrop-filter: blur(12px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-            width: calc(100% - 48px);
+            justify-content: center;
+            color: #ffffff;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.85);
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
         }
 
-        .kb-ref-title {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: #d4d4d8;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
+        .video-overlay-btn svg {
+            width: 24px;
+            height: 24px;
         }
 
-        .kb-ref-items {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            flex-wrap: wrap;
+        .video-overlay-btn svg#ctrl-icon-play {
+            margin-left: 2px;
         }
 
-        .kb-ref-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #d4d4d8;
-            white-space: nowrap;
+        .video-wrapper.is-paused .video-overlay-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .video-overlay-btn.flash-feedback {
+            opacity: 1;
+            transform: scale(1.15);
         }
 
         /* Story Section: Agony vs Flow */
-        .story-section {
-            max-width: 1100px;
-            margin: 60px auto;
-            padding: 0 24px;
-            width: 100%;
-        }
-
         .story-grid {
+            max-width: 1100px;
+            margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1px;
@@ -601,7 +617,7 @@
 
         .story-card {
             background: var(--bg-card);
-            padding: 32px 28px;
+            padding: 36px 30px;
             min-width: 0;
         }
 
@@ -637,63 +653,941 @@
             font-weight: 600;
         }
 
-        /* Features Bento Grid */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 18px;
+        /* =========================================================================
+           INTERACTIVE LIVE SANDBOX (ZERO-INSTALL SIMULATION)
+        ========================================================================= */
+        .sandbox-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .sandbox-header h2 {
+            font-size: clamp(24px, 3.5vw, 32px);
+            font-weight: 800;
+            letter-spacing: -0.6px;
+            margin-bottom: 8px;
+        }
+
+        .live-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            margin: 0 auto 8px;
+            width: fit-content;
+        }
+
+        .blinking-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+            animation: blip 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes blip {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(0.75);
+            }
+        }
+
+        .sandbox-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .sandbox-container {
             max-width: 1100px;
-            margin: 0 auto 80px;
-            padding: 0 24px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
+        }
+
+        .sandbox-toolbar {
+            background: rgba(18, 18, 22, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .stepper-pills {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            overflow-x: auto;
+        }
+
+        .step-pill {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 3px 9px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .step-pill.active {
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.18);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+
+        .step-pill.completed {
+            color: #6ee7b7;
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .sandbox-reset-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .sandbox-reset-btn:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .sandbox-stage {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 420px;
+            background: #09090b;
+        }
+
+        /* Left: Simulated Web Page */
+        .mock-browser {
+            background: #111114;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .mock-browser-bar {
+            background: #18181b;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .browser-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .browser-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3f3f46;
+        }
+
+        .browser-url {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            color: var(--text-muted);
+            background: #09090b;
+            padding: 3px 10px;
+            border-radius: 4px;
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mock-browser-content {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .doc-header h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #d4d4d8;
+        }
+
+        .doc-badge {
+            font-size: 9.5px;
+            font-family: var(--font-mono);
+            color: #6ee7b7;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 1px 6px;
+            border-radius: 3px;
+        }
+
+        .sample-lead {
+            font-size: 12.5px;
+            color: var(--text-muted);
+        }
+
+        /* Interactive Target Snippet */
+        .interactive-snippet {
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1.5px dashed #3b82f6;
+            border-radius: 6px;
+            padding: 16px 14px 12px;
+            margin-top: 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .interactive-snippet:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: #60a5fa;
+            transform: translateY(-1px);
+        }
+
+        .interactive-snippet.harvested {
+            background: rgba(16, 185, 129, 0.15) !important;
+            border: 1.5px solid #10b981 !important;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+        }
+
+        .snip-instruction-badge {
+            position: absolute;
+            top: -14px;
+            right: 12px;
+            background: #3b82f6;
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .snip-text {
+            font-size: 12.5px;
+            line-height: 1.55;
+            color: #f4f4f5;
+        }
+
+        .sample-subtext {
+            font-size: 11.5px;
+            color: #71717a;
+        }
+
+        /* 40s Undo Toast in Mock Browser */
+        .mock-undo-toast {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            background: rgba(18, 18, 22, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 6px;
+            padding: 9px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mock-undo-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .toast-spinner {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-top-color: #10b981;
+            animation: spin 3s linear infinite;
+        }
+
+        .toast-details {
+            display: flex;
+            flex-direction: column;
+            font-size: 10.5px;
+        }
+
+        .toast-details strong {
+            color: #ffffff;
+        }
+
+        .toast-details span {
+            color: var(--text-muted);
+            font-size: 9px;
+        }
+
+        .toast-undo-btn {
+            background: #27272a;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Right: Simulated Chat UI */
+        .mock-chat {
+            background: #09090b;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .mock-chat-header {
+            background: #111114;
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #27272a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .mock-chat-messages {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .chat-msg {
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            max-width: 92%;
+        }
+
+        .chat-msg.ai {
+            background: #18181b;
+            color: #d4d4d8;
+            align-self: flex-start;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .chat-msg.user {
+            background: rgba(59, 130, 246, 0.18);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            color: #ffffff;
+            align-self: flex-end;
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+
+        .chat-cite-tag {
+            color: #818cf8;
+            text-decoration: underline;
+        }
+
+        /* Chat Input Clickable Trigger Area */
+        .mock-chat-input-wrapper {
+            position: relative;
+            padding: 16px 12px 12px;
+            margin-top: 8px;
+            background: #111114;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mock-chat-input-wrapper:hover {
+            background: #151518;
+        }
+
+        .chat-instruction-badge {
+            position: absolute;
+            top: -14px;
+            right: 14px;
+            background: #6366f1;
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .mock-input {
+            flex-grow: 1;
+            background: #09090b;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: #f4f4f5;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            resize: none;
+            height: 38px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .mock-chat-input-wrapper:hover .mock-input {
+            border-color: #6366f1;
+        }
+
+        .mock-send-btn {
+            background: #ffffff;
+            color: #09090b;
+            border: none;
+            border-radius: 6px;
+            padding: 0 14px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mock-send-btn:hover {
+            background: #e4e4e7;
+        }
+
+        /* Simulated Command Palette Overlay */
+        .mock-palette-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+        }
+
+        .mock-palette-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mock-palette {
+            width: 100%;
+            max-width: 480px;
+            background: #121215;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95);
+            overflow: hidden;
+        }
+
+        .palette-search-bar {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 8px;
+        }
+
+        .palette-search-input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        .palette-shortcut-badge {
+            font-size: 9.5px;
+            color: #71717a;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .palette-results {
+            padding: 8px;
+        }
+
+        .palette-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .palette-item.active {
+            background: rgba(99, 102, 241, 0.16);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .palette-item-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .palette-item-tokens {
+            color: #a5b4fc;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        .palette-item-preview {
+            font-size: 11px;
+            color: #d4d4d8;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .palette-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .palette-action-tag {
+            background: #27272a;
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        /* =========================================================================
+           TACTILE DIAGONAL LIQUID-GLASS FEATURE BENTO GRID (CALIBRATED GEOMETRY)
+        ========================================================================= */
+        .features-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 22px;
             width: 100%;
         }
 
         .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 26px 22px;
-            transition: border-color 0.2s ease, transform 0.2s ease;
-            min-width: 0;
+            position: relative;
+            background: linear-gradient(135deg, rgba(24, 24, 27, 0.98) 0%, rgba(14, 14, 17, 0.99) 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 310px;
+            box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.7),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: linear-gradient(180deg, rgba(14, 14, 17, 0.9) 0%, rgba(14, 14, 17, 0.5) 75%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
         }
 
         .feature-card:hover {
-            border-color: #52525b;
+            border-color: rgba(255, 255, 255, 0.22);
             transform: translateY(-2px);
+            box-shadow: 0 22px 48px -6px rgba(0, 0, 0, 0.85),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
         }
 
-        .feature-icon {
-            width: 40px;
-            height: 40px;
-            background: #000;
-            border: 1px solid var(--border-color);
+        .feature-content {
+            position: relative;
+            z-index: 4;
+            padding: 24px 24px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+
+        .feature-badge-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .feature-icon-box {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
+            font-size: 15px;
+            color: #ffffff;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-trigger-pill {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
             color: #d4d4d8;
-            font-size: 18px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 2px 7px;
+            letter-spacing: 0.3px;
         }
 
         .feature-card h3 {
             font-size: 16.5px;
-            margin-bottom: 8px;
-            color: #ffffff;
             font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
         }
 
         .feature-card p {
             color: var(--text-muted);
             font-size: 13.5px;
             line-height: 1.55;
+            max-width: 100%;
+            text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+        }
+
+        .feature-diagonal-backdrop {
+            position: absolute;
+            right: -6px;
+            bottom: -6px;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            pointer-events: none;
+            overflow: hidden;
+            mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.5) 68%, rgba(0, 0, 0, 1) 100%);
+            -webkit-mask-image: linear-gradient(135deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.5) 68%, rgba(0, 0, 0, 1) 100%);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .feature-card:hover .feature-diagonal-backdrop {
+            transform: scale(1.02) translate(-3px, -3px);
+        }
+
+        .preview-ui-box {
+            background: rgba(12, 12, 15, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px 0 0 0;
+            box-shadow: -10px -10px 30px rgba(0, 0, 0, 0.9);
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            color: #e4e4e7;
+            user-select: none;
+        }
+
+        /* Visual 1: Context Cart Staging */
+        .ui-cart-container {
+            width: 270px;
+            height: 145px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ui-cart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 5px;
+            font-size: 10px;
+            color: #a1a1aa;
+        }
+
+        .ui-cart-item {
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 4px;
+            padding: 4px 7px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 9.5px;
+            color: #bfdbfe;
+        }
+
+        /* Visual 2: Palette Deletion Modal */
+        .ui-delete-container {
+            width: 260px;
+            height: 135px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ui-delete-modal {
+            background: #1c1917;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 5px;
+            padding: 7px 9px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ui-delete-title {
+            color: #f87171;
+            font-weight: 700;
+            font-size: 9.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Visual 3: Native Browser PDF Harvest Bar */
+        .ui-pdf-container {
+            width: 275px;
+            height: 145px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ui-pdf-page {
+            background: #18181b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 7px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: relative;
+        }
+
+        .ui-pdf-floating-pill {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            background: #27272a;
+            border: 1px solid #3b82f6;
+            color: #ffffff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Visual 4: Workspace Sync & MCP Tagging */
+        .ui-workspace-container {
+            width: 265px;
+            height: 145px;
+            padding: 12px;
+            font-size: 10.5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ui-folder-row {
+            color: #818cf8;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .ui-file-row {
+            margin-left: 12px;
+            color: #d4d4d8;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9.5px;
+        }
+
+        .ui-prompt-tag {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 9px;
+            color: #60a5fa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Visual 5: Citations */
+        .ui-cite-container {
+            width: 275px;
+            height: 140px;
+            padding: 12px;
+            font-size: 10.5px;
+            line-height: 1.45;
+            background: #09090b;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ui-cite-link {
+            color: #818cf8;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .ui-cite-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #6ee7b7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            width: fit-content;
+        }
+
+        /* Visual 6: Hierarchical Document Tree */
+        .ui-tree-container {
+            width: 275px;
+            height: 145px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .ui-tree-doc {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: #f4f4f5;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 4px;
+        }
+
+        .ui-tree-child {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(99, 102, 241, 0.16);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 4px;
+            padding: 4px 7px;
+            margin-left: 10px;
+            font-size: 9.5px;
+            color: #c7d2fe;
         }
 
         /* SETUP SECTION WITH SELECTOR */
-        .setup-section {
+        .setup-section-content {
             max-width: 1100px;
-            margin: 0 auto 80px;
-            padding: 0 24px;
+            margin: 0 auto;
             width: 100%;
         }
 
@@ -781,7 +1675,6 @@
             flex-shrink: 0;
         }
 
-        /* Clean Monochrome Liquid Glass Banner */
         .guide-callout-banner {
             display: none;
             border-radius: 8px;
@@ -882,7 +1775,6 @@
             box-shadow: none !important;
         }
 
-        /* Square Step Tags */
         .step-tag {
             font-family: var(--font-mono);
             font-size: 10px;
@@ -972,12 +1864,19 @@
             }
         }
 
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         /* ==========================================
            RESPONSIVE BREAKPOINTS (MOBILE AUDIT)
         ========================================== */
         @media (max-width: 1024px) {
-            .hero {
-                padding: 24px 20px 48px;
+            .snap-section {
+                min-height: auto;
+                padding: 40px 20px;
             }
 
             .hero-grid {
@@ -1010,17 +1909,6 @@
             .story-grid {
                 grid-template-columns: 1fr;
             }
-
-            .keyboard-reference-bar {
-                width: calc(100% - 40px);
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .kb-ref-items {
-                justify-content: center;
-            }
         }
 
         @media (max-width: 768px) {
@@ -1036,7 +1924,6 @@
                 display: flex;
             }
 
-            /* Responsive Mobile Drawer Menu (Fixes clipping and overflow) */
             .nav-links {
                 display: none;
                 position: absolute;
@@ -1070,8 +1957,8 @@
                 background: rgba(255, 255, 255, 0.04);
             }
 
-            .hero {
-                padding: 20px 16px 36px;
+            .snap-section {
+                padding: 28px 16px;
             }
 
             .mode-switcher {
@@ -1121,31 +2008,34 @@
                 gap: 6px;
             }
 
-            .keyboard-reference-bar {
-                width: calc(100% - 32px);
-                margin: 20px auto 0;
-                padding: 12px 14px;
-            }
-
-            .kb-ref-items {
-                gap: 10px 14px;
-                width: 100%;
-            }
-
-            .kb-ref-item {
-                font-size: 12px;
-                width: 100%;
-                justify-content: space-between;
-                padding: 2px 0;
-            }
-
-            .story-section, .features-grid, .setup-section {
-                margin: 40px auto;
-                padding: 0 16px;
-            }
-
             .story-card {
                 padding: 22px 18px;
+            }
+
+            .sandbox-stage {
+                grid-template-columns: 1fr;
+            }
+
+            .mock-browser {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .desktop-hint {
+                display: none;
+            }
+
+            .mobile-hint {
+                display: inline;
+            }
+
+            .feature-card {
+                min-height: 290px;
+            }
+
+            .preview-ui-box {
+                width: 240px !important;
+                height: 125px !important;
             }
 
             .feature-card, .setup-step-card {
@@ -1167,6 +2057,16 @@
             }
         }
 
+        @media (min-width: 769px) {
+            .desktop-hint {
+                display: inline;
+            }
+
+            .mobile-hint {
+                display: none;
+            }
+        }
+
         @media (max-width: 360px) {
             .hero-title {
                 font-size: 25px;
@@ -1181,23 +2081,28 @@
     <nav class="nav-container">
         <div class="logo">
             <a href="https://patens.dev">
-                <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png" alt="Patens Logo">
+                <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
+                     alt="Patens Logo">
             </a>
         </div>
 
-        <button class="nav-mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation menu" onclick="toggleMobileNav(event)">
+        <button class="nav-mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation menu"
+                onclick="toggleMobileNav(event)">
             <span></span>
             <span></span>
             <span></span>
         </button>
 
         <div class="nav-links" id="nav-menu">
+            <a href="#playground" class="nav-btn" onclick="closeMobileNav()">⚡ Live Sandbox</a>
             <a href="#features" class="nav-btn" onclick="closeMobileNav()">Why Patens</a>
             <a href="#install" class="nav-btn" onclick="closeMobileNav()">Downloads</a>
             <a href="guide.html" class="nav-btn" onclick="closeMobileNav()">📖 Setup Guide</a>
-            <a href="https://github.com/Patens-dev/Patens" target="_blank" rel="noopener" class="nav-btn" onclick="closeMobileNav()">
+            <a href="https://github.com/Patens-dev/Patens" target="_blank" rel="noopener" class="nav-btn"
+               onclick="closeMobileNav()">
                 <svg viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                          d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                 </svg>
                 GitHub
             </a>
@@ -1205,7 +2110,8 @@
     </nav>
 </div>
 
-<header class="hero">
+<!-- SLIDE 1: HERO SECTION -->
+<header class="snap-section hero">
     <div class="hero-grid">
         <!-- Left Hero Content -->
         <div class="hero-left">
@@ -1225,18 +2131,20 @@
 
             <div class="hero-eyebrow" id="hero-eyebrow">🔍 Stop Drowning in 30 Open Tabs</div>
             <h1 class="hero-title" id="hero-title">Gather research in <span>1-click</span>. Feed pure signal to AI.</h1>
-            <p class="hero-desc" id="hero-desc">Kill the endless Ctrl+C tab-thrashing. Highlight competitor pricing, specs, and papers across 20 tabs—instantly assembled into cited, hallucination-proof memory.</p>
+            <p class="hero-desc" id="hero-desc">Kill the endless Ctrl+C tab-thrashing. Highlight competitor pricing,
+                specs, and papers across 20 tabs, instantly assembled into cited, hallucination-proof memory.</p>
 
             <div class="hero-cta-group">
                 <div class="hero-cta">
                     <a href="vscode:extension/patens-dev.patens" class="btn btn-primary-white">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; color:#09090b;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             style="width: 18px; height: 18px; color:#09090b;">
                             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
                         </svg>
                         <span>Install in Visual Studio Code</span>
                     </a>
-                    <a href="#install" class="btn btn-secondary">
-                        See other options
+                    <a href="#playground" class="btn btn-secondary">
+                        Try Live Simulation
                     </a>
                 </div>
                 <div class="hero-subtext">
@@ -1269,214 +2177,503 @@
                     </div>
                 </div>
 
-                <div class="video-wrapper">
+                <!-- Video Component with Click-to-Play/Pause & Custom Indicator -->
+                <div class="video-wrapper" id="video-wrapper" onclick="toggleVideoPlayback()">
                     <video
-                        id="demo-video"
-                        class="demo-video"
-                        autoplay
-                        loop
-                        muted
-                        playsinline
-                        preload="auto"
-                        poster="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/poster.webp"
+                            id="demo-video"
+                            class="demo-video"
+                            autoplay
+                            loop
+                            muted
+                            playsinline
+                            preload="auto"
+                            poster="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/poster.webp"
                     >
-                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.webm" type="video/webm">
-                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.mp4" type="video/mp4">
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.webm"
+                                type="video/webm">
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.mp4"
+                                type="video/mp4">
                     </video>
+
+                    <!-- Custom Glass Play/Pause Overlay -->
+                    <div class="video-overlay-btn" id="video-overlay-btn">
+                        <svg id="ctrl-icon-play" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        <svg id="ctrl-icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </header>
 
-<!-- Keyboard Shortcuts Bar (Smoked Obsidian Glass) -->
-<div class="keyboard-reference-bar liquid-glass">
-    <div class="kb-ref-title">
-        <span>⚡</span> Shortcuts Quick Reference
-    </div>
-    <div class="kb-ref-items">
-        <div class="kb-ref-item">
-            <span class="shortcut-badge-group">
-                <kbd title="Control Key">Ctrl</kbd>+<kbd title="Shift Key">Shift</kbd>+<kbd title="Left Click">Click</kbd>
-            </span>
-            <span>Harvest Context</span>
-        </div>
-        <div class="kb-ref-item">
-            <span class="shortcut-badge-group">
-                <kbd title="Control Key">Ctrl</kbd>+<kbd title="Shift Key">Shift</kbd>+<kbd title="Space Key">Space</kbd>
-            </span>
-            <span>Command Palette</span>
-        </div>
-        <div class="kb-ref-item">
-            <span class="shortcut-badge-group">
-                <kbd title="Shift Key">Shift</kbd>+<kbd title="Enter / Return">Enter</kbd>
-            </span>
-            <span>Instant AI Stream</span>
-        </div>
-    </div>
-</div>
-
-<!-- Old vs New Workflow: Agony vs Flow -->
-<section class="story-section">
+<!-- SLIDE 2: STORY (AGONY VS FLOW) -->
+<section class="snap-section story-section">
     <div class="story-grid">
         <div class="story-card bad">
             <h3>❌ The Agony of Tab-Thrashing</h3>
             <p>• <strong>35 open tabs:</strong> Competitor pages, Reddit reviews, SEC filings, and pricing matrices.</p>
-            <p>• <strong>Clipboard hell:</strong> <kbd title="Copy to Clipboard">Ctrl</kbd>+<kbd>C</kbd> ➔ <kbd title="Switch Active Windows">Alt</kbd>+<kbd>Tab</kbd> ➔ <kbd title="Paste Excerpt">Ctrl</kbd>+<kbd>V</kbd> × 60 into a messy scratchpad.</p>
-            <p>• <strong>Context pollution:</strong> Pasting whole web pages into Claude/ChatGPT dumps cookie banners, headers, and navigation garbage.</p>
-            <p>• <strong>Lost provenance:</strong> 2 hours later, you can't find which specific competitor page had that vital stat.</p>
-            <p><strong>Result:</strong> Exhausting mental friction, prompt hallucinations, and hours wasted formatting raw text.</p>
+            <p>• <strong>Clipboard hell:</strong> <kbd title="Copy to Clipboard">Ctrl</kbd>+<kbd>C</kbd> ➔ <kbd
+                    title="Switch Active Windows">Alt</kbd>+<kbd>Tab</kbd> ➔ <kbd title="Paste Excerpt">Ctrl</kbd>+<kbd>V</kbd>
+                × 60 into a messy scratchpad.</p>
+            <p>• <strong>Context pollution:</strong> Pasting whole web pages into Claude/ChatGPT dumps cookie banners,
+                headers, and navigation garbage.</p>
+            <p>• <strong>Lost provenance:</strong> 2 hours later, you can't find which specific competitor page had that
+                vital stat.</p>
+            <p><strong>Result:</strong> Exhausting mental friction, prompt hallucinations, and hours wasted formatting
+                raw text.</p>
         </div>
         <div class="story-card good">
             <h3>✨ The Patens Flow State</h3>
-            <p>• <strong>1-Click capture:</strong> Highlight exact key paragraphs as you browse with <kbd title="Harvest Excerpt">Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Click</kbd>. Auto-ingested with origin URLs attached.</p>
-            <p>• <strong>Forgiving Undo Window:</strong> 40-second grace window to inspect, pause, or prune clips without breaking flow.</p>
-            <p>• <strong>Hierarchical Command Palette:</strong> Hit <kbd title="Open Patens Palette">Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to browse clustered documents or granular paragraphs.</p>
-            <p>• <strong>1-Key AI Injection:</strong> Press <kbd title="Stream to Chatbox">Enter</kbd> to stream structured, cited Markdown directly into Claude, ChatGPT, or your IDE.</p>
-            <p><strong>Result:</strong> Deep, multi-source synthesis in minutes with 100% verified source traceability.</p>
+            <p>• <strong>1-Click capture:</strong> Highlight exact key paragraphs as you browse with <kbd
+                    title="Harvest Excerpt">Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Click</kbd>. Auto-ingested with origin URLs
+                attached.</p>
+            <p>• <strong>Forgiving Undo Window:</strong> 40-second grace window to inspect, pause, or prune clips
+                without breaking flow.</p>
+            <p>• <strong>Hierarchical Command Palette:</strong> Hit <kbd title="Open Patens Palette">Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>
+                to browse clustered documents or granular paragraphs.</p>
+            <p>• <strong>1-Key AI Injection:</strong> Press <kbd title="Stream to Chatbox">Enter</kbd> to stream
+                structured, cited Markdown directly into Claude, ChatGPT, or your IDE.</p>
+            <p><strong>Result:</strong> Deep, multi-source synthesis in minutes with 100% verified source traceability.
+            </p>
         </div>
     </div>
 </section>
 
-<!-- Feature Bento Grid -->
-<section id="features" class="features-grid">
-    <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>Zero-Friction Harvest</h3>
-        <p>Never break your reading flow. Highlight data, tables, or quotes across 20 tabs. Patens silently indexes them in the background with a 40s undo safety ring.</p>
+<!-- SLIDE 3: INTERACTIVE LIVE SANDBOX SECTION -->
+<section class="snap-section sandbox-section" id="playground">
+    <div class="sandbox-header">
+        <h2>Test the Workflow Live (Zero Install)</h2>
+        <div class="live-tag"><span class="blinking-dot"></span> LIVE SIMULATION</div>
+        <p>Experience the 3-second harvest-to-synthesis loop right now in your browser.</p>
     </div>
-    <div class="feature-card">
-        <div class="feature-icon">📚</div>
-        <h3>Automatic Citation Engine</h3>
-        <p>Every single paragraph retains its exact source URL, page title, and timestamp. When injected into an LLM, it automatically formats citations and bibliographies.</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">🧠</div>
-        <h3>Hierarchical Document Tree</h3>
-        <p>Browse your research basket with keyboard precision. Inject an entire 80-paragraph competitive teardown or drill down to a single bullet point with arrow keys.</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <h3>100% Local & Air-Gapped</h3>
-        <p>Powered by local FastEmbed ONNX vectors and SQLite-vec. Confidential market specs, internal wiki docs, and research notes never leave your machine.</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">📂</div>
-        <h3>Physical Workspace Sync</h3>
-        <p>Auto-generates clean, human-readable <code>_context/</code> Markdown files straight into your active workspace. Point Cursor, Obsidian, or Claude Desktop directly at them.</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <h3>Model Context Protocol (MCP)</h3>
-        <p>Ask your AI agent in Cursor, Windsurf, or Claude: <em>"Synthesize the competitor pricing models I gathered this morning"</em> and it queries local vector memory autonomously.</p>
+
+    <div class="sandbox-container liquid-glass">
+        <!-- Top Toolbar & Status Stepper -->
+        <div class="sandbox-toolbar">
+            <div class="stepper-pills">
+                <span class="step-pill active" id="step-pill-1">1. Harvest Snippet</span>
+                <span class="step-pill" id="step-pill-2">2. Open Palette</span>
+                <span class="step-pill" id="step-pill-3">3. Stream to AI</span>
+            </div>
+            <button class="sandbox-reset-btn" onclick="resetSandbox()">↺ Reset Demo</button>
+        </div>
+
+        <!-- Split View: Mock Web Source vs Mock AI Chat -->
+        <div class="sandbox-stage">
+
+            <!-- Left: Simulated Browser Webpage -->
+            <div class="mock-browser">
+                <div class="mock-browser-bar">
+                    <div class="browser-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="browser-url">🔒 https://docs.stripe.com/api/pricing-2026</div>
+                </div>
+
+                <div class="mock-browser-content">
+                    <div class="doc-header">
+                        <h4>Stripe API • Fee Schedules</h4>
+                        <span class="doc-badge">v2.4 Live</span>
+                    </div>
+
+                    <p class="sample-lead">Standard card transactions are billed according to regional interchange
+                        caps:</p>
+
+                    <!-- Interactive Clickable Snippet Target -->
+                    <div class="interactive-snippet" id="target-snippet" onclick="handleHarvestClick(event)">
+                        <div class="snip-instruction-badge" id="snip-badge">
+                            <span class="desktop-hint">Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Click</kbd> (or click here)</span>
+                            <span class="mobile-hint">Tap to Harvest ⚡</span>
+                        </div>
+                        <p class="snip-text">
+                            "Domestic card processing is fixed at <strong>1.4% + $0.20</strong> per successful charge.
+                            Custom volume discounts unlock at $100k/mo MRR with automated monthly reconciliation."
+                        </p>
+                    </div>
+
+                    <p class="sample-subtext">Chargeback dispute guarantees apply to all verified merchant accounts.</p>
+                </div>
+
+                <!-- 40s Undo Grace Ring Toast -->
+                <div class="mock-undo-toast" id="mock-undo-toast">
+                    <div class="toast-spinner"></div>
+                    <div class="toast-details">
+                        <strong>Harvested to Local Vector Memory</strong>
+                        <span>40s undo safety ring active</span>
+                    </div>
+                    <button class="toast-undo-btn" onclick="undoHarvest(event)">Undo</button>
+                </div>
+            </div>
+
+            <!-- Right: Simulated AI Chatbox (ChatGPT / Claude) -->
+            <div class="mock-chat">
+                <div class="mock-chat-header">
+                    <div class="ai-avatar">🤖</div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 12px; color: #fff;">Claude 3.5 Sonnet / ChatGPT</div>
+                        <div style="font-size: 10px; color: #10b981;">● Connected via Patens Bridge</div>
+                    </div>
+                </div>
+
+                <div class="mock-chat-messages" id="chat-messages">
+                    <div class="chat-msg ai">
+                        <p>Ask me to analyze competitor specs or vendor rates. Inject context with Patens.</p>
+                    </div>
+                </div>
+
+                <!-- Mock Prompt Input (Clicking directly opens the palette) -->
+                <div class="mock-chat-input-wrapper" onclick="handleChatClick(event)">
+                    <div class="chat-instruction-badge" id="chat-badge">
+                        <span class="desktop-hint">Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (or click here)</span>
+                        <span class="mobile-hint">Tap to Open Palette 🎛️</span>
+                    </div>
+                    <textarea class="mock-input" id="mock-prompt-input" readonly
+                              placeholder="Click to summon Command Palette or press Ctrl+Shift+Space..."></textarea>
+                    <button class="mock-send-btn" id="mock-send-btn" onclick="executeMockPrompt(event)">Stream ↵
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Simulated Command Palette Overlay -->
+        <div class="mock-palette-overlay" id="mock-palette-overlay">
+            <div class="mock-palette liquid-glass">
+                <div class="palette-search-bar">
+                    <span class="palette-search-icon">🔍</span>
+                    <input type="text" class="palette-search-input" value="from:stripe.com fee pricing" readonly>
+                    <span class="palette-shortcut-badge" onclick="closeSimulatedPalette()">✕ ESC to close</span>
+                </div>
+
+                <div class="palette-results">
+                    <div class="palette-item active" onclick="injectSimulatedContext(event)">
+                        <div class="palette-item-header">
+                            <span style="color:#818cf8; font-weight:700;">🔗 docs.stripe.com/api/pricing-2026</span>
+                            <span class="palette-item-tokens">~38 tokens</span>
+                        </div>
+                        <div class="palette-item-preview">
+                            "Domestic card processing is fixed at 1.4% + $0.20 per successful charge..."
+                        </div>
+                        <div class="palette-item-footer">
+                            <span class="palette-action-tag">↵ Click or Press Enter to Inject</span>
+                            <span style="color:#6ee7b7; font-size:9.5px;">✓ Origin metadata attached</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </section>
 
-<!-- INSTALLATION SECTION -->
-<section id="install" class="setup-section">
+<!-- SLIDE 4: FEATURE BENTO GRID -->
+<section id="features" class="snap-section">
     <div class="section-header">
-        <h2>Deploy Your Local Memory Engine</h2>
-        <p>Install the background daemon and browser extension to unlock instant research synthesis.</p>
+        <h2>Engineered for Deep Synthesis</h2>
+        <p>Zero hallucinations. 100% source provenance on your local hardware.</p>
     </div>
 
-    <!-- IDE & Tool Selector Bar -->
-    <div class="ide-selector-container">
-        <div class="ide-selector-label">
-            <span>⚙️ Select Your Primary AI / Workspace Setup:</span>
+    <div class="features-grid">
+
+        <!-- Feature 1: Context Cart & 1-Click Research -->
+        <div class="feature-card">
+            <div class="feature-content">
+                <div class="feature-badge-row">
+                    <div class="feature-icon-box">🛒</div>
+                    <span class="feature-trigger-pill">Ctrl + Shift + Click</span>
+                </div>
+                <h3>Zero-Switch Context Cart</h3>
+                <p>Clip data, tables, or quotes across 20+ tabs into a unified cart. Stream directly into any AI prompt in
+                    one click-saved permanently.</p>
+            </div>
+
+            <div class="feature-diagonal-backdrop">
+                <div class="preview-ui-box ui-cart-container">
+                    <div class="ui-cart-header">
+                        <span>🛒 Active Context Basket</span>
+                        <span style="color:#60a5fa; font-weight:700;">3 items staged</span>
+                    </div>
+                    <div class="ui-cart-item">
+                        <span>¶ Stripe Fee Matrix (2026)</span>
+                        <span style="font-weight:700;">✓ Ready</span>
+                    </div>
+                    <div class="ui-cart-item"
+                         style="background: rgba(255,255,255,0.03); border-color: transparent; color: #a1a1aa;">
+                        <span>¶ Reddit Auth Latency Benchmarks</span>
+                        <span>✓ Ready</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="ide-selector-grid">
-            <button type="button" class="ide-select-btn active" id="ide-btn-vscode" onclick="selectIDE('vscode')">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg" alt="VS Code">
-                VS Code / Cursor / Windsurf
-            </button>
+        <!-- Feature 2: Persistent Memory & Instant Pruning -->
+        <div class="feature-card">
+            <div class="feature-content">
+                <div class="feature-badge-row">
+                    <div class="feature-icon-box">🧠</div>
+                    <span class="feature-trigger-pill">Ctrl + Shift + Space</span>
+                </div>
+                <h3>Persistent Memory & Pruning</h3>
+                <p>Never re-explain context to new chats. Everything stays vectorized locally on disk. Made a mistake? Purge
+                    any clip instantly with <kbd>Del</kbd>.</p>
+            </div>
 
-            <button type="button" class="ide-select-btn" id="ide-btn-jetbrains" onclick="selectIDE('jetbrains')">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/intellij/intellij-original.svg" alt="JetBrains">
-                JetBrains / PyCharm
-            </button>
-
-            <button type="button" class="ide-select-btn" id="ide-btn-visualstudio" onclick="selectIDE('visualstudio')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; color:#a1a1aa;">
-                    <rect x="2" y="3" width="20" height="14" rx="2"/>
-                    <line x1="8" y1="21" x2="16" y2="21"/>
-                    <line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-                Claude / ChatGPT / Standalone
-            </button>
+            <div class="feature-diagonal-backdrop">
+                <div class="preview-ui-box ui-delete-container">
+                    <div style="font-size: 9.5px; color: #a1a1aa; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 4px;">
+                        Memory Manager
+                    </div>
+                    <div class="ui-delete-modal">
+                        <div class="ui-delete-title">🗑️ Delete Paragraph?</div>
+                        <div style="font-size: 8.5px; color: #d4d4d8;">Remove selected paragraph from database and disk?
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:2px;">
+                            <span style="background:#27272a; padding:1px 5px; border-radius:3px; font-size:8.5px;">Cancel</span>
+                            <span style="background:#ef4444; color:#fff; padding:1px 5px; border-radius:3px; font-size:8.5px; font-weight:700;">Delete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Feature 3: Clean PDF Context & Image Extraction -->
+        <div class="feature-card">
+            <div class="feature-content">
+                <div class="feature-badge-row">
+                    <div class="feature-icon-box">📑</div>
+                    <span class="feature-trigger-pill">Native PDF Bar</span>
+                </div>
+                <h3>Layout-Safe PDF Extraction</h3>
+                <p>No broken tables or garbled columns. Open any PDF in your browser and harvest clean structured text,
+                    tables, and figures in seconds.</p>
+            </div>
+
+            <div class="feature-diagonal-backdrop">
+                <div class="preview-ui-box ui-pdf-container">
+                    <div style="font-size: 9.5px; color: #a1a1aa; display:flex; justify-content:space-between;">
+                        <span>📄 Whitepaper_2026.pdf</span>
+                        <span style="color:#6ee7b7;">Page 4 of 18</span>
+                    </div>
+                    <div class="ui-pdf-page">
+                        <div style="height: 5px; width: 75%; background: rgba(255,255,255,0.15); border-radius: 2px;"></div>
+                        <div style="height: 5px; width: 90%; background: rgba(255,255,255,0.15); border-radius: 2px;"></div>
+                        <div style="height: 24px; background: rgba(59,130,246,0.12); border: 1px dashed #3b82f6; border-radius: 3px; display:flex; align-items:center; justify-content:center; font-size:8.5px; color:#93c5fd;">
+                            📊 [Extracted Architecture Table]
+                        </div>
+                        <div class="ui-pdf-floating-pill">
+                            <span>⚡ Harvest PDF Context</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 4: IDE Context & Local MCP Bridge -->
+        <div class="feature-card">
+            <div class="feature-content">
+                <div class="feature-badge-row">
+                    <div class="feature-icon-box">📂</div>
+                    <span class="feature-trigger-pill">_context/ & FastMCP</span>
+                </div>
+                <h3>Automated Workspace & MCP</h3>
+                <p>Query local memory via FastMCP, or reference auto-synced <code>_context/*.md</code> files with
+                    <code>@</code> in Cursor, Windsurf, or Copilot.</p>
+            </div>
+
+            <div class="feature-diagonal-backdrop">
+                <div class="preview-ui-box ui-workspace-container">
+                    <div>
+                        <div class="ui-folder-row">📁 _context/</div>
+                        <div class="ui-file-row">📄 00_Context_Index.md</div>
+                        <div class="ui-file-row" style="color:#6ee7b7;">📄 Competitor_Pricing_Matrix.md</div>
+                    </div>
+                    <div class="ui-prompt-tag">
+                        <span>Prompt: "Implement auth based on </span><span style="color:#fff; font-weight:700;">@_context/Stripe.md</span><span>"</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 5: Automatic Citation Engine -->
+        <div class="feature-card">
+            <div class="feature-content">
+                <div class="feature-badge-row">
+                    <div class="feature-icon-box">📚</div>
+                    <span class="feature-trigger-pill">Zero Hallucination</span>
+                </div>
+                <h3>Automatic Citation Engine</h3>
+                <p>Every single paragraph retains its origin URL and timestamp. Formats ground-truth citations and
+                    bibliographies automatically.</p>
+            </div>
+
+            <div class="feature-diagonal-backdrop">
+                <div class="preview-ui-box ui-cite-container">
+                    <div style="color: #71717a; margin-bottom: 2px;">// Injected with Source Origin:</div>
+                    <div>Source: <span class="ui-cite-link">docs.stripe.com/api#charges</span></div>
+                    <div class="ui-cite-badge">✓ 100% Provenance Verified</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 6: Hierarchical Document Tree -->
+        <div class="feature-card">
+            <div class="feature-content">
+                <div class="feature-badge-row">
+                    <div class="feature-icon-box">🎛️</div>
+                    <span class="feature-trigger-pill">Precision Navigation</span>
+                </div>
+                <h3>Hierarchical Document Tree</h3>
+                <p>Auto-clusters research by domain. Expand documents with arrow keys, inspect paragraph token counts, and
+                    inject with surgical precision.</p>
+            </div>
+
+            <div class="feature-diagonal-backdrop">
+                <div class="preview-ui-box ui-tree-container">
+                    <div class="ui-tree-doc">
+                        <span>▼</span>
+                        <span style="color:#818cf8;">🔗</span>
+                        <span>stripe.com/pricing</span>
+                    </div>
+                    <div class="ui-tree-child">
+                        <span>¶ 1 Processing Fees</span>
+                        <span style="color: #a5b4fc; font-weight:700;">~34t</span>
+                    </div>
+                    <div class="ui-tree-child"
+                         style="background: rgba(255,255,255,0.03); border-color: transparent; color: #a1a1aa;">
+                        <span>¶ 2 Dispute Protection</span>
+                        <span>~48t</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
+</section>
 
-    <!-- Smoked Obsidian Glass Callout Banner -->
-    <div class="guide-callout-banner liquid-glass" id="guide-callout-banner">
-        <div class="guide-callout-text">
-            <span class="tip-pill">TIP</span>
-            <span id="guide-callout-msg">Connecting Claude Desktop or JetBrains? Read the Quick Setup Guide:</span>
-        </div>
-        <a href="guide.html" class="btn-callout-redirect" id="guide-callout-link">Open Guide ➔</a>
-    </div>
-
-    <!-- Installation Matrix -->
-    <div class="setup-matrix-3col">
-        <!-- Channel 1: Extension -->
-        <div class="setup-step-card featured" id="card-vscode-ext">
-            <div>
-                <div class="step-tag" id="tag-vscode-ext">RECOMMENDED</div>
-                <h3>Cursor & VS Code Extension</h3>
-                <p>One-click marketplace install. Automatically spins up the background vector memory layer inside your IDE workspace.</p>
-                <ul class="card-bullet-list">
-                    <li>Auto-syncs physical <code>_context/</code> files</li>
-                    <li>Supports Cursor, Windsurf, Copilot</li>
-                    <li>Zero-config background engine</li>
-                </ul>
-            </div>
-
-            <a href="vscode:extension/patens-dev.patens" class="btn btn-primary-white" style="width: 100%;" id="btn-vscode-ext">
-                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg" alt="VS Code" style="width: 18px; height: 18px;">
-                <span>Install Extension</span>
-            </a>
+<!-- SLIDE 5: INSTALLATION SECTION -->
+<section id="install" class="snap-section setup-section">
+    <div class="setup-section-content">
+        <div class="section-header">
+            <h2>Deploy Your Local Memory Engine</h2>
+            <p>Install the background daemon and browser extension to unlock instant research synthesis.</p>
         </div>
 
-        <!-- Channel 2: MS Store -->
-        <div class="setup-step-card" id="card-ms-store">
-            <div>
-                <div class="step-tag green" id="tag-ms-store">MICROSOFT STORE</div>
-                <h3>Windows Desktop App</h3>
-                <p>Sandboxed background desktop application with native auto-updates for standalone browser and Claude research sessions.</p>
-                <ul class="card-bullet-list">
-                    <li>Verified Microsoft Store sandbox</li>
-                    <li>Works without opening an IDE</li>
-                    <li>Native background tray process</li>
-                </ul>
+        <!-- IDE & Tool Selector Bar -->
+        <div class="ide-selector-container">
+            <div class="ide-selector-label">
+                <span>⚙️ Select Your Primary AI / Workspace Setup:</span>
             </div>
 
-            <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn btn-secondary" style="width: 100%;" id="btn-ms-store">
-                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg" alt="MS Store" style="width: 18px; height: 18px; filter: invert(1);">
-                <span>Get on MS Store</span>
-            </a>
+            <div class="ide-selector-grid">
+                <button type="button" class="ide-select-btn active" id="ide-btn-vscode" onclick="selectIDE('vscode')">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                         alt="VS Code">
+                    VS Code / Cursor / Windsurf
+                </button>
+
+                <button type="button" class="ide-select-btn" id="ide-btn-jetbrains" onclick="selectIDE('jetbrains')">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/intellij/intellij-original.svg"
+                         alt="JetBrains">
+                    JetBrains / PyCharm
+                </button>
+
+                <button type="button" class="ide-select-btn" id="ide-btn-visualstudio"
+                        onclick="selectIDE('visualstudio')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         style="width: 18px; height: 18px; color:#a1a1aa;">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <line x1="8" y1="21" x2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                    Claude / ChatGPT / Standalone
+                </button>
+            </div>
         </div>
 
-        <!-- Channel 3: Direct Standalone -->
-        <div class="setup-step-card" id="card-exe-installer">
-            <div>
-                <div class="step-tag neutral" id="tag-exe-installer">STANDALONE</div>
-                <h3>Direct .EXE Installer</h3>
-                <p>Standalone local binary for custom research environments, Obsidian vaults, and offline development setups.</p>
-                <ul class="card-bullet-list">
-                    <li>Custom workspace mount paths</li>
-                    <li>Full offline vector embeddings</li>
-                    <li>FastMCP stdio server included</li>
-                </ul>
+        <!-- Smoked Obsidian Glass Callout Banner -->
+        <div class="guide-callout-banner liquid-glass" id="guide-callout-banner">
+            <div class="guide-callout-text">
+                <span class="tip-pill">TIP</span>
+                <span id="guide-callout-msg">Connecting Claude Desktop or JetBrains? Read the Quick Setup Guide:</span>
+            </div>
+            <a href="guide.html" class="btn-callout-redirect" id="guide-callout-link">Open Guide ➔</a>
+        </div>
+
+        <!-- Installation Matrix -->
+        <div class="setup-matrix-3col">
+            <!-- Channel 1: Extension -->
+            <div class="setup-step-card featured" id="card-vscode-ext">
+                <div>
+                    <div class="step-tag" id="tag-vscode-ext">RECOMMENDED</div>
+                    <h3>Cursor & VS Code Extension</h3>
+                    <p>One-click marketplace install. Automatically spins up the background vector memory layer inside your
+                        IDE workspace.</p>
+                    <ul class="card-bullet-list">
+                        <li>Auto-syncs physical <code>_context/</code> files</li>
+                        <li>Supports Cursor, Windsurf, Copilot</li>
+                        <li>Zero-config background engine</li>
+                    </ul>
+                </div>
+
+                <a href="vscode:extension/patens-dev.patens" class="btn btn-primary-white" style="width: 100%;"
+                   id="btn-vscode-ext">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg"
+                         alt="VS Code" style="width: 18px; height: 18px;">
+                    <span>Install Extension</span>
+                </a>
             </div>
 
-            <a href="https://download.patens.dev/latest/patens_installer.exe" class="btn btn-secondary exe-download-link" style="width: 100%;" id="btn-exe-installer">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #d4d4d8;">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                    <path d="M6 8l4 4-4 4"/>
-                    <line x1="12" y1="16" x2="18" y2="16"/>
-                </svg>
-                <span class="exe-link-label">Download .EXE</span>
-            </a>
+            <!-- Channel 2: MS Store -->
+            <div class="setup-step-card" id="card-ms-store">
+                <div>
+                    <div class="step-tag green" id="tag-ms-store">MICROSOFT STORE</div>
+                    <h3>Windows Desktop App</h3>
+                    <p>Sandboxed background desktop application with native auto-updates for standalone browser and Claude
+                        research sessions.</p>
+                    <ul class="card-bullet-list">
+                        <li>Verified Microsoft Store sandbox[cite: 1]</li>
+                        <li>Works without opening an IDE</li>
+                        <li>Native background tray process</li>
+                    </ul>
+                </div>
+
+                <a href="ms-windows-store://pdp/?productid=9PM9R44F0RXV" class="btn btn-secondary" style="width: 100%;"
+                   id="btn-ms-store">
+                    <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/microsoftstore.svg" alt="MS Store"
+                         style="width: 18px; height: 18px; filter: invert(1);">
+                    <span>Get on MS Store</span>
+                </a>
+            </div>
+
+            <!-- Channel 3: Direct Standalone -->
+            <div class="setup-step-card" id="card-exe-installer">
+                <div>
+                    <div class="step-tag neutral" id="tag-exe-installer">STANDALONE</div>
+                    <h3>Direct .EXE Installer</h3>
+                    <p>Standalone local binary for custom research environments, Obsidian vaults, and offline development
+                        setups.</p>
+                    <ul class="card-bullet-list">
+                        <li>Custom workspace mount paths</li>
+                        <li>Full offline vector embeddings</li>
+                        <li>FastMCP stdio server included</li>
+                    </ul>
+                </div>
+
+                <a href="https://download.patens.dev/latest/patens_installer.exe"
+                   class="btn btn-secondary exe-download-link" style="width: 100%;" id="btn-exe-installer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round" style="width: 18px; height: 18px; color: #d4d4d8;">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M6 8l4 4-4 4"/>
+                        <line x1="12" y1="16" x2="18" y2="16"/>
+                    </svg>
+                    <span class="exe-link-label">Download .EXE</span>
+                </a>
+            </div>
         </div>
     </div>
 </section>
@@ -1505,13 +2702,43 @@
         }
     }
 
-    // Close menu when tapping outside of header area
     document.addEventListener('click', (e) => {
         const navWrapper = document.querySelector('.nav-wrapper');
         if (navWrapper && !navWrapper.contains(e.target)) {
             closeMobileNav();
         }
     });
+
+    /* ==========================================
+       HERO VIDEO TOGGLE CONTROLLER
+    ========================================== */
+    function toggleVideoPlayback() {
+        const video = document.getElementById('demo-video');
+        const wrapper = document.getElementById('video-wrapper');
+        const overlay = document.getElementById('video-overlay-btn');
+        const iconPlay = document.getElementById('ctrl-icon-play');
+        const iconPause = document.getElementById('ctrl-icon-pause');
+
+        if (!video || !wrapper || !overlay) return;
+
+        if (video.paused) {
+            video.play().then(() => {
+                wrapper.classList.remove('is-paused');
+                if (iconPlay) iconPlay.style.display = 'none';
+                if (iconPause) iconPause.style.display = 'block';
+
+                overlay.classList.add('flash-feedback');
+                setTimeout(() => {
+                    overlay.classList.remove('flash-feedback');
+                }, 350);
+            }).catch(err => console.log('Playback error:', err));
+        } else {
+            video.pause();
+            wrapper.classList.add('is-paused');
+            if (iconPlay) iconPlay.style.display = 'block';
+            if (iconPause) iconPause.style.display = 'none';
+        }
+    }
 
     function selectIDE(ideType) {
         document.querySelectorAll('.ide-select-btn').forEach(btn => btn.classList.remove('active'));
@@ -1708,6 +2935,185 @@
             });
         }
     }
+
+    /* =========================================================================
+       SANDBOX INTERACTIVE SIMULATION LOGIC (INTENTIONAL CLICKS & KEYBOARD)
+    ========================================================================= */
+    let sandboxState = {
+        harvested: false,
+        paletteOpened: false,
+        paletteOpen: false,
+        injected: false
+    };
+
+    function updateSandboxSteppers() {
+        const p1 = document.getElementById('step-pill-1');
+        const p2 = document.getElementById('step-pill-2');
+        const p3 = document.getElementById('step-pill-3');
+
+        if (!p1 || !p2 || !p3) return;
+
+        if (sandboxState.injected) {
+            p1.className = 'step-pill completed';
+            p2.className = 'step-pill completed';
+            p3.className = 'step-pill completed';
+        } else if (sandboxState.paletteOpen || sandboxState.paletteOpened) {
+            p1.className = 'step-pill completed';
+            p2.className = sandboxState.paletteOpen ? 'step-pill active' : 'step-pill completed';
+            p3.className = 'step-pill active';
+        } else if (sandboxState.harvested) {
+            p1.className = 'step-pill completed';
+            p2.className = 'step-pill active';
+            p3.className = 'step-pill';
+        } else {
+            p1.className = 'step-pill active';
+            p2.className = 'step-pill';
+            p3.className = 'step-pill';
+        }
+    }
+
+    function handleHarvestClick(e) {
+        if (e) e.stopPropagation();
+        const snippet = document.getElementById('target-snippet');
+        const toast = document.getElementById('mock-undo-toast');
+
+        sandboxState.harvested = true;
+        if (snippet) snippet.classList.add('harvested');
+        if (toast) toast.classList.add('show');
+
+        updateSandboxSteppers();
+    }
+
+    function handleChatClick(e) {
+        if (e) e.stopPropagation();
+        if (!sandboxState.harvested) {
+            handleHarvestClick(null);
+        }
+        openSimulatedPalette();
+    }
+
+    function undoHarvest(e) {
+        if (e) e.stopPropagation();
+        const snippet = document.getElementById('target-snippet');
+        const toast = document.getElementById('mock-undo-toast');
+
+        sandboxState.harvested = false;
+        sandboxState.paletteOpened = false;
+        if (snippet) snippet.classList.remove('harvested');
+        if (toast) toast.classList.remove('show');
+        closeSimulatedPalette();
+        updateSandboxSteppers();
+    }
+
+    function openSimulatedPalette() {
+        if (!sandboxState.harvested) {
+            handleHarvestClick(null);
+        }
+        const overlay = document.getElementById('mock-palette-overlay');
+        if (overlay) overlay.classList.add('open');
+        sandboxState.paletteOpen = true;
+        sandboxState.paletteOpened = true;
+        updateSandboxSteppers();
+    }
+
+    function closeSimulatedPalette() {
+        const overlay = document.getElementById('mock-palette-overlay');
+        if (overlay) overlay.classList.remove('open');
+        sandboxState.paletteOpen = false;
+        updateSandboxSteppers();
+    }
+
+    function injectSimulatedContext(e) {
+        if (e) e.stopPropagation();
+        closeSimulatedPalette();
+        const promptInput = document.getElementById('mock-prompt-input');
+        const textToStream = 'Source: https://docs.stripe.com/api/pricing-2026\n"Domestic card processing is fixed at 1.4% + $0.20..."';
+
+        if (promptInput) {
+            promptInput.value = textToStream;
+        }
+        sandboxState.injected = true;
+        updateSandboxSteppers();
+
+        setTimeout(() => {
+            executeMockPrompt(null);
+        }, 300);
+    }
+
+    function executeMockPrompt(e) {
+        if (e) e.stopPropagation();
+        const promptInput = document.getElementById('mock-prompt-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+        if (!promptInput || !promptInput.value) {
+            if (!sandboxState.harvested) handleHarvestClick(null);
+            injectSimulatedContext(null);
+            return;
+        }
+
+        const userMsg = document.createElement('div');
+        userMsg.className = 'chat-msg user';
+        userMsg.textContent = promptInput.value;
+        if (chatMessages) chatMessages.appendChild(userMsg);
+
+        promptInput.value = '';
+        sandboxState.injected = true;
+        updateSandboxSteppers();
+
+        setTimeout(() => {
+            if (chatMessages) {
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'chat-msg ai';
+                aiMsg.innerHTML = `<strong>Synthesis with Ground Truth:</strong><br/>
+                • <strong>Card Rate:</strong> 1.4% + $0.20 per charge (<a href="#" class="chat-cite-tag">docs.stripe.com</a>)<br/>
+                • <strong>Discounts:</strong> Unlocks at $100k/mo MRR with automated reconciliation.`;
+                chatMessages.appendChild(aiMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }, 500);
+    }
+
+    function resetSandbox() {
+        sandboxState = {harvested: false, paletteOpened: false, paletteOpen: false, injected: false};
+        const snippet = document.getElementById('target-snippet');
+        const toast = document.getElementById('mock-undo-toast');
+        const chatMessages = document.getElementById('chat-messages');
+        const promptInput = document.getElementById('mock-prompt-input');
+
+        if (snippet) snippet.classList.remove('harvested');
+        if (toast) toast.classList.remove('show');
+        closeSimulatedPalette();
+        if (promptInput) promptInput.value = '';
+
+        if (chatMessages) {
+            chatMessages.innerHTML = `
+                <div class="chat-msg ai">
+                    <p>Ask me to analyze competitor specs or vendor rates. Inject context with Patens.</p>
+                </div>
+            `;
+        }
+        updateSandboxSteppers();
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && (e.code === 'Space' || e.key === ' ')) {
+            e.preventDefault();
+            if (!sandboxState.harvested) {
+                handleHarvestClick(null);
+            }
+            if (sandboxState.paletteOpen) closeSimulatedPalette();
+            else openSimulatedPalette();
+        }
+
+        if (e.key === 'Enter' && sandboxState.paletteOpen) {
+            e.preventDefault();
+            injectSimulatedContext(null);
+        }
+
+        if (e.key === 'Escape' && sandboxState.paletteOpen) {
+            closeSimulatedPalette();
+        }
+    });
 
     syncLatestDownloads();
     initVideoSync();
