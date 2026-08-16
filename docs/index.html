@@ -54,6 +54,10 @@
             background-color: var(--bg-base);
             color: var(--text-main);
             line-height: 1.55;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center top;
         }
 
         /* ==========================================
@@ -75,7 +79,7 @@
         }
 
         /* ==========================================
-           SOLID OBSIDIAN CARDS (NO ALPHA / NO BLUR)
+           SOLID OBSIDIAN CARDS (ZERO LAG / NO BLUR)
         ========================================== */
         .liquid-glass {
             background-color: #121214;
@@ -527,7 +531,7 @@
         }
 
         /* ==========================================
-           CLICKABLE VIDEO WRAPPER & TOGGLE OVERLAY
+           HARDWARE-ACCELERATED MOBILE VIDEO WRAPPER
         ========================================== */
         .video-wrapper {
             position: relative;
@@ -540,6 +544,8 @@
             overflow: hidden;
             cursor: pointer;
             user-select: none;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
 
         .demo-video {
@@ -548,6 +554,10 @@
             object-fit: cover;
             display: block;
             pointer-events: none;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .video-overlay-btn {
@@ -1224,7 +1234,7 @@
         }
 
         /* =========================================================================
-           SOLID OPAQUE FEATURE BENTO GRID (ZERO ALPHA / ZERO BLUR)
+           SOLID OPAQUE FEATURE BENTO GRID (DESKTOP)
         ========================================================================= */
         .features-grid {
             max-width: 1100px;
@@ -1244,7 +1254,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 310px;
+            min-height: 340px;
             box-shadow: 0 16px 36px -4px #000000;
             transition: border-color 0.2s ease, transform 0.2s ease;
         }
@@ -2023,13 +2033,44 @@
                 display: inline;
             }
 
+            /* =========================================================================
+               MOBILE BENTO CARDS (NATURAL FLOW TO ELIMINATE OVERLAP)
+            ========================================================================= */
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
             .feature-card {
-                min-height: 290px;
+                min-height: auto;
+                height: auto;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .feature-content {
+                padding: 20px 18px 10px;
+            }
+
+            .feature-diagonal-backdrop {
+                position: relative;
+                width: 100%;
+                height: auto;
+                margin-top: 12px;
+                display: flex;
+                justify-content: flex-end;
+                align-items: flex-end;
+                transform: none !important;
             }
 
             .preview-ui-box {
-                width: 240px !important;
-                height: 125px !important;
+                width: 85% !important;
+                max-width: 270px;
+                height: auto !important;
+                min-height: 115px;
+                border-bottom: none;
+                border-right: none;
             }
 
             .feature-card, .setup-step-card {
@@ -2187,13 +2228,16 @@
                             loop
                             muted
                             playsinline
-                            preload="auto"
+                            webkit-playsinline
+                            preload="metadata"
+                            disablePictureInPicture
+                            disableremoteplayback
                             poster="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/poster.webp"
                     >
-                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.webm"
-                                type="video/webm">
                         <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.mp4"
                                 type="video/mp4">
+                        <source src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens-hero.webm"
+                                type="video/webm">
                     </video>
 
                     <!-- Play/Pause Overlay -->
@@ -2668,13 +2712,12 @@
                    class="btn btn-secondary exe-download-link" style="width: 100%;" id="btn-exe-installer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                          stroke-linejoin="round" style="width: 18px; height: 18px; color: #d4d4d8;">
-                        <rect x="2" y="4" width="20" height="16" rx="2"/>
-                        <path d="M6 8l4 4-4 4"/>
-                        <line x1="12" y1="16" x2="18" y2="16"/>
-                    </svg>
-                    <span class="exe-link-label">Download .EXE</span>
-                </a>
-            </div>
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M6 8l4 4-4 4"/>
+                    <line x1="12" y1="16" x2="18" y2="16"/>
+                </svg>
+                <span class="exe-link-label">Download .EXE</span>
+            </a>
         </div>
     </div>
 </section>
@@ -2753,6 +2796,18 @@
     if (heroVideo) {
         heroVideo.addEventListener('play', syncVideoUI);
         heroVideo.addEventListener('pause', syncVideoUI);
+
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting && !heroVideo.paused) {
+                    heroVideo.pause();
+                } else if (entry.isIntersecting && heroVideo.paused && !heroVideoWrapper.classList.contains('is-paused')) {
+                    heroVideo.play().catch(() => {});
+                }
+            });
+        }, { threshold: 0.25 });
+
+        videoObserver.observe(heroVideoWrapper);
     }
 
     function selectIDE(ideType) {
@@ -2914,16 +2969,19 @@
         const badgeText = document.getElementById('badge-text');
         const dotsContainer = document.getElementById('step-dots');
 
+        if (!video || !badgeStep || !badgeText || !dotsContainer) return;
+
+        const dots = dotsContainer.querySelectorAll('.step-dot');
         const timeline = [
             {time: 0.0, step: 1, text: "Kill 30-tab context switching"},
             {time: 3.8, step: 2, text: "1-Click harvest with instant undo"},
             {time: 8.8, step: 3, text: "Inject cited synthesis to Claude/ChatGPT"}
         ];
 
-        if (video && badgeStep && badgeText && dotsContainer) {
-            const dots = dotsContainer.querySelectorAll('.step-dot');
+        let lastActiveIdx = -1;
 
-            video.addEventListener('timeupdate', () => {
+        video.addEventListener('timeupdate', () => {
+            window.requestAnimationFrame(() => {
                 const currentTime = video.currentTime;
                 let activeIdx = 0;
                 for (let i = timeline.length - 1; i >= 0; i--) {
@@ -2933,22 +2991,19 @@
                     }
                 }
 
-                const currentStep = timeline[activeIdx];
-
-                if (badgeStep.textContent !== `STEP ${currentStep.step}`) {
+                if (activeIdx !== lastActiveIdx) {
+                    lastActiveIdx = activeIdx;
+                    const currentStep = timeline[activeIdx];
                     badgeStep.textContent = `STEP ${currentStep.step}`;
                     badgeText.textContent = currentStep.text;
 
                     dots.forEach((dot, index) => {
-                        if (index === activeIdx) {
-                            dot.classList.add('active');
-                        } else {
-                            dot.classList.remove('active');
-                        }
+                        if (index === activeIdx) dot.classList.add('active');
+                        else dot.classList.remove('active');
                     });
                 }
             });
-        }
+        });
     }
 
     /* =========================================================================
