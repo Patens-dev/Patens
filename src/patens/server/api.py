@@ -11,8 +11,10 @@ from datetime import datetime, timezone, timedelta
 import threading
 from typing import Callable, Union, Any, Dict, Optional
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, status
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastembed import TextEmbedding
 
@@ -23,6 +25,37 @@ from patens.server.routers.pdf_router import router as pdf_router
 
 logger = logging.getLogger(__name__)
 recent_activity: deque = deque(maxlen=200)
+
+
+def get_assets_dir() -> Path:
+    """
+    Resolves the assets directory across development, repository root,
+    and PyInstaller frozen binary environments.
+    """
+    if getattr(sys, "frozen", False):
+        candidates = [
+            Path(sys._MEIPASS) / "patens" / "server" / "assets",
+            Path(sys._MEIPASS) / "assets",
+        ]
+    else:
+        current_file = Path(__file__).resolve()
+        candidates = [
+            # 1. Project root assets: <repo_root>/assets (e.g. D:\dev\memory-layer\assets)
+            current_file.parents[3] / "assets" if len(current_file.parents) > 3 else None,
+            # 2. Package-level assets: src/patens/server/assets
+            current_file.parent / "assets",
+            # 3. Current Working Directory assets
+            Path.cwd() / "assets",
+        ]
+
+    for candidate in candidates:
+        if candidate and candidate.exists() and candidate.is_dir():
+            return candidate
+
+    # Fallback: create and return package-level assets directory
+    fallback = Path(__file__).resolve().parent / "assets"
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
 
 
 def save_base64_image(media_string: str, image_dir: Union[str, Path]) -> str:
@@ -438,6 +471,12 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Mount static assets directory
+    assets_dir = get_assets_dir()
+    logger.info("Serving static assets from: %s", assets_dir)
+    app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
     routers = create_routers(
         db_manager=db_manager,
         embedder_model=embedder_model,

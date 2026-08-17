@@ -78,6 +78,10 @@
             display: flex;
             align-items: center;
             text-decoration: none;
+            font-weight: 700;
+            font-size: 18px;
+            color: #ffffff;
+            gap: 8px;
         }
 
         .nav-brand img {
@@ -295,20 +299,6 @@
             border: 1px solid rgba(245, 158, 11, 0.2);
         }
 
-        .debug-console {
-            margin-top: 12px;
-            background: #000000;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 12px;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: #a5b4fc;
-            max-height: 120px;
-            overflow-y: auto;
-            display: block;
-        }
-
         .option-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -334,6 +324,13 @@
             min-height: 44px;
         }
 
+        .option-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
         .option-btn:hover {
             border-color: var(--accent-blue);
             background: #18181b;
@@ -343,12 +340,6 @@
             border-color: var(--success-color);
             background: rgba(16, 185, 129, 0.08);
             color: #fff;
-        }
-
-        .option-btn img {
-            width: 18px;
-            height: 18px;
-            filter: invert(1);
         }
 
         .interactive-target {
@@ -379,11 +370,12 @@
             font-family: inherit;
             font-size: 14px;
             outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .mock-chat-box:focus {
             border-color: var(--accent-blue);
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
         }
 
         .btn-manual {
@@ -716,8 +708,7 @@
 <nav class="app-navbar">
     <div class="nav-container">
         <a href="/welcome" class="nav-brand">
-            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
-                 alt="patens logo">
+            <img src="/assets/patens_full_logo_white.png" alt="patens logo" onerror="this.style.display='none'">
         </a>
         <div class="nav-links">
             <a href="/welcome" class="nav-link active">🚀 Setup Guide</a>
@@ -730,17 +721,16 @@
 <div class="container">
     <header class="hero">
         <div class="hero-logo">
-            <img src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/patens_full_logo_white.png"
-                 alt="patens logo">
+            <img src="/assets/patens_full_logo_white.png" alt="patens logo" onerror="this.style.display='none'">
         </div>
         <h1>Welcome to patens</h1>
         <p>Let's configure your memory layer and get your browser & IDE connected.</p>
-        <div class="time-estimate">⏱️ Takes ~3 minutes</div>
+        <div class="time-estimate">⏱️ Takes ~2 minutes</div>
 
         <div class="progress-container">
             <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div class="progress-text">Step <span id="current-step-display">1</span> of 6</div>
+        <div class="progress-text">Step <span id="current-step-display">1</span> of 5</div>
     </header>
 
     <main class="setup-flow">
@@ -757,22 +747,25 @@
                 <div class="option-grid">
                     <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB"
                        target="_blank" class="option-btn" id="btn-chrome">
-                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/chrome.svg"
-                             alt="Chrome">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                            <path fill="rgb(255, 255, 255)" d="M64 320C64 273.4 76.5 229.6 98.3 191.1L208.1 382.3C230 421.5 271.9 448 320 448C334.3 448 347.1 445.7 360.8 441.4L284.5 573.6C159.9 556.3 64 449.3 64 320zM429.1 385.6C441.4 366.4 448 343.1 448 320C448 281.8 431.2 247.5 404.7 224L557.4 224C569.4 253.6 576 286.1 576 320C576 461.4 461.4 575.1 320 576L429.1 385.6zM541.8 192L320 192C257.1 192 206.3 236.1 194.5 294.7L118.2 162.5C165 102.5 238 64 320 64C414.8 64 497.5 115.5 541.8 192zM408 320C408 368.6 368.6 408 320 408C271.4 408 232 368.6 232 320C232 271.4 271.4 232 320 232C368.6 232 408 271.4 408 320z"/>
+                        </svg>
                         Chrome
                     </a>
 
                     <a href="https://addons.mozilla.org/en-US/firefox/addon/patens/" target="_blank"
                        class="option-btn" id="btn-firefox">
-                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/firefox.svg"
-                             alt="Firefox">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                            <path fill="rgb(255, 255, 255)" d="M194.2 191.5L194.2 191.5zM545.6 236.9C535 211.4 513.5 183.9 496.7 175.2C510.4 202.1 518.4 229.1 521.4 249.2C521.4 249.3 521.4 249.5 521.5 249.6C493.9 180.8 447.1 153.1 408.9 92.8C393.9 69.1 398 67.6 395.8 68.1L395.7 68.2C349 94.2 320.4 146.6 313.1 190.9C296.5 191.8 280.2 195.9 265.2 203C263.8 203.6 262.7 204.7 262.1 206C261.5 207.3 261.2 208.8 261.5 210.3C261.7 211.1 262.1 211.9 262.6 212.6C263.1 213.3 263.8 213.9 264.5 214.3C265.2 214.7 266.1 215 266.9 215.1C267.7 215.2 268.6 215.1 269.4 214.8L269.9 214.6C285.4 207.3 302.3 203.4 319.4 203.3C382.2 202.7 416.6 247.3 427 265.6C414 256.4 390.6 247.4 368.2 251.3C455.9 295.2 432.4 445.8 310.8 440.5C251.3 437.9 213.7 389.5 210.3 349.7C210.3 349.7 221.5 307.8 290.9 307.8C298.4 307.8 319.8 286.9 320.2 280.8C320.1 278.8 277.7 261.9 261.1 245.6C252.3 236.9 248 232.7 244.3 229.5C242.3 227.8 240.2 226.2 238 224.7C232.4 205.2 232.2 184.7 237.3 165.1C212.2 176.5 192.7 194.5 178.6 210.5L178.5 210.5C168.8 198.3 169.5 157.9 170.1 149.4C170 148.9 162.9 153.1 161.9 153.7C153.3 159.8 145.4 166.6 138.1 174.1C121.8 190.7 94 224.3 82.6 275.3C78.1 295.7 75.8 319.7 75.8 327.6C75.8 462.3 185 571.5 319.7 571.5C440.3 571.5 542.7 484.3 560.1 368.9C571.7 292.2 545.4 237.8 545.4 236.9z"/>
+                        </svg>
                         Firefox
                     </a>
 
                     <a href="https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB"
                        target="_blank" class="option-btn" id="btn-edge">
-                        <img src="https://cdn.jsdelivr.net/gh/FortAwesome/Font-Awesome@refs/heads/7.x/svgs/brands/edge.svg"
-                             alt="Edge">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                            <path fill="rgb(255, 255, 255)" d="M184.1 101.4C225.1 76.2 271.7 63.2 319 64C487 64 576 187.8 576 283.5C575.9 316.2 563 347.4 540.1 370.7C517.2 393.9 486.1 407.2 453.4 407.7C378.2 407.7 361.9 384.6 361.9 375.7C361.9 371.9 363.1 369.5 366.7 366.3L367.7 365.1L368.1 363.5C378.6 352 384 337.3 384 321.9C384 243.2 301.8 179.2 200 179.2C162.5 178.9 125.5 188.1 92.5 206.1C119.5 148.6 175.2 108.5 183.8 102.3C184.6 101.7 184.1 101.5 184.1 101.5zM199.7 419.5C198.3 449.5 204.3 479.5 216.1 506.7C229.7 533.1 248.8 557.7 272.6 576C213.1 564.5 161.1 532.1 123.2 486.7C85.1 440.3 64 382.4 64 321.9C64 270.7 126.4 227.5 200 227.5C236.6 226.9 272.4 238.4 301.8 260.2L298.2 261.4C246.7 279 199.7 352.1 199.7 419.5zM533.8 464L533.1 464.1C521.3 482.9 507.2 499.2 490.9 513.6C460.1 541.6 422.8 559.1 382.1 563.5C363.5 563.8 345.3 560.3 328.3 552.1C302.7 541.8 281.2 522.1 266.7 499.1C252.3 475.2 245.6 447.4 247.7 419.5C247.1 399.4 253.1 379.2 262.7 361.3C276.6 394.4 300.2 422.6 330.3 442.1C360.4 461.6 395.8 471.6 431.7 470.7C462.7 471 493.8 464 521.9 450.2L523.8 449.3C527.7 447 531.5 445.4 535.4 449.3C539.9 454.2 537.2 458.5 534.2 463.3C534 463.5 533.9 463.8 533.8 464z"/>
+                        </svg>
                         Edge
                     </a>
                 </div>
@@ -791,7 +784,7 @@
                 <h2>System Check
                     <button class="btn-manual" onclick="advanceStep(3)">Skip</button>
                 </h2>
-                <p>Verifying your background Patens engine connections.</p>
+                <p>Verifying background connection to your local Patens memory engine.</p>
                 <div style="display: flex; gap: 12px; margin-top: 12px;">
                     <span class="status-pill success" id="ext-verified-pill">🟢 Extension Active</span>
                     <span class="status-pill warning" id="server-status">🟡 Checking Server...</span>
@@ -806,54 +799,35 @@
                 <h2>Capture Context
                     <button class="btn-manual" onclick="advanceStep(4)">Skip</button>
                 </h2>
-                <p>Now I will show you how to use this. Hold <strong style="color:var(--accent-blue)">Ctrl +
-                    Shift</strong> and click with your mouse anywhere on the text block below. <em>(Don't worry, you can
-                    change the keys later)</em>.</p>
+                <p>Capturing immediately syncs text to your background memory layer. Hold <strong style="color:var(--accent-blue)">Ctrl + Shift</strong> and click anywhere on the text block below.</p>
 
                 <div class="interactive-target" id="capture-target">
-                    "Use this text as a tutorial! You can add information from various tabs without your progress being
-                    deleted. patens handles deduplication and automatic title resolution behind the scenes."
+                    "Use this text as a tutorial! Captured items are instantly synced to your local memory layer and ready in your IDE with zero extra clicks."
                 </div>
             </div>
         </div>
 
-        <!-- STEP 4: COMMIT TO CART -->
+        <!-- STEP 4: RETRIEVE -->
         <div class="step-card" id="step4">
             <div class="step-number">4</div>
             <div class="step-content">
-                <h2>Commit to Memory
+                <h2>Retrieve Context
                     <button class="btn-manual" onclick="advanceStep(5)">Skip</button>
                 </h2>
-                <p>Look at the bottom corner of your screen—the context cart icon (📦) is showing what you just read, but
-                    haven't committed yet.</p>
-                <p><strong>Open the cart and click "Send All to Local Memory"</strong> to permanently save it to your
-                    local database.</p>
+                <p>Press <strong style="color:var(--accent-blue)">Ctrl + Shift + Space</strong> to open your Command Palette right here.</p>
+                <p>Use your arrow keys to select the text you just saved, and press <strong>Enter</strong> to paste it into the chat box below.</p>
+                <textarea class="mock-chat-box" id="mock-chat-box" placeholder="Press Ctrl + Shift + Space to insert context..."></textarea>
             </div>
         </div>
 
-        <!-- STEP 5: RETRIEVE -->
+        <!-- STEP 5: VERIFY & MANUAL SETUP -->
         <div class="step-card" id="step5">
             <div class="step-number">5</div>
-            <div class="step-content">
-                <h2>Retrieve Context
-                    <button class="btn-manual" onclick="advanceStep(6)">Skip</button>
-                </h2>
-                <p>Step 5 is to read from your memory layer. Press <strong style="color:var(--accent-blue)">Ctrl + Shift
-                    + Space</strong> to open your Command Palette right here.</p>
-                <p>Use your arrow keys to select the text you just saved, and press <strong>Enter</strong> to paste it
-                    into the chat box below.</p>
-                <textarea class="mock-chat-box" id="mock-chat-box" placeholder="Message AI..."></textarea>
-            </div>
-        </div>
-
-        <!-- STEP 6: VERIFY & MANUAL SETUP -->
-        <div class="step-card" id="step6">
-            <div class="step-number">6</div>
             <div class="step-content">
                 <h2>Verify Connection
                     <button class="btn-manual" onclick="finishSetup()" id="btn-finish">Skip Validation</button>
                 </h2>
-                <p>patens attempted to auto-configure your IDEs during installation. Let's see if it worked.</p>
+                <p>patens auto-configures your IDEs during installation. Let's make sure it is connected.</p>
 
                 <div class="activation-instructions">
                     <ol>
@@ -886,7 +860,6 @@
                     <h3>Automatic installation failed?</h3>
                     <p>If the AI says it doesn't recognize the tool, select your editor below for the 1-minute manual setup.</p>
 
-                    <!-- IDE Selector -->
                     <div class="ide-cards">
                         <div class="ide-card active" onclick="selectIDE('cursor')">
                             <div class="ide-icon">
@@ -930,8 +903,7 @@
                                 </ol>
                             </div>
                             <div class="setup-gif">
-                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/cursor_demo.mp4"
-                                       autoplay loop muted playsinline></video>
+                                <video src="/assets/cursor_demo.mp4" autoplay loop muted playsinline></video>
                             </div>
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyConfigJSON(this)">Copy</button>
@@ -962,8 +934,7 @@
                                 </ol>
                             </div>
                             <div class="setup-gif">
-                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/vsc_demo.mp4"
-                                       autoplay loop muted playsinline></video>
+                                <video src="/assets/vsc_demo.mp4" autoplay loop muted playsinline></video>
                             </div>
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyConfigJSON(this)">Copy</button>
@@ -994,8 +965,7 @@
                                 </ol>
                             </div>
                             <div class="setup-gif">
-                                <video src="https://cdn.jsdelivr.net/gh/Patens-dev/Patens@main/assets/jetbrains_demo.mp4"
-                                       autoplay loop muted playsinline></video>
+                                <video src="/assets/jetbrains_demo.mp4" autoplay loop muted playsinline></video>
                             </div>
                             <div class="code-block">
                                 <button class="copy-btn" onclick="copyConfigJSON(this)">Copy</button>
@@ -1032,22 +1002,11 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = 6;
+    const totalSteps = 5;
     let mcpPollingInterval = null;
     let extensionDetected = false;
     let checkCount = 0;
 
-    function logDebug(msg) {
-        console.log(`[Patens Extension Detector] ${msg}`);
-        const consoleEl = document.getElementById('debug-console');
-        if (consoleEl) {
-            const time = new Date().toLocaleTimeString();
-            consoleEl.innerHTML += `<br>[${time}] ${msg}`;
-            consoleEl.scrollTop = consoleEl.scrollHeight;
-        }
-    }
-
-    // Detect browser family and reorder buttons
     function detectBrowser() {
         const ua = navigator.userAgent;
         const grid = document.querySelector('.option-grid');
@@ -1058,16 +1017,12 @@
         if (!grid || !btnChrome || !btnFirefox || !btnEdge) return;
 
         let primaryBtn = btnChrome;
-
         if (ua.includes("Edg") || ua.includes("Edge")) {
             primaryBtn = btnEdge;
-            logDebug('Browser detected: Microsoft Edge');
         } else if (ua.includes("Firefox")) {
             primaryBtn = btnFirefox;
-            logDebug('Browser detected: Mozilla Firefox');
         } else {
             primaryBtn = btnChrome;
-            logDebug('Browser detected: Chrome / Chromium');
         }
 
         primaryBtn.style.borderColor = 'var(--accent-blue)';
@@ -1075,43 +1030,26 @@
         grid.prepend(primaryBtn);
     }
 
-    // Diagnostic Multi-Bridge Detection Function
     function checkExtensionInstalled() {
         if (extensionDetected) return true;
         checkCount++;
 
-        logDebug(`Poll #${checkCount}: Checking DOM attributes and broadcasting pings...`);
-
-        // 1. DOM Attribute Checks
         const docAttrExt = document.documentElement.hasAttribute('data-patens-extension');
         const docAttrInst = document.documentElement.getAttribute('data-patens-installed') === 'true';
         const bodyAttrExt = document.body.hasAttribute('data-patens-extension');
         const bodyAttrInst = document.body.hasAttribute('data-patens-installed');
 
-        // 2. Element Existence Checks
         const cartRoot = document.getElementById('patens-context-cart-root') !== null;
         const extRoot = document.getElementById('patens-extension-root') !== null;
         const dataRoot = document.querySelector('[data-patens-root]') !== null;
-
-        // 3. Main-World Window Check (Usually undefined due to Isolated World)
         const winGlobal = window.__PATENS_EXTENSION__ === true;
 
         if (docAttrExt || docAttrInst || bodyAttrExt || bodyAttrInst || cartRoot || extRoot || dataRoot || winGlobal) {
-            const matchReason = docAttrExt ? 'html[data-patens-extension]' :
-                                docAttrInst ? 'html[data-patens-installed]' :
-                                cartRoot ? '#patens-context-cart-root' :
-                                extRoot ? '#patens-extension-root' :
-                                dataRoot ? '[data-patens-root]' : 'window.__PATENS_EXTENSION__';
-
-            logDebug(`SUCCESS: Found DOM marker via: ${matchReason}`);
-            onExtensionDetected(`DOM Marker (${matchReason})`);
+            onExtensionDetected('DOM Marker');
             return true;
         }
 
-        // 4. PostMessage Ping (Window messaging bridge)
         window.postMessage({ source: 'patens-welcome', action: 'ping', type: 'PATENS_PING' }, '*');
-
-        // 5. CustomEvent Pings (Isolated World bridge)
         window.dispatchEvent(new CustomEvent('PATENS_PING_EVENT', { detail: { source: 'welcome' } }));
         window.dispatchEvent(new CustomEvent('PATENS_CHECK_INSTALLED'));
 
@@ -1121,8 +1059,6 @@
     function onExtensionDetected(method = 'Automatic Detection') {
         if (extensionDetected) return;
         extensionDetected = true;
-
-        logDebug(`🎉 Extension Verified! Detected by method: ${method}`);
 
         const statusEl = document.getElementById('extension-status');
         if (statusEl) {
@@ -1146,21 +1082,17 @@
         }
     }
 
-    // Listen for incoming extension pongs or custom events
     window.addEventListener('message', (e) => {
         if (e.data && (e.data.source === 'patens-extension' || e.data.type === 'PATENS_PONG' || e.data.patensInstalled === true)) {
-            logDebug(`SUCCESS: Received postMessage PONG from extension content script!`);
             onExtensionDetected('postMessage PONG');
         }
     });
 
     window.addEventListener('PATENS_PONG_EVENT', () => {
-        logDebug(`SUCCESS: Received CustomEvent (PATENS_PONG_EVENT) from content script!`);
         onExtensionDetected('CustomEvent PONG');
     });
 
     window.addEventListener('patens-extension-detected', () => {
-        logDebug(`SUCCESS: Received CustomEvent (patens-extension-detected) from content script!`);
         onExtensionDetected('patens-extension-detected Event');
     });
 
@@ -1209,7 +1141,16 @@
             } else if (i === currentStep) {
                 card.className = 'step-card active';
                 if (i === 2) checkServer();
-                if (i === 6 && !mcpPollingInterval) startIDEPolling();
+                if (i === 4) {
+                    // Auto-focus textarea immediately when Step 4 activates
+                    setTimeout(() => {
+                        const chatBox = document.getElementById('mock-chat-box');
+                        if (chatBox) {
+                            chatBox.focus();
+                        }
+                    }, 400);
+                }
+                if (i === 5 && !mcpPollingInterval) startIDEPolling();
             } else {
                 card.className = 'step-card';
                 card.querySelector('.step-number').innerHTML = i;
@@ -1233,7 +1174,7 @@
 
     function finishSetup() {
         if (mcpPollingInterval) clearInterval(mcpPollingInterval);
-        currentStep = 7;
+        currentStep = 6;
         document.getElementById('progress-bar').style.width = '100%';
         document.querySelectorAll('.step-card').forEach(c => {
             c.className = 'step-card done';
@@ -1299,7 +1240,7 @@
         }, 1500);
     }
 
-    // Step 3 Event listener (Ctrl + Shift + Click)
+    // Step 3 Event listener (Ctrl + Shift + Click) -> Advances directly to Step 4 (Retrieve)
     window.addEventListener('mousedown', (e) => {
         if (currentStep !== 3) return;
         const captureTarget = document.getElementById('capture-target');
@@ -1307,10 +1248,10 @@
             if (e.ctrlKey && e.shiftKey) {
                 captureTarget.style.background = 'rgba(16, 185, 129, 0.1)';
                 captureTarget.style.borderColor = 'var(--success-color)';
-                captureTarget.innerText = "✨ Captured successfully!";
+                captureTarget.innerText = "✨ Captured & synced to memory layer!";
                 setTimeout(() => advanceStep(4), 1000);
             } else {
-                const originalText = '"Use this text as a tutorial! You can add information from various tabs without your progress being deleted. patens handles deduplication and automatic title resolution behind the scenes."';
+                const originalText = '"Use this text as a tutorial! Captured items are instantly synced to your local memory layer and ready in your IDE with zero extra clicks."';
                 captureTarget.innerText = "⚠️ Oops! Make sure to hold Ctrl + Shift while clicking.";
                 captureTarget.style.borderColor = 'var(--warning-color)';
                 captureTarget.style.background = 'rgba(245, 158, 11, 0.1)';
@@ -1323,23 +1264,22 @@
         }
     }, true);
 
-    // Step 4 Event listener (Cart send all)
-    document.body.addEventListener('click', (e) => {
-        if (currentStep === 4 && e.target && e.target.closest('#cc-send-all')) {
-            setTimeout(() => advanceStep(5), 1200);
+    // Ensure clicking anywhere in Step 4 delegates focus to the textarea
+    document.getElementById('step4').addEventListener('click', (e) => {
+        if (currentStep === 4 && e.target.tagName !== 'BUTTON') {
+            document.getElementById('mock-chat-box').focus();
         }
     });
 
-    // Step 5 Event listener (Mock chat box)
+    // Step 4 Event listener (Mock chat box) -> Advances to Step 5 (Verify Connection)
     document.getElementById('mock-chat-box').addEventListener('input', (e) => {
-        if (currentStep === 5 && e.target.value.trim().length > 10) {
+        if (currentStep === 4 && e.target.value.trim().length > 10) {
             e.target.style.borderColor = 'var(--success-color)';
             e.target.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.2)';
-            setTimeout(() => advanceStep(6), 1000);
+            setTimeout(() => advanceStep(5), 1000);
         }
     });
 
-    // Initialize extension auto-detector polling
     detectBrowser();
     updateProgress();
     checkExtensionInstalled();
