@@ -79,7 +79,7 @@ Press `Enter` to stream cited Markdown directly into your active input—whether
 ## 📦 Installation & Setup
 
 ### Step 1: Install Browser Extension
-- 🌐 **Chrome / Edge / Brave:** [Download Extension (.zip)](https://download.patens.dev/latest/extension.zip) *(Load unpacked via `chrome://extensions`)*[cite: 2]
+- 🌐 **Chrome / Edge / Brave:** [Chrome Web Store](https://chromewebstore.google.com/detail/patens/ffmbjdnembhdfdmbhbagfgcnidlhpffd?authuser=4&hl=en-GB) • [Direct .ZIP Download](https://download.patens.dev/latest/extension.zip)
 - 🦊 **Firefox:** [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/patens/)
 
 ### Step 2: Install Local Memory Engine
@@ -87,6 +87,7 @@ Choose your preferred distribution:
 - 🏪 **Microsoft Store:** [Get on MS Store](ms-windows-store://pdp/?productid=9PM9R44F0RXV) *(Sandboxed desktop background app)*
 - 💻 **VS Code / Cursor Extension:** [Install Marketplace Extension](vscode:extension/patens-dev.patens) *(Auto-spins up local background engine)*
 - 📦 **Direct .EXE Installer:** [Download .EXE Installer](https://download.patens.dev/latest/patens_installer.exe) *(For standalone setups, Obsidian, & offline dev)*
+- 📋 **Manifest:** [View latest.json](https://download.patens.dev/latest.json)
 
 ---
 
@@ -99,8 +100,22 @@ The background engine exposes a local FastMCP stdio server sharing the same SQLi
 {
   "mcpServers": {
     "patens": {
+      "type": "stdio",
       "command": "patens",
-      "args": ["mcp"]
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+### VS Code (Cline / Copilot)
+```json
+{
+  "servers": {
+    "patens": {
+      "type": "stdio",
+      "command": "patens",
+      "args": ["--mcp"]
     }
   }
 }
@@ -112,7 +127,7 @@ The background engine exposes a local FastMCP stdio server sharing the same SQLi
   "mcpServers": {
     "patens": {
       "command": "patens",
-      "args": ["mcp"]
+      "args": ["--mcp"]
     }
   }
 }
@@ -120,7 +135,7 @@ The background engine exposes a local FastMCP stdio server sharing the same SQLi
 
 ### JetBrains / Visual Studio 2022 (GitHub Copilot)
 1. Install **GitHub Copilot** in your editor.
-2. Run the Patens desktop background engine (MS Store or `.EXE`).[cite: 1, 2]
+2. Run the Patens desktop background engine (MS Store or `.EXE`).
 3. Enable Agent mode in Copilot settings to query Patens vector memory autonomously.
 
 ---
@@ -128,12 +143,11 @@ The background engine exposes a local FastMCP stdio server sharing the same SQLi
 ## 📁 The `_context/` Workspace Directory
 
 When running inside an IDE workspace, Patens automatically writes and maintains a physical context directory:
-
 ```
-_context/
+context/
 ├── 00_Context_Index.md          # Master index of all research sources
-├── Pricing_Specs_Stripe_*.md    # Auto-coalesced clips by source URL
-├── API_Documentation_*.md
+├── Pricing_Specs_Stripe.md    # Auto-coalesced clips by source URL
+├── API_Documentation_.md
 └── .gitignore                   # Keeps research local if preferred
 ```
 
