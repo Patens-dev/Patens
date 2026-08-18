@@ -1,9 +1,14 @@
 #!/bin/bash
 set -euo pipefail
-# Automatically load environment variables from .env if present
+
+# 0. Automatically load environment variables safely
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    # shellcheck source=/dev/null
+    source .env
+    set +a
 fi
+
 # ===================================================================
 # CONFIGURATION & COLOR LOGGING
 # ===================================================================
@@ -30,9 +35,9 @@ get_size() {
     if [ -e "$1" ]; then du -sh "$1" 2>/dev/null | cut -f1; else echo "0B"; fi
 }
 
-TEMP_FILES=("version_info.txt" "msix_layout" "patens_setup.iss" "Patens.spec")
+# Only delete transient env files on exit (leaves spec/iss for debugging if build fails)
+TEMP_FILES=()
 cleanup() {
-    log_info "Cleaning temporary build script artifacts..."
     for item in "${TEMP_FILES[@]}"; do [ -e "$item" ] && rm -rf "$item"; done
 }
 trap cleanup EXIT INT TERM
@@ -111,7 +116,7 @@ else
 fi
 
 log_info "Cleaning previous build outputs..."
-rm -rf build dist Patens.spec msix_layout
+rm -rf build dist Patens.spec msix_layout patens_setup.iss version_info.txt
 mkdir -p dist
 
 # ===================================================================
@@ -139,8 +144,8 @@ try:
         company = authors[0].get("name", company)
 except Exception: pass
 
-v_parts = app_version.split(".")
-while len(v_parts) < 4: v_parts.append("0")
+v_parts = [int(p) for p in app_version.split(".") if p.isdigit()]
+while len(v_parts) < 4: v_parts.append(0)
 v_tuple = f"({v_parts[0]}, {v_parts[1]}, {v_parts[2]}, {v_parts[3]})"
 
 version_info_template = f"""VSVersionInfo(
@@ -172,6 +177,7 @@ with open(sys.argv[1], "w", encoding="utf-8") as f:
     f.write(f"EXT_DIR={shlex.quote(ext_dir)}\n")
 ' "$META_ENV"
 
+# shellcheck source=/dev/null
 source "$META_ENV"
 VERSION_DIR="dist/v${APP_VERSION}"
 mkdir -p "$VERSION_DIR"
@@ -276,6 +282,11 @@ for pkg in ["fastmcp", "fastmcp-slim"]:
         pass
 
 datas = [
+    ("assets/patens.ico", "assets"),
+    ("assets/patens_full_logo_white.png", "assets"),
+    ("assets/cursor_demo.mp4", "assets"),
+    ("assets/vsc_demo.mp4", "assets"),
+    ("assets/jetbrains_demo.mp4", "assets"),
     ("fastembed_cache", "fastembed_cache"),
     ("src/patens/server/default_config.yaml", "patens/server"),
     ("src/patens/server/templates", "patens/server/templates"),
@@ -321,7 +332,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -338,7 +349,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name="Patens",
 )
@@ -383,7 +394,7 @@ log_success "✅ Compiled binary booted successfully! All dynamic C-extensions a
 log_info "📦 Creating MSIX package layout..."
 start_timer
 
-PACKAGE_IDENTITY_NAME="Patens"
+PACKAGE_IDENTITY_NAME="Patens.Patens.dev"
 PACKAGE_IDENTITY_PUBLISHER="CN=Patens"
 PUBLISHER_DISPLAY_NAME="Patens"
 
@@ -413,8 +424,8 @@ cat << EOF > msix_layout/AppxManifest.xml
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="Patens.Patens.dev"
-    Publisher="CN=6F606911-9D25-40B8-9444-C3963DE67C69"
+    Name="${PACKAGE_IDENTITY_NAME}"
+    Publisher="${PACKAGE_IDENTITY_PUBLISHER}"
     Version="${APP_VERSION}.0" />
 
   <Properties>
@@ -469,8 +480,8 @@ log_info "⚙️ Generating standalone EXE installer..."
 start_timer
 EXE_INSTALLER_OUTPUT="${VERSION_DIR}/patens_installer_${APP_VERSION}.exe"
 
-mkdir -p assets
-VCREDIST_PATH="assets/vcredist_x64.exe"
+mkdir -p build_cache
+VCREDIST_PATH="build_cache/vcredist_x64.exe"
 if [ ! -f "$VCREDIST_PATH" ]; then
     log_info "📥 Downloading Visual C++ 2015-2022 x64 Redistributable..."
     curl -sSL "https://aka.ms/vs/17/release/vc_redist.x64.exe" -o "$VCREDIST_PATH" || {
@@ -485,7 +496,7 @@ if [ -n "$ISCC_CMD" ]; then
 AppName=Patens
 AppVersion=${APP_VERSION}
 AppPublisher=${COMPANY}
-DefaultDirName={userappdata}\..\Local\Programs\Patens
+DefaultDirName={localappdata}\Programs\Patens
 PrivilegesRequired=lowest
 OutputBaseFilename=patens_installer_${APP_VERSION}
 Compression=lzma2/ultra64
@@ -497,7 +508,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
 Source: "dist\Patens\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "assets\vcredist_x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: VCRedistNeedsInstall
+Source: "build_cache\vcredist_x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: VCRedistNeedsInstall
 
 [Icons]
 Name: "{group}\Patens"; Filename: "{app}\Patens.exe"

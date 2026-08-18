@@ -29,33 +29,89 @@ recent_activity: deque = deque(maxlen=200)
 
 def get_assets_dir() -> Path:
     """
-    Resolves the assets directory across development, repository root,
-    and PyInstaller frozen binary environments.
+    Resolves the assets directory across development, PyInstaller onedir (_internal),
+    onefile temp directories, Inno Setup installations, and repository root.
     """
+    candidates = []
+
     if getattr(sys, "frozen", False):
-        candidates = [
-            Path(sys._MEIPASS) / "patens" / "server" / "assets",
-            Path(sys._MEIPASS) / "assets",
-        ]
+        exe_dir = Path(sys.executable).resolve().parent
+        candidates.extend([
+            exe_dir / "assets",
+            exe_dir / "_internal" / "assets",
+        ])
+        meipass_raw = getattr(sys, "_MEIPASS", None)
+        if meipass_raw:
+            meipass = Path(meipass_raw)
+            candidates.extend([
+                meipass / "assets",
+                meipass / "patens" / "server" / "assets",
+                meipass / "_internal" / "assets",
+            ])
+        candidates.append(Path.cwd() / "assets")
     else:
         current_file = Path(__file__).resolve()
-        candidates = [
-            # 1. Project root assets: <repo_root>/assets (e.g. D:\dev\memory-layer\assets)
-            current_file.parents[3] / "assets" if len(current_file.parents) > 3 else None,
-            # 2. Package-level assets: src/patens/server/assets
-            current_file.parent / "assets",
-            # 3. Current Working Directory assets
-            Path.cwd() / "assets",
-        ]
+        for parent in current_file.parents:
+            candidates.append(parent / "assets")
+        candidates.append(current_file.parent / "assets")
+        candidates.append(Path.cwd() / "assets")
 
-    for candidate in candidates:
-        if candidate and candidate.exists() and candidate.is_dir():
-            return candidate
+    valid_dirs = [c for c in candidates if c and c.exists() and c.is_dir()]
 
-    # Fallback: create and return package-level assets directory
+    # Prioritize candidate directory that contains files
+    for candidate in valid_dirs:
+        try:
+            if any(candidate.iterdir()):
+                logger.info("Resolved active assets directory: %s", candidate)
+                return candidate
+        except Exception:
+            continue
+
+    if valid_dirs:
+        logger.info("Resolved assets directory: %s", valid_dirs[0])
+        return valid_dirs[0]
+
     fallback = Path(__file__).resolve().parent / "assets"
     fallback.mkdir(parents=True, exist_ok=True)
+    logger.warning("Assets directory not found. Using fallback: %s", fallback)
     return fallback
+
+
+def get_template_html(filename: str) -> str:
+    """
+    Resolves HTML templates across frozen PyInstaller binaries and dev environments.
+    """
+    candidates = []
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        meipass_raw = getattr(sys, "_MEIPASS", None)
+        if meipass_raw:
+            meipass = Path(meipass_raw)
+            candidates.extend([
+                meipass / "patens" / "server" / "templates",
+                meipass / "templates",
+            ])
+        candidates.extend([
+            exe_dir / "_internal" / "patens" / "server" / "templates",
+            exe_dir / "patens" / "server" / "templates",
+            exe_dir / "templates",
+        ])
+    else:
+        current_file = Path(__file__).resolve()
+        candidates.append(current_file.parent / "templates")
+        for parent in current_file.parents:
+            candidates.append(parent / "src" / "patens" / "server" / "templates")
+            candidates.append(parent / "templates")
+
+    for candidate in candidates:
+        file_path = candidate / filename
+        if file_path.exists() and file_path.is_file():
+            try:
+                return file_path.read_text(encoding="utf-8")
+            except Exception as e:
+                logger.error("Failed to read template %s from %s: %s", filename, file_path, e)
+
+    return f"<h1>Error: Could not load {filename}</h1>"
 
 
 def save_base64_image(media_string: str, image_dir: Union[str, Path]) -> str:
@@ -70,18 +126,6 @@ def save_base64_image(media_string: str, image_dir: Union[str, Path]) -> str:
     except Exception as e:
         logger.error("Failed to decode or write base64 image: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to process image payload")
-
-
-def get_template_html(filename: str) -> str:
-    if getattr(sys, "frozen", False):
-        base_dir = Path(sys._MEIPASS) / "patens" / "server" / "templates"
-    else:
-        base_dir = Path(__file__).resolve().parent / "templates"
-    file_path = base_dir / filename
-    try:
-        return file_path.read_text(encoding="utf-8")
-    except Exception:
-        return f"<h1>Error: Could not load {filename}</h1>"
 
 
 def normalize_db_record(row: Any, reference_time: datetime) -> Dict[str, Any]:
@@ -402,6 +446,19 @@ def create_routers(
     @internal_router.get("/activity-data")
     def get_activity_data():
         return {"activities": list(recent_activity)}
+
+    @internal_router.get("/assets-debug")
+    def debug_assets():
+        assets_path = get_assets_dir()
+        files = [f.name for f in assets_path.iterdir()] if assets_path.exists() else []
+        return {
+            "resolved_path": str(assets_path),
+            "exists": assets_path.exists(),
+            "is_frozen": getattr(sys, "frozen", False),
+            "meipass": getattr(sys, "_MEIPASS", None),
+            "executable_dir": str(Path(sys.executable).resolve().parent),
+            "files": files
+        }
 
     @internal_router.post("/shutdown")
     async def shutdown_server(request: Request):

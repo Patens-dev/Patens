@@ -285,6 +285,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.25s ease;
         }
 
         .status-pill.success {
@@ -297,6 +298,12 @@
             background: rgba(245, 158, 11, 0.1);
             color: var(--warning-color);
             border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .status-pill.info {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59, 130, 246, 0.2);
         }
 
         .option-grid {
@@ -786,7 +793,6 @@
                 </h2>
                 <p>Verifying background connection to your local Patens memory engine.</p>
                 <div style="display: flex; gap: 12px; margin-top: 12px;">
-                    <span class="status-pill success" id="ext-verified-pill">🟢 Extension Active</span>
                     <span class="status-pill warning" id="server-status">🟡 Checking Server...</span>
                 </div>
             </div>
@@ -1001,11 +1007,17 @@
 </div>
 
 <script>
-    let currentStep = 1;
+    const EXTENSION_CHROME_ID = "ffmbjdnembhdfdmbhbagfgcnidlhpffd";
+    let currentStep = parseInt(sessionStorage.getItem('patens_setup_step')) || 1;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('step')) {
+        currentStep = parseInt(urlParams.get('step')) || currentStep;
+    }
+
     const totalSteps = 5;
     let mcpPollingInterval = null;
     let extensionDetected = false;
-    let checkCount = 0;
+    let checkInterval = null;
 
     function detectBrowser() {
         const ua = navigator.userAgent;
@@ -1028,27 +1040,59 @@
         primaryBtn.style.borderColor = 'var(--accent-blue)';
         primaryBtn.style.background = 'rgba(59, 130, 246, 0.1)';
         grid.prepend(primaryBtn);
+
+        [btnChrome, btnFirefox, btnEdge].forEach(btn => {
+            btn.addEventListener('click', () => {
+                sessionStorage.setItem('patens_store_opened', Date.now().toString());
+                const statusEl = document.getElementById('extension-status');
+                if (statusEl) {
+                    statusEl.className = 'status-pill info';
+                    statusEl.innerText = '⏳ Waiting for installation to complete in store...';
+                }
+            });
+        });
     }
 
-    function checkExtensionInstalled() {
-        if (extensionDetected) return true;
-        checkCount++;
-
+    function checkDOMMarkers() {
         const docAttrExt = document.documentElement.hasAttribute('data-patens-extension');
         const docAttrInst = document.documentElement.getAttribute('data-patens-installed') === 'true';
-        const bodyAttrExt = document.body.hasAttribute('data-patens-extension');
-        const bodyAttrInst = document.body.hasAttribute('data-patens-installed');
+        const bodyAttrExt = document.body && document.body.hasAttribute('data-patens-extension');
+        const bodyAttrInst = document.body && document.body.hasAttribute('data-patens-installed');
 
         const cartRoot = document.getElementById('patens-context-cart-root') !== null;
         const extRoot = document.getElementById('patens-extension-root') !== null;
         const dataRoot = document.querySelector('[data-patens-root]') !== null;
         const winGlobal = window.__PATENS_EXTENSION__ === true;
 
-        if (docAttrExt || docAttrInst || bodyAttrExt || bodyAttrInst || cartRoot || extRoot || dataRoot || winGlobal) {
+        return (docAttrExt || docAttrInst || bodyAttrExt || bodyAttrInst || cartRoot || extRoot || dataRoot || winGlobal);
+    }
+
+    function checkExtensionInstalled() {
+        if (extensionDetected) return true;
+
+        if (checkDOMMarkers()) {
             onExtensionDetected('DOM Marker');
             return true;
         }
 
+        // Direct Chromium Extension Runtime ID Probe (Safely handles chrome.runtime.lastError)
+        if (window.chrome && window.chrome.runtime && typeof window.chrome.runtime.sendMessage === 'function') {
+            try {
+                window.chrome.runtime.sendMessage(EXTENSION_CHROME_ID, { type: 'PATENS_PING', source: 'patens-welcome' }, (response) => {
+                    // Consuming chrome.runtime.lastError silences the "message port closed" warning
+                    if (window.chrome.runtime.lastError) {
+                        return;
+                    }
+                    if (response && (response.installed === true || response.status === 'ok' || response.type === 'PATENS_PONG')) {
+                        onExtensionDetected('Direct Runtime Message');
+                    }
+                });
+            } catch (e) {
+                // Ignore runtime communication failures
+            }
+        }
+
+        // Broadcast postMessage and CustomEvents to the extension content script
         window.postMessage({ source: 'patens-welcome', action: 'ping', type: 'PATENS_PING' }, '*');
         window.dispatchEvent(new CustomEvent('PATENS_PING_EVENT', { detail: { source: 'welcome' } }));
         window.dispatchEvent(new CustomEvent('PATENS_CHECK_INSTALLED'));
@@ -1060,16 +1104,13 @@
         if (extensionDetected) return;
         extensionDetected = true;
 
+        sessionStorage.setItem('patens_ext_verified', 'true');
+        sessionStorage.removeItem('patens_store_opened');
+
         const statusEl = document.getElementById('extension-status');
         if (statusEl) {
             statusEl.className = 'status-pill success';
             statusEl.innerText = '🟢 Browser Extension Verified!';
-        }
-
-        const extPill = document.getElementById('ext-verified-pill');
-        if (extPill) {
-            extPill.className = 'status-pill success';
-            extPill.innerText = '🟢 Extension Active';
         }
 
         const activeOptionBtn = document.querySelector('.option-btn[style*="accent-blue"]');
@@ -1077,11 +1118,30 @@
             activeOptionBtn.classList.add('detected');
         }
 
+        // Check if content script has injected the interactive context cart container.
+        // If the extension was installed while this tab was already open, reload once so the
+        // browser automatically mounts the content script and context cart on page load.
+        const hasCartInjected = document.getElementById('patens-context-cart-root') !== null ||
+                                document.getElementById('patens-extension-root') !== null;
+
+        if (!hasCartInjected && sessionStorage.getItem('patens_tab_reloaded') !== 'true') {
+            sessionStorage.setItem('patens_tab_reloaded', 'true');
+            sessionStorage.setItem('patens_setup_step', '2');
+            if (statusEl) {
+                statusEl.innerText = '🟢 Extension Verified! Syncing context cart...';
+            }
+            setTimeout(() => {
+                window.location.href = window.location.pathname + '?step=2';
+            }, 400);
+            return;
+        }
+
         if (currentStep === 1) {
             setTimeout(() => advanceStep(2), 600);
         }
     }
 
+    // Window message listener for extension responses
     window.addEventListener('message', (e) => {
         if (e.data && (e.data.source === 'patens-extension' || e.data.type === 'PATENS_PONG' || e.data.patensInstalled === true)) {
             onExtensionDetected('postMessage PONG');
@@ -1094,6 +1154,62 @@
 
     window.addEventListener('patens-extension-detected', () => {
         onExtensionDetected('patens-extension-detected Event');
+    });
+
+    // Setup MutationObserver to immediately catch injected attributes or elements
+    function setupDOMObserver() {
+        const observer = new MutationObserver(() => {
+            if (checkDOMMarkers()) {
+                onExtensionDetected('MutationObserver');
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+            attributeFilter: ['data-patens-extension', 'data-patens-installed']
+        });
+    }
+
+    // Auto-reload synchronization when user returns to this tab after visiting the Web Store
+    function handleTabReturn() {
+        if (extensionDetected) return;
+
+        const storeOpenedTime = sessionStorage.getItem('patens_store_opened');
+        if (storeOpenedTime) {
+            const timeElapsed = Date.now() - parseInt(storeOpenedTime);
+            // If user opened store in the last 15 minutes, perform a fast verification check
+            if (timeElapsed < 15 * 60 * 1000) {
+                const statusEl = document.getElementById('extension-status');
+                if (statusEl) {
+                    statusEl.className = 'status-pill info';
+                    statusEl.innerText = '🔄 Detecting new extension...';
+                }
+
+                let attempts = 0;
+                const burstCheck = setInterval(() => {
+                    attempts++;
+                    if (checkExtensionInstalled() || attempts > 10) {
+                        clearInterval(burstCheck);
+                        // If not detected via DOM/postMessage after 3 seconds, soft-reload so Chrome injects the content script
+                        if (!extensionDetected && attempts > 10 && sessionStorage.getItem('patens_tab_reloaded') !== 'true') {
+                            sessionStorage.setItem('patens_tab_reloaded', 'true');
+                            sessionStorage.setItem('patens_setup_step', '2');
+                            window.location.href = window.location.pathname + '?step=2';
+                        }
+                    }
+                }, 300);
+            }
+        }
+    }
+
+    window.addEventListener('focus', handleTabReturn);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            handleTabReturn();
+        }
     });
 
     function copyActivationPrompt(el) {
@@ -1130,6 +1246,7 @@
     function updateProgress() {
         document.getElementById('current-step-display').innerText = currentStep;
         document.getElementById('progress-bar').style.width = `${((currentStep - 1) / totalSteps) * 100}%`;
+        sessionStorage.setItem('patens_setup_step', currentStep.toString());
 
         for (let i = 1; i <= totalSteps; i++) {
             const card = document.getElementById(`step${i}`);
@@ -1142,7 +1259,6 @@
                 card.className = 'step-card active';
                 if (i === 2) checkServer();
                 if (i === 4) {
-                    // Auto-focus textarea immediately when Step 4 activates
                     setTimeout(() => {
                         const chatBox = document.getElementById('mock-chat-box');
                         if (chatBox) {
@@ -1175,6 +1291,7 @@
     function finishSetup() {
         if (mcpPollingInterval) clearInterval(mcpPollingInterval);
         currentStep = 6;
+        sessionStorage.setItem('patens_setup_step', '6');
         document.getElementById('progress-bar').style.width = '100%';
         document.querySelectorAll('.step-card').forEach(c => {
             c.className = 'step-card done';
@@ -1213,7 +1330,7 @@
                     document.getElementById('path-warning').style.display = 'block';
                 }
 
-                setTimeout(() => advanceStep(3), 1200);
+                setTimeout(() => advanceStep(3), 1000);
             }
         } catch (e) {
             setTimeout(checkServer, 2000);
@@ -1280,10 +1397,12 @@
         }
     });
 
+    // Initialization
     detectBrowser();
+    setupDOMObserver();
     updateProgress();
     checkExtensionInstalled();
-    setInterval(checkExtensionInstalled, 1000);
+    checkInterval = setInterval(checkExtensionInstalled, 1000);
 </script>
 </body>
 </html>

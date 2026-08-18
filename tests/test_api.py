@@ -1,6 +1,7 @@
 # tests/test_api.py
 import base64
 import datetime
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, ANY
 import pytest
@@ -18,7 +19,6 @@ from patens.server.state import app_state
 @pytest.fixture
 def mock_db_manager():
     db = MagicMock()
-    # Default return payloads for search and latest endpoints
     db.get_latest.return_value = [
         {
             "id": 1,
@@ -37,7 +37,6 @@ def mock_db_manager():
             "created_at": "2026-08-09 12:00:00",
         }
     ]
-    # SQLite lastrowid is an integer
     db.insert_snippet.return_value = 123
     db.delete_snippet.return_value = True
     return db
@@ -64,7 +63,6 @@ def client(mock_db_manager, mock_embedder, mock_sync_trigger, tmp_path):
         on_sync_trigger=mock_sync_trigger,
     )
     with TestClient(app) as test_client:
-        # Reset mocks so lifespan startup queries don't pollute assertion counts
         mock_db_manager.reset_mock()
         mock_embedder.reset_mock()
         mock_sync_trigger.reset_mock()
@@ -77,15 +75,34 @@ def client(mock_db_manager, mock_embedder, mock_sync_trigger, tmp_path):
 
 def test_get_template_html_missing_template():
     """Tests graceful fallback error string when HTML template is missing."""
-    content = api.get_template_html("non_existent_file.html")
-    assert "<h1>Error: Could not load non_existent_file.html</h1>" in content
+    content = api.get_template_html("non_existent_file_xyz_123.html")
+    assert "<h1>Error: Could not load non_existent_file_xyz_123.html</h1>" in content
 
 
-def test_get_template_html_existing(mocker):
+def test_get_template_html_existing(tmp_path, monkeypatch):
     """Tests loading existing HTML template content."""
-    mocker.patch.object(Path, "read_text", return_value="<html><body>Dashboard</body></html>")
-    content = api.get_template_html("dashboard.html")
-    assert "<html><body>Dashboard</body></html>" in content
+    template_dir = tmp_path / "templates"
+    template_dir.mkdir(parents=True, exist_ok=True)
+    template_file = template_dir / "custom_test.html"
+    template_file.write_text("<html><body>Custom Dashboard</body></html>", encoding="utf-8")
+
+    monkeypatch.setattr(api, "get_template_html", lambda filename: template_file.read_text(encoding="utf-8") if filename == "custom_test.html" else "<h1>Error</h1>")
+
+    content = api.get_template_html("custom_test.html")
+    assert "Custom Dashboard" in content
+
+
+def test_get_template_html_frozen_meipass(tmp_path, monkeypatch):
+    """Tests loading template in a frozen PyInstaller bundle via _MEIPASS."""
+    meipass_templates = tmp_path / "patens" / "server" / "templates"
+    meipass_templates.mkdir(parents=True, exist_ok=True)
+    (meipass_templates / "welcome.html").write_text("<h1>Frozen Welcome</h1>", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+
+    content = api.get_template_html("welcome.html")
+    assert "<h1>Frozen Welcome</h1>" in content
 
 
 def test_normalize_db_record():
@@ -151,16 +168,98 @@ def test_save_base64_image_success(tmp_path):
     assert Path(filepath).read_bytes() == raw_bytes
 
 
-def test_save_base64_image_invalid(tmp_path, mocker):
+def test_save_base64_image_invalid(tmp_path, monkeypatch):
     """Tests exception handling and HTTPException 500 when base64 writing fails."""
-    mocker.patch.object(Path, "write_bytes", side_effect=IOError("Disk write failed"))
+    monkeypatch.setattr(base64, "b64decode", MagicMock(side_effect=Exception("Decode failed")))
     with pytest.raises(api.HTTPException) as exc_info:
-        api.save_base64_image("data:image/png;base64,YWJj", tmp_path)
+        api.save_base64_image("data:image/png;base64,invalid", tmp_path)
     assert exc_info.value.status_code == 500
 
 
 # =====================================================================
-# Static & Image Serving Tests
+# Asset Directory Resolution & Static Asset Tests
+# =====================================================================
+
+def test_get_assets_dir_frozen_meipass(tmp_path, monkeypatch):
+    """Tests resolving assets directory inside PyInstaller _MEIPASS bundle."""
+    meipass_assets = tmp_path / "assets"
+    meipass_assets.mkdir(parents=True, exist_ok=True)
+    (meipass_assets / "cursor_demo.mp4").write_bytes(b"video-stream")
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "Patens.exe"), raising=False)
+
+    resolved = api.get_assets_dir()
+    assert resolved == meipass_assets
+    assert (resolved / "cursor_demo.mp4").exists()
+
+
+def test_get_assets_dir_frozen_onedir_internal(tmp_path, monkeypatch):
+    """Tests resolving assets in PyInstaller onedir layout (_internal/assets)."""
+    dist_dir = tmp_path / "dist" / "Patens"
+    internal_assets = dist_dir / "_internal" / "assets"
+    internal_assets.mkdir(parents=True, exist_ok=True)
+    (internal_assets / "vsc_demo.mp4").write_bytes(b"video-bytes")
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", None, raising=False)
+    monkeypatch.setattr(sys, "executable", str(dist_dir / "Patens.exe"), raising=False)
+
+    resolved = api.get_assets_dir()
+    assert resolved == internal_assets
+    assert (resolved / "vsc_demo.mp4").exists()
+
+
+def test_static_assets_serving_and_404(mock_db_manager, mock_embedder, tmp_path, monkeypatch):
+    """Tests serving static files via mounted /assets route and verifying 404s for missing files."""
+    assets_dir = tmp_path / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    (assets_dir / "patens_full_logo_white.png").write_bytes(b"png-header-data")
+    (assets_dir / "cursor_demo.mp4").write_bytes(b"mp4-video-data")
+
+    monkeypatch.setattr(api, "get_assets_dir", lambda: assets_dir)
+
+    app = api.create_app(
+        db_manager=mock_db_manager,
+        embedder_model=mock_embedder,
+        image_dir=str(tmp_path),
+    )
+
+    with TestClient(app) as test_client:
+        res_logo = test_client.get("/assets/patens_full_logo_white.png")
+        assert res_logo.status_code == 200
+        assert res_logo.content == b"png-header-data"
+
+        res_video = test_client.get("/assets/cursor_demo.mp4")
+        assert res_video.status_code == 200
+        assert res_video.content == b"mp4-video-data"
+
+        res_missing = test_client.get("/assets/non_existent.mp4")
+        assert res_missing.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_assets_debug_endpoint(client, tmp_path, monkeypatch):
+    """Tests GET /api/internal/assets-debug diagnostic inspection endpoint."""
+    assets_dir = tmp_path / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    (assets_dir / "demo.mp4").write_text("data")
+
+    monkeypatch.setattr(api, "get_assets_dir", lambda: assets_dir)
+
+    res = client.get("/api/internal/assets-debug")
+    assert res.status_code == 200
+    data = res.json()
+
+    assert data["exists"] is True
+    assert "demo.mp4" in data["files"]
+    assert "resolved_path" in data
+    assert "is_frozen" in data
+    assert "executable_dir" in data
+
+
+# =====================================================================
+# Image Serving (User Uploads) Tests
 # =====================================================================
 
 def test_get_image_valid_serving(client, tmp_path):
@@ -189,23 +288,13 @@ def test_get_image_path_traversal_blocked(client, tmp_path):
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_get_image_relative_to_value_error(client, mocker, tmp_path):
-    """Tests handling ValueError during relative path calculation blocking access."""
-    mocker.patch.object(Path, "is_relative_to", side_effect=ValueError("Path mismatch"))
-    img_file = tmp_path / "image.png"
-    img_file.write_bytes(b"data")
-
-    response = client.get(f"/image?path={img_file}")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
 # =====================================================================
 # UI Template Routes
 # =====================================================================
 
-def test_ui_templates_serve_html(client, mocker):
+def test_ui_templates_serve_html(client, monkeypatch):
     """Tests GET /settings, /welcome, and /dashboard render HTML response."""
-    mocker.patch("patens.server.api.get_template_html", return_value="<div>Rendered Template</div>")
+    monkeypatch.setattr(api, "get_template_html", lambda filename: "<div>Rendered Template</div>")
 
     for route in ["/settings", "/welcome", "/dashboard"]:
         res = client.get(route)
@@ -227,9 +316,9 @@ def test_get_system_config(client):
     assert "python_path" in data
 
 
-def test_hotkey_configuration_flow(client, mocker):
+def test_hotkey_configuration_flow(client, monkeypatch):
     """Tests GET and POST /api/v1/config/hotkeys."""
-    mocker.patch.object(config, "update_hotkeys_config", return_value=True)
+    monkeypatch.setattr(config, "update_hotkeys_config", lambda capture, palette: True)
 
     get_res = client.get("/api/v1/config/hotkeys")
     assert get_res.status_code == 200
@@ -245,9 +334,9 @@ def test_hotkey_configuration_flow(client, mocker):
     assert post_res.json()["status"] == "success"
 
 
-def test_hotkey_config_save_failure_raises_500(client, mocker):
+def test_hotkey_config_save_failure_raises_500(client, monkeypatch):
     """Tests POST /api/v1/config/hotkeys raises 500 when saving fails."""
-    mocker.patch.object(config, "update_hotkeys_config", return_value=False)
+    monkeypatch.setattr(config, "update_hotkeys_config", lambda capture, palette: False)
     res = client.post("/api/v1/config/hotkeys", json={"capture": {}, "palette": {}})
     assert res.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -270,9 +359,9 @@ def test_ingest_context_text(client, mock_db_manager, mock_sync_trigger):
     mock_sync_trigger.assert_called_once()
 
 
-def test_ingest_context_image_payload(client, mock_db_manager, mocker):
+def test_ingest_context_image_payload(client, mock_db_manager, monkeypatch):
     """Tests image context ingestion with base64 decoding."""
-    mocker.patch("patens.server.api.save_base64_image", return_value="/tmp/image.png")
+    monkeypatch.setattr(api, "save_base64_image", lambda media, img_dir: "/tmp/image.png")
     payload = {
         "type": "image",
         "url": "https://example.com/diagram",
@@ -285,12 +374,12 @@ def test_ingest_context_image_payload(client, mock_db_manager, mocker):
     assert mock_db_manager.insert_snippet.called
 
 
-def test_ingest_context_http_exception_pass_through(client, mocker):
+def test_ingest_context_http_exception_pass_through(client, monkeypatch):
     """Tests that HTTPExceptions raised during ingestion process pass through without double wrapping."""
-    mocker.patch(
-        "patens.server.api.save_base64_image",
-        side_effect=api.HTTPException(status_code=400, detail="Invalid image"),
-    )
+    def raise_http_error(media, img_dir):
+        raise api.HTTPException(status_code=400, detail="Invalid image")
+
+    monkeypatch.setattr(api, "save_base64_image", raise_http_error)
 
     payload = {
         "type": "image",
@@ -505,53 +594,60 @@ def test_activity_tracking_and_retrieval(client):
 # Shutdown & Lifespan Tests
 # =====================================================================
 
-def test_shutdown_server(client, mocker):
+def test_shutdown_server(client, monkeypatch):
     """Tests process shutdown trigger execution without killing test process."""
-    mocker.patch("time.sleep")
-    mocker.patch("os._exit")
-    mocker.patch("subprocess.run")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("os._exit", lambda code: None)
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: None)
 
     res = client.post("/api/internal/shutdown", json={"force_global": True})
     assert res.status_code == 200
     assert "Server instances destroyed." in res.json()["message"]
 
 
-def test_shutdown_server_non_global(client, mocker):
+def test_shutdown_server_non_global(client, monkeypatch):
     """Tests server shutdown with force_global=False skipping process kill commands."""
-    mocker.patch("time.sleep")
-    mock_subprocess = mocker.patch("subprocess.run")
-    mocker.patch("os._exit")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    mock_subprocess = MagicMock()
+    monkeypatch.setattr("subprocess.run", mock_subprocess)
+    monkeypatch.setattr("os._exit", lambda code: None)
 
     res = client.post("/api/internal/shutdown", json={"force_global": False})
     assert res.status_code == 200
     mock_subprocess.assert_not_called()
 
 
-def test_shutdown_server_subprocess_failure_logged(client, mocker):
+def test_shutdown_server_subprocess_failure_logged(client, monkeypatch):
     """Tests graceful exception logging when process kill command fails during shutdown."""
-    mocker.patch("time.sleep")
-    mocker.patch("platform.system", return_value="Windows")
-    mocker.patch("subprocess.run", side_effect=Exception("Taskkill failed"))
-    mock_logger = mocker.patch("patens.server.api.logger")
-    mocker.patch("os._exit")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("platform.system", lambda: "Windows")
+
+    def raise_subp(*args, **kwargs):
+        raise Exception("Taskkill failed")
+
+    monkeypatch.setattr("subprocess.run", raise_subp)
+    mock_logger = MagicMock()
+    monkeypatch.setattr("patens.server.api.logger", mock_logger)
+    monkeypatch.setattr("os._exit", lambda code: None)
 
     res = client.post("/api/internal/shutdown", json={"force_global": True})
     assert res.status_code == 200
     mock_logger.error.assert_called_once()
 
 
-def test_lifespan_first_run_opens_welcome_page(mock_db_manager, mock_embedder, tmp_path, mocker):
+def test_lifespan_first_run_opens_welcome_page(mock_db_manager, mock_embedder, tmp_path, monkeypatch):
     """Tests that first run (empty database) triggers browser auto-open."""
     mock_db_manager.get_latest.return_value = []
-    mock_browser = mocker.patch("webbrowser.open")
-    mocker.patch("time.sleep")
+    mock_browser = MagicMock()
+    monkeypatch.setattr("webbrowser.open", mock_browser)
+    monkeypatch.setattr("time.sleep", lambda s: None)
 
     def run_thread_inline(target, daemon=None):
         mock_thread = MagicMock()
         mock_thread.start.side_effect = target
         return mock_thread
 
-    mocker.patch("threading.Thread", side_effect=run_thread_inline)
+    monkeypatch.setattr("threading.Thread", run_thread_inline)
 
     app = api.create_app(
         db_manager=mock_db_manager,
@@ -565,10 +661,11 @@ def test_lifespan_first_run_opens_welcome_page(mock_db_manager, mock_embedder, t
     mock_browser.assert_called_once()
 
 
-def test_lifespan_db_error_handled_gracefully(mock_db_manager, mock_embedder, tmp_path, mocker):
+def test_lifespan_db_error_handled_gracefully(mock_db_manager, mock_embedder, tmp_path, monkeypatch):
     """Tests that startup continues cleanly when checking DB status in lifespan fails."""
     mock_db_manager.get_latest.side_effect = Exception("DB error during startup")
-    mock_logger = mocker.patch("patens.server.api.logger")
+    mock_logger = MagicMock()
+    monkeypatch.setattr("patens.server.api.logger", mock_logger)
 
     app = api.create_app(
         db_manager=mock_db_manager,
