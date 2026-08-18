@@ -147,6 +147,7 @@ except Exception: pass
 v_parts = [int(p) for p in app_version.split(".") if p.isdigit()]
 while len(v_parts) < 4: v_parts.append(0)
 v_tuple = f"({v_parts[0]}, {v_parts[1]}, {v_parts[2]}, {v_parts[3]})"
+msix_version = f"{v_parts[0]}.{v_parts[1]}.{v_parts[2]}.{v_parts[3]}"
 
 version_info_template = f"""VSVersionInfo(
   ffi=FixedFileInfo(filevers={v_tuple}, prodvers={v_tuple}, mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
@@ -172,6 +173,7 @@ if ext_manifest_path:
 
 with open(sys.argv[1], "w", encoding="utf-8") as f:
     f.write(f"APP_VERSION={shlex.quote(app_version)}\n")
+    f.write(f"MSIX_VERSION={shlex.quote(msix_version)}\n")
     f.write(f"EXT_VERSION={shlex.quote(ext_version)}\n")
     f.write(f"COMPANY={shlex.quote(company)}\n")
     f.write(f"EXT_DIR={shlex.quote(ext_dir)}\n")
@@ -395,7 +397,7 @@ log_info "📦 Creating MSIX package layout..."
 start_timer
 
 PACKAGE_IDENTITY_NAME="Patens.Patens.dev"
-PACKAGE_IDENTITY_PUBLISHER="CN=Patens"
+PACKAGE_IDENTITY_PUBLISHER="CN=6F606911-9D25-40B8-9444-C3963DE67C69"
 PUBLISHER_DISPLAY_NAME="Patens"
 
 mkdir -p msix_layout/Assets
@@ -426,7 +428,7 @@ cat << EOF > msix_layout/AppxManifest.xml
   <Identity
     Name="${PACKAGE_IDENTITY_NAME}"
     Publisher="${PACKAGE_IDENTITY_PUBLISHER}"
-    Version="${APP_VERSION}.0" />
+    Version="${MSIX_VERSION}" />
 
   <Properties>
     <DisplayName>Patens</DisplayName>
